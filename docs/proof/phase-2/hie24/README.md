@@ -1,11 +1,11 @@
 # Phase 2 — Quán & Shop — Hie24
 
-21/11/2026 · Nhánh `ie24/phase-2-quan-shop`, bắt đầu từ `main` **20d41ee**.
+21/11/2026 · Nhánh `hie24/phase-2-quan-shop`, đã merge `main` **b7f0161** (base ban đầu **20d41ee**).
 Nguồn: [TICKET-02](https://claude.ai/artifact/E35v787wSx2wDgPTNhMVDg#phase-2), [#7](https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC/issues/7), [#8](https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC/issues/8), hợp đồng tích hợp v1.1 mục 6.4.
 
-**Kết quả:** [140/140 test pass](unittest.log) (110 test nền + 11 test Quán + 19 test Shop), exit 0.
-[5/5 headless check pass](headless-check.txt); một Ngày hoàn tất ở tick **22.200**, **0,38 s** trên Windows/Python 3.13.5.
-Các log kiểm bản làm việc trên base 20d41ee; [SHA-256](sources.sha256) ghi nhận đúng bốn file code/test đã kiểm.
+**Kết quả:** [156/156 test pass](unittest.log) (126 test nền + 11 test Quán + 19 test Shop), exit 0.
+[5/5 headless check pass](headless-check.txt); một Ngày hoàn tất ở tick **22.200**, **0,70 s** trên Windows/Python 3.13.5.
+Các log kiểm cây làm việc sau merge b7f0161, trước commit merge; [SHA-256](sources.sha256) ghi nhận đúng bốn file code/test đã kiểm.
 
 | Phạm vi | Nội dung đã kiểm | Kết quả |
 |---|---|---|

@@ -6,6 +6,8 @@ Mã thoát: 0 bình thường; 2 tham số/đầu vào sai (kiểm TRƯỚC khi 
 import argparse
 import os
 import sys
+import tempfile
+from contextlib import contextmanager
 
 from .contract import load_contract
 from .errors import BadInput
@@ -29,6 +31,18 @@ def _int(name):
         except ValueError:
             raise argparse.ArgumentTypeError(f"{name} phải là số nguyên")
     return conv
+
+
+@contextmanager
+def _output_path(mode, path):
+    if mode != "day":
+        yield path
+        return
+    # Một fixture có thể mâu thuẫn khi quán nhận kho cuối buổi sáng.
+    with tempfile.TemporaryDirectory(dir=os.path.dirname(os.path.abspath(path))) as folder:
+        staged = os.path.join(folder, "day.jsonl")
+        yield staged
+        os.replace(staged, path)
 
 
 def main(argv=None) -> int:
@@ -68,14 +82,16 @@ def main(argv=None) -> int:
         contract = load_contract()
         tuning = contract["tuning"]
         inventory = read_inventory(a.inventory) if a.inventory else None
-        scenario = load_scenario(a.scenario, a.mode, tuning, inventory=inventory)
+        scenario = load_scenario(a.scenario, a.mode, tuning, inventory=inventory,
+                                 extensions=contract.get("extensions", []))
         frames = load_frames(a.inputs)
     except BadInput as e:
         sys.stderr.write(f"đầu vào sai: {e}\n")
         return 2
     try:
-        run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
-            inventory=inventory, inventory_out=a.inventory_out, days=days)
+        with _output_path(a.mode, a.out) as out:
+            run(a.mode, tuning, scenario, a.seed, frames, a.ticks, out, a.snapshot_every,
+                inventory=inventory, inventory_out=a.inventory_out, days=days)
     except BadInput as e:  # lỗi mức luật phát hiện lúc dựng sim
         sys.stderr.write(f"đầu vào sai: {e}\n")
         return 2

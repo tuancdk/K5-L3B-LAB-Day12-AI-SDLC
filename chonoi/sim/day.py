@@ -16,8 +16,9 @@ Pause do runner.Session xử lý chung cho cả ba mode.
 import inspect
 from copy import deepcopy
 
+from ..contract import plan_ingredients
 from ..errors import BadInput
-from ..scenario import _validate_reservations
+from ..scenario import validate_quan
 from .gather import GatherSim
 from .quan import QuanSim
 
@@ -36,16 +37,6 @@ def day_plan_for(tuning, scenario_day, day):
     if plan is None:
         raise BadInput(f"thiếu day_plan cho Ngày {day}")
     return {"day": day, "dishes": dict(plan["dishes"]), "ingredients": plan_ingredients(tuning, plan["dishes"])}
-
-
-def plan_ingredients(tuning, dishes):
-    out = {}
-    for dish, n in dishes.items():
-        if dish not in tuning["menu"]:
-            raise BadInput(f"day_plan: món lạ {dish}")
-        for kind, amount in tuning["menu"][dish]["recipe"].items():
-            out[kind] = out.get(kind, 0) + amount * n
-    return {k: out[k] for k in sorted(out)}
 
 
 def effective_tuning(tuning, day, plan, active):
@@ -213,14 +204,10 @@ class DaySim:
 
     def _to_quan(self, gather, out):
         quan_tpl = deepcopy(self.scenario.get("quan", {}))
-        for c in quan_tpl.get("customers", []):
-            if c.get("dish_id") and c["dish_id"] not in self.plan["dishes"]:
-                raise BadInput(f"quan.customers.{c['id']}: món {c['dish_id']} không thuộc kế hoạch Ngày {self.day}")
-        stock = gather.inventory_items()
-        _validate_reservations({c["id"]: c for c in quan_tpl.get("customers", [])},
-                               {t["id"] for t in self.t_day["quan"]["tables"]}, self.t_day["menu"], stock)
+        inventory = gather.inventory_items()
+        validate_quan(quan_tpl, self.t_day, inventory)
         self.sim = _build(QuanSim, self.t_day, quan_tpl, self.rng, self.ids,
-                          inventory=stock, day_ctx=self._ctx())
+                          inventory=inventory, day_ctx=self._ctx())
         self._push(self.sim)
         self.phase_tick = 0
         self._emit(out, "phase_start", {})

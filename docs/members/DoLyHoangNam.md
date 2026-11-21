@@ -1,0 +1,10 @@
+# DoLyHoangNam — phản tư cá nhân
+
+- **Tôi đã làm:**
+  - Phase 1 ([Issue #2](https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC/issues/2), PR #11): luật buổi sáng `chonoi/sim/gather.py` (`dive`/`surface`, oxy, ngạt `t+59`, ngất LIFO, hái nút, bắt cá, giỏ), 17 test (`tests/test_gather_rules.py`) và bằng chứng `docs/proof/phase-1/dolyhoangnam/`.
+  - Phase 2 ([Issue #13](https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC/issues/13), [Issue #14](https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC/issues/14), PR #29): cá bơi/phản xạ mép/đổi hướng theo `age_ticks`, sinh cá theo lịch `360·k`, nhận nâng cấp `day_ctx`; thủy quái Cá Sấu Năm Chèo (`chonoi/sim/monsters.py`: `patrol`/`chase`/`hit`/`recoil`), 16 test (`tests/test_gather_p2.py`, `tests/test_monsters.py`).
+  - Phase 3 ([Issue #19](https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC/issues/19), [Issue #23](https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC/issues/23), PR #36): giỏ cá thể `{id, kind, fresh}`, hao tươi `0.5/s` bằng `Fraction`, `spoiled`, `lost` cá thể; mở rộng Dòng nước lũ `current`.
+  - Phase 4 ([Issue #31](https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC/issues/31)): `chonoi/soak.py` (bot tất định 10 Ngày, lặp kế hoạch D1–D5, bắt crash theo Ngày, xuất `soak.json`), `tests/test_soak.py`, bằng chứng `docs/proof/phase-4/soak.json`.
+- **Tôi đã review / phối hợp:** đối chiếu `docs/contracts/README.md` (PR #9, #24), tích hợp `day.py` (PR #25) và phát hiện lỗi `test_team_check.test_template_is_rejected` sau PR #9 để Integrator sửa ở PR #26.
+- **AI sai ở đâu và tôi phát hiện thế nào:** trong `monsters._move_toward`, điều kiện `dist <= step_len` bị lệch 1 tick ở mốc tuần tra 240 tick do cộng dồn sai số dấu phẩy động `1.0/60.0`; test `test_patrol_speed_and_waypoint_switch_for_next_step` bắt được ngay và đã sửa bằng dung sai `1e-9`.
+- **Điều tôi học được:** chốt hợp đồng dữ liệu và tách vùng file sớm giúp cả nhóm chạy song song không xung đột; kiểm tra biên số học (float, `Fraction`, thứ tự event trong 1 tick) bằng unit test ngắn quan trọng hơn viết nhiều code.

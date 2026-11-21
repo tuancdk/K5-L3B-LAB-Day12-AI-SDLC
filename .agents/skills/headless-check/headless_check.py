@@ -24,6 +24,19 @@ def headless_cmd():
     return cmd
 
 
+def item_schema():
+    with open(ROOT / "game.contract.json", encoding="utf-8") as f:
+        v = json.load(f)["contract_version"]
+    return tuple(int(x) for x in v.split(".")) >= (1, 2)
+
+
+def inventory_doc(counts):
+    if not item_schema():
+        return {"items": counts}
+    kinds = [k for k in sorted(counts) for _ in range(counts[k])]
+    return {"items": [{"id": f"I{i}", "kind": k, "fresh": 100} for i, k in enumerate(kinds, 1)]}
+
+
 def run(*args):
     p = subprocess.run([*headless_cmd(), *map(str, args)], cwd=ROOT, capture_output=True, text=True)
     if p.returncode != 0:
@@ -73,7 +86,7 @@ def main():
             {"tick": 0, "move": [1, 1]}, {"tick": 60, "move": [1, 0], "catch": True}, {"tick": 61, "catch": False},
             {"tick": 120, "move": [0, -1]}, {"tick": 240, "move": [-1, 0], "interact": True},
             {"tick": 241, "interact": False}, {"tick": 400, "move": [0, 0]}]})
-        qinv = write(tmp / "q-inv.json", {"items": {"ca_loc": 5, "bong_sung": 6, "ca_linh": 6, "bong_dien_dien": 2}})
+        qinv = write(tmp / "q-inv.json", inventory_doc({"ca_loc": 5, "bong_sung": 6, "ca_linh": 6, "bong_dien_dien": 2}))
         qin = write(tmp / "q-in.json", {"frames": [{"tick": 0, "move": [-1, 1]}, {"tick": 130, "interact": True},
                                                    {"tick": 131, "interact": False, "move": [0, 0]}]})
         checks = [
@@ -81,6 +94,8 @@ def main():
             ("tất định quan", lambda: check_same(tmp, "quan", a.seed, max(a.ticks, 1200),
                                                  ["--inputs", qin, "--inventory", qinv])),
             ("smoke dock → quan", lambda: smoke(tmp)),
+            ("tất định day --days 2", lambda: check_same(tmp, "day", a.seed, 50000, ["--days", 2, "--snapshot-every", 600])),
+            ("day --days 1 hoàn tất", lambda: day_smoke(tmp)),
         ]
         for name, fn in checks:
             try:
@@ -97,15 +112,30 @@ def main():
     return 0 if ok else 1
 
 
+def day_smoke(tmp):
+    """Một Ngày không pause: 22.200 tick, end.reason days_complete, chạy <= 20 s."""
+    import time
+    out = tmp / "day1.jsonl"
+    t0 = time.monotonic()
+    run("--mode", "day", "--days", 1, "--seed", 1, "--ticks", 30000, "--snapshot-every", 600, "--out", out)
+    dt = time.monotonic() - t0
+    end = json.loads(out.read_text(encoding="utf-8").splitlines()[-1])
+    ok = end.get("reason") == "days_complete" and end.get("days_completed") == 1 and dt <= 20
+    return ok, f"end {end.get('reason')} ticks {end.get('ticks')} days_completed {end.get('days_completed')} · {dt:.2f}s"
+
+
 def smoke(tmp):
-    sc = write(tmp / "dock.json", {"gather": {"hold": ["ca_loc", "bong_sung", "bong_sung"]}})
+    hold = ["ca_loc", "bong_sung", "bong_sung"]
+    if item_schema():  # v1.2: giỏ/kho cá thể (TICKET-03)
+        hold = [{"id": f"I{i}", "kind": k, "fresh": 100} for i, k in enumerate(hold, 1)]
+    sc = write(tmp / "dock.json", {"gather": {"hold": hold}})
     inp = write(tmp / "dock-inputs.json", {"frames": [{"tick": 0, "interact": True}]})
     inv = tmp / "catch.json"
     run("--mode", "gather", "--seed", 42, "--scenario", sc, "--inputs", inp, "--ticks", 1,
         "--inventory-out", inv, "--out", tmp / "gather.jsonl")
     run("--mode", "quan", "--seed", 42, "--inventory", inv, "--ticks", 0, "--out", tmp / "quan.jsonl")
     first = json.loads((tmp / "quan.jsonl").read_text(encoding="utf-8").splitlines()[0])
-    want = {"bong_sung": 2, "ca_loc": 1}
+    want = json.loads(inv.read_text(encoding="utf-8"))["items"] if item_schema() else {"bong_sung": 2, "ca_loc": 1}
     return first.get("stock") == want, f"kho {inv.read_text(encoding='utf-8').strip()} → stock tick 0 {first.get('stock')}"
 
 

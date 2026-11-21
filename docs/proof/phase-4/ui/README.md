@@ -1,6 +1,6 @@
 # Bằng chứng Phase 4: cảnh báo dễ nhận biết và tương phản cao (UI)
 
-Ngày 21/11/2026, nhánh `tuancdk/p4-ui-warnings`, [issue #34](https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC/issues/34).
+Ngày 21/11/2026, nhánh `tuancdk/p4-ui-warnings`, [issue #34](https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC-1111/issues/34).
 
 Phạm vi: `chonoi/web/index.html`. Không đổi luật, contract hay `live.py`, nên headless không bị ảnh hưởng.
 
@@ -56,3 +56,4 @@ Script cần Chrome và gói `websockets`. Nó:
 - `phaser-check.py`: đạt.
 - `browser-check.py` với server thật: buổi sáng đạt. Chạy riêng `--mode quan` vẫn timeout ở dòng 415 (giao món xong khách không sang `eating`), giống hệt trước thay đổi này. Lỗi đã có từ khi gộp sim quán mới, chưa điều tra.
   - *Cập nhật sau tag `phase-4`:* chạy lại `browser-check.py` trên tag `phase-4` (1 lần) và trên `main` sau PR #51 (3 lần): cả `gather` và `quan` đều đạt (`quan input, HUD and snapshots OK`). Lỗi timeout không còn tái hiện, nhiều khả năng đã được sửa khi gộp PR #44 (kho quán cá thể).
+  - **Bổ sung nguyên nhân (Minhduc7904, 14:30):** lỗi nằm ở script, không phải ở game. Từ Phase 2, quán có khách ngẫu nhiên (C1) xếp trước K1 theo id, nhưng script lại chờ `customers[0]` sang `eating`. Commit [`a238425`](https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC-1111/commit/a238425) (#22) đã sửa để script tìm đúng khách K1. Chạy lại `browser-check.py` (server thật, gather + quan) trên `main` `c4392a3`: **3/3 lần đạt**, quan 484–500 frame. `--day-fixture` cũng đạt. Bằng chứng: [minhduc7904/ui-recheck.md](../minhduc7904/ui-recheck.md).

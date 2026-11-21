@@ -1,0 +1,6 @@
+headless_cmd: python3 -m chonoi.headless · seed 1 · ticks 600
+PASS  tất định gather: jsonl 49764e303764f206 vs 49764e303764f206; kho chưa ghi (buổi sáng chưa kết thúc)
+PASS  tất định quan: jsonl bcdd95d725726c55 vs bcdd95d725726c55
+PASS  smoke dock → quan: kho {"items":[{"id":"I1","kind":"ca_loc","fresh":99.99166666666666},{"id":"I2","kind":"bong_sung","fresh":99.99166666666666},{"id":"I3","kind":"bong_sung","fresh":99.99166666666666}]} → stock tick 0 [{'id': 'I1', 'kind': 'ca_loc', 'fresh': 99.99166666666666}, {'id': 'I2', 'kind': 'bong_sung', 'fresh': 99.99166666666666}, {'id': 'I3', 'kind': 'bong_sung', 'fresh': 99.99166666666666}]
+PASS  tất định day --days 2: jsonl 6e1b3e8bf88bc2ed vs 6e1b3e8bf88bc2ed
+PASS  day --days 1 hoàn tất: end days_complete ticks 22200 days_completed 1 · 1.03s

@@ -1,10 +1,12 @@
 {
-  "contract_version": "1.2",
+  "contract_version": "1.3",
   "team": "ten-nhom",
   "team_size": 4,
   "build_cmd": "true",
-  "run_cmd": "python3 -m chonoi.live --mode gather",
+  "run_cmd": "python3 -m chonoi.live --mode day",
   "headless_cmd": "python3 -m chonoi.headless",
+  "bench_cmd": "python3 -m chonoi.bench",
+  "soak_cmd": "python3 -m chonoi.soak",
   "extensions": [],
   "tuning": {
     "tick_hz": 60,

@@ -17,7 +17,7 @@ def contract():
 class ContractV12(unittest.TestCase):
     def test_version_and_freshness(self):
         c = contract()
-        self.assertEqual(c["contract_version"], "1.2")
+        self.assertIn(c["contract_version"], ("1.2", "1.3"))  # v1.3 (P4) giữ schema kho v1.2
         self.assertEqual(c["tuning"]["freshness"], {"initial": 100, "gather_decay_per_s": 0.5,
                                                     "quan_decay_per_s": 0.25, "spoiled_below": 30})
 

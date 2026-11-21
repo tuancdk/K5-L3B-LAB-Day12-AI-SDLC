@@ -124,6 +124,37 @@
   .ticket .track { background: #ded4b4; margin-top: 1px; }
   .ticket .fill { background: #4f8758; }
   .ticket.urgent .fill { background: #c35843; }
+  .fresh-list { display: grid; gap: 5px; max-height: 18rem; overflow: auto; padding-inline-end: 4px !important; }
+  .journal .fresh-list li + li { margin: 0; }
+  .fresh-row { display: grid; gap: 3px; padding: 6px 8px; background: var(--halo); border-radius: 7px; font-size: .83rem; }
+  .fresh-heading, .fresh-detail { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1px 5px; }
+  .fresh-id, .fresh-detail { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .fresh-status { font-weight: 800; }
+  .fresh-row.spoiled { background: #fce1c6; color: #632b26; }
+  .fresh-row.spoiled .fresh-detail, .fresh-row.spoiled .fresh-id { color: #7d3b31; }
+  .fresh-gauge { height: 4px; background: #9caa9766; border-radius: 5px; }
+  .fresh-gauge span { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
+  .fresh-row.spoiled .fresh-gauge span { background: #aa4738; }
+  .locked-price { color: var(--accent); font-weight: 800; }
+  .stage-notices { position: absolute; bottom: 54px; left: 8px; right: 8px; display: grid; gap: 4px; justify-items: start; pointer-events: none; }
+  .stage-notice { padding: 5px 9px; border: 1px solid #bd926a; border-radius: 7px; background: #f9ecd3; color: #263731; font-weight: 800; font-size: .85rem; }
+  #spoiled-notice { background: #883e37; color: #fff3d8; border-color: #f0b782; }
+  #current-notice { background: #245e72; color: #eef9ef; border-color: #b5d9bd; }
+  @media (prefers-reduced-motion: no-preference) {
+    #spoiled-notice:not([hidden]) { animation: spoil-in .35s ease-out; }
+    @keyframes spoil-in { from { transform: translateY(6px); opacity: .28; } }
+  }
+  @media (min-width: 900px) {
+    body[data-mode="quan"].has-fresh-stock .layout { grid-template-columns: minmax(0,1fr) minmax(250px,25%); }
+    body[data-mode="quan"].has-fresh-stock aside, body[data-mode="quan"].has-fresh-stock .journal { display: block; }
+    body[data-mode="quan"].has-fresh-stock .guide { display: none; }
+    body[data-mode="quan"].has-fresh-stock .journal section + section {
+      padding: 8px 0 0;
+      border: 0;
+      border-top: 1px solid var(--line);
+      margin-top: 8px;
+    }
+  }
   .scene-action { display: flex; align-items: center; gap: 9px; padding: 6px 10px; min-height: 42px; background: #162f3e; border-top: 2px solid #446675; }
   .scene-action strong { flex: none; border-radius: 6px; background: #fae4ab; color: #3a2c29; padding: 3px 8px; font-size: .73rem; }
   .scene-action p { margin: 0; font-size: .83rem; color: #fff4da; }
@@ -180,6 +211,10 @@
       <div class="stage">
         <canvas id="scene" aria-label="Cảnh chơi của Út Sen"></canvas>
         <div class="message" id="message" role="status">Đang kết nối…</div>
+        <div class="stage-notices">
+          <div class="stage-notice" id="spoiled-notice" role="status" hidden></div>
+          <div class="stage-notice" id="current-notice" role="status" hidden></div>
+        </div>
         <div class="scene-key" id="legend"></div>
         <div class="scene-action" id="scene-action" hidden>
           <strong id="action-tag" aria-live="polite">Gợi ý</strong>
@@ -224,7 +259,7 @@ const ctx = canvas.getContext("2d");
 const elements = Object.fromEntries(
   ["phase", "restart", "meters", "message", "legend", "interact-label", "catch-key", "journal",
     "tip", "touch-interact", "touch-catch", "portrait", "order-board", "orders", "scene-action",
-    "action-tag", "action-tip"]
+    "action-tag", "action-tip", "spoiled-notice", "current-notice"]
     .map(id => [id, document.getElementById(id)])
 );
 const object = value => value !== null && typeof value === "object" && !Array.isArray(value);
@@ -312,6 +347,7 @@ async function send() {
 }
 function restart() {
   clearInput();
+  resetFreshNotices();
   pending = [{ path: "/restart" }];
   sent = "";
   void send();
@@ -402,6 +438,7 @@ async function poll() {
   } finally {
     layer("HUD", updateHud);
     layer("thông báo", updateMessage);
+    layer("độ tươi và dòng lũ", updateStageNotices);
     setTimeout(poll, 33);
   }
 }
@@ -419,6 +456,17 @@ function updateContent(element, parts) {
   if (element.innerHTML === next.innerHTML) return false;
   element.replaceChildren(...next.childNodes);
   return true;
+}
+function updateJournal(panels) {
+  const journal = elements.journal;
+  const list = journal.querySelector(".fresh-list");
+  const position = list?.scrollTop ?? 0;
+  const focused = list && document.activeElement === list;
+  if (!updateContent(journal,panels)) return;
+  const next = journal.querySelector(".fresh-list");
+  if (!next) return;
+  if (focused) next.focus({ preventScroll:true });
+  next.scrollTop = position;
 }
 function meter(label, value, fraction, modifier = "") {
   const card = node("div", undefined, "meter" + modifier);
@@ -451,8 +499,80 @@ function chips(counts, empty) {
   }
   return list.childElementCount ? list : node("p", empty, "detail");
 }
+function countsFrom(value) {
+  if (object(value)) return new Map(Object.entries(value).filter(([,amount]) => number(amount) && amount > 0));
+  const counts = new Map();
+  if (Array.isArray(value)) for (const entry of value) {
+    const kind = string(entry) ? entry : object(entry) ? entry.kind : null;
+    if (string(kind)) counts.set(kind,(counts.get(kind) ?? 0)+1);
+  }
+  return counts;
+}
+function spoilThreshold(data,meta) {
+  // Mốc giao diện v1.2 (#18); ưu tiên ngưỡng server gửi khi có metadata mới.
+  const value = meta.freshness?.spoiled_below ?? data.freshness?.spoiled_below;
+  return number(value) && value >= 0 && value <= 100 ? value : 30;
+}
+function reservedIds(customers) {
+  const ids = new Set();
+  for (const customer of records(customers)) {
+    if (Array.isArray(customer.reserved)) for (const id of customer.reserved) {
+      if (string(id)) ids.add(id);
+    }
+  }
+  return ids;
+}
+function freshInventory(items, data, meta, isStock) {
+  const limit = spoilThreshold(data,meta);
+  const held = isStock ? reservedIds(data.customers) : new Set();
+  const list = node("ul",undefined,"fresh-list");
+  list.tabIndex = 0;
+  list.setAttribute("aria-label",isStock ? "Độ tươi từng nguyên liệu trong kho" : "Độ tươi từng nguyên liệu trong giỏ");
+  let available = 0;
+  let unknown = 0;
+  for (const entry of items) {
+    const kind = string(entry) ? entry : object(entry) ? entry.kind : null;
+    if (!string(kind)) continue;
+    const id = object(entry) && string(entry.id) ? entry.id : null;
+    const fresh = object(entry) && number(entry.fresh) && entry.fresh >= 0 && entry.fresh <= 100 ? entry.fresh : null;
+    const spoiled = fresh !== null && fresh < limit;
+    const reserved = isStock && id !== null && held.has(id);
+    if (fresh === null) unknown++;
+    if (id && fresh !== null && !spoiled && !reserved) available++;
+    const status = spoiled ? "Hàng ươn" : reserved ? "Đã giữ chỗ" : fresh === null ? "Chưa có độ tươi" : "Còn tươi";
+    const row = node("li",undefined,"fresh-row" + (spoiled ? " spoiled" : ""));
+    const heading = node("div",undefined,"fresh-heading");
+    heading.append(node("strong",ingredients.get(kind) ?? kind));
+    if (id) {
+      row.dataset.item = id;
+      heading.append(node("span",id,"fresh-id"));
+    }
+    const detail = node("div",undefined,"fresh-detail");
+    detail.append(node("span",status,"fresh-status"));
+    row.append(heading,detail);
+    if (fresh !== null) {
+      // Cắt phần lẻ để số ngay dưới ngưỡng không bị làm tròn lên thành 30.
+      const shown = Math.floor(fresh*10)/10;
+      detail.append(node("span",shown.toLocaleString("vi-VN",{maximumFractionDigits:1})+" / 100"));
+      const gauge = node("div",undefined,"fresh-gauge");
+      gauge.setAttribute("aria-hidden","true");
+      const fill = node("span");
+      fill.style.width = shown+"%";
+      gauge.append(fill);
+      row.append(gauge);
+    }
+    list.append(row);
+  }
+  const wrapper = node("div");
+  if (isStock && list.childElementCount) {
+    wrapper.append(node("p",available+" cá thể khả dụng" + (unknown ? " · "+unknown+" chưa rõ độ tươi" : ""),"detail"));
+  }
+  wrapper.append(list.childElementCount ? list : node("p",items.length ? "Chưa có dữ liệu nguyên liệu." :
+    isStock ? "Kho đang trống." : "Giỏ đang trống.","detail"));
+  return wrapper;
+}
 function availableStock(data) {
-  const stock = new Map(object(data.stock) ? Object.entries(data.stock).filter(([, amount]) => number(amount) && amount > 0) : []);
+  const stock = countsFrom(data.stock);
   for (const customer of records(data.customers)) {
     if (!object(customer.reserved)) continue;
     for (const [kind, amount] of Object.entries(customer.reserved)) {
@@ -464,7 +584,11 @@ function availableStock(data) {
   }
   return stock;
 }
-function stoveHud(stoves, hz) {
+function lockedPrice(payload) {
+  return object(payload) && number(payload.base_price) && payload.base_price >= 0 ? payload.base_price : null;
+}
+const priceLabel = price => price.toLocaleString("vi-VN")+" nghìn";
+function stoveHud(stoves, hz, events) {
   const list = node("ul");
   for (const stove of stoves) {
     const item = node("li");
@@ -475,6 +599,11 @@ function stoveHud(stoves, hz) {
       ? " · " + seconds(stove.cook_ticks_left, hz) + " giây" : "";
     item.append(node("strong", id + status));
     if (dish || timer) item.append(node("div", (dish ? dishName(dish) : "Còn") + timer, "detail"));
+    const order = object(stove.dish) ? stove.dish.order_id : null;
+    const cooked = string(order) ? records(events).findLast(event => event.name === "cook_started" &&
+      event.data?.stove_id === stove.id && event.data?.order_id === order && event.data?.dish_id === dish) : null;
+    const price = lockedPrice(stove.dish) ?? lockedPrice(cooked?.data);
+    if (dish && price !== null) item.append(node("div","Giá đã chốt · "+priceLabel(price),"locked-price"));
     list.append(item);
   }
   return list.childElementCount ? list : node("p", "Chưa có dữ liệu bếp.", "detail");
@@ -523,6 +652,107 @@ function fields() {
   const player = object(data.player) ? data.player : {};
   return { data, meta, player, hz: tickHz(meta) };
 }
+const freshNotices = { tick:null, scope:null, spoiled:new Set(), expires:0, text:"", warning:null };
+function resetFreshNotices() {
+  freshNotices.spoiled.clear();
+  freshNotices.tick = null;
+  freshNotices.scope = null;
+  freshNotices.expires = 0;
+  freshNotices.text = "";
+  freshNotices.warning = null;
+}
+function renderNotice(id,message) {
+  const notice = elements[id];
+  if (notice.textContent !== message) notice.textContent = message;
+  notice.hidden = !message;
+}
+function updateStageNotices() {
+  const {data,hz} = fields();
+  const location = mode === "gather" ? "hold" : mode === "quan" ? "stock" : null;
+  const scope = JSON.stringify([data.day,mode]);
+  if (freshNotices.scope !== scope || (number(data.tick) && number(freshNotices.tick) && data.tick < freshNotices.tick)) {
+    resetFreshNotices();
+    freshNotices.scope = scope;
+  }
+  if (number(data.tick)) freshNotices.tick = data.tick;
+  const events = records(data.events).filter(event =>
+    (!number(data.day) || !number(event.day) || event.day === data.day) &&
+    (!string(event.phase) || event.phase === mode));
+  const now = performance.now();
+  const spoiled = events.filter(event => {
+    const payload = event.data;
+    if (event.name !== "spoiled" || !object(payload) || payload.location !== location ||
+        !string(payload.item_id) || !number(event.tick) || !number(data.tick) ||
+        event.tick > data.tick || data.tick-event.tick > hz*3) return false;
+    if (freshNotices.spoiled.has(payload.item_id)) return false;
+    freshNotices.spoiled.add(payload.item_id);
+    return true;
+  });
+  if (spoiled.length) {
+    const kind = spoiled[0].data.kind;
+    const source = location === "hold" ? "trong giỏ" : "trong kho";
+    freshNotices.text = spoiled.length > 1 ? "⚠ "+spoiled.length+" nguyên liệu "+source+" đã ươn."
+      : "⚠ "+(ingredients.get(kind) ?? (string(kind) ? kind : "Nguyên liệu"))+" "+source+" đã ươn.";
+    freshNotices.expires = now+2800;
+    const notice = elements["spoiled-notice"];
+    if (!notice.hidden && !reduceMotion.matches) {
+      // Restart the entrance only for new items, never for a repeated snapshot.
+      for (const animation of notice.getAnimations()) { animation.cancel(); animation.play(); }
+    }
+  }
+  renderNotice("spoiled-notice",now < freshNotices.expires ? freshNotices.text : "");
+  renderNotice("current-notice",mode === "gather" ? currentText(data,events,hz) : "");
+}
+function currentText(data,events,hz) {
+  const current = data.current;
+  if (object(current) && number(current.ticks_left) && current.ticks_left > 0 &&
+      (current.direction === 1 || current.direction === -1)) {
+    const direction = current.direction === 1 ? "→ sang phải" : "← sang trái";
+    return "≈ Dòng lũ "+direction+" · "+seconds(current.ticks_left,hz)+" giây";
+  }
+  if (!number(data.phase_tick)) return "";
+  const warning = events.findLast(event => event.name === "current_warning" && number(event.data?.starts_at_phase_tick) &&
+    event.data.starts_at_phase_tick > data.phase_tick);
+  if (!warning) return "";
+  const start = warning.data.starts_at_phase_tick;
+  if (freshNotices.warning !== start) {
+    freshNotices.warning = start;
+    soundCurrentWarning();
+  }
+  return "⚠ Dòng lũ sắp tới · "+seconds(start-data.phase_tick,hz)+" giây";
+}
+let currentAudio = null;
+function armCurrentAudio() {
+  if (typeof AudioContext !== "function") return;
+  try {
+    currentAudio ??= new AudioContext();
+    if (currentAudio.state === "suspended") void currentAudio.resume().catch(() => {});
+  } catch { /* Cảnh báo chữ vẫn hiển thị. */ }
+}
+addEventListener("pointerdown",armCurrentAudio,{once:true});
+addEventListener("keydown",armCurrentAudio,{once:true});
+function soundCurrentWarning() {
+  if (currentAudio?.state !== "running") return;
+  let volume = .06;
+  try {
+    const saved = JSON.parse(localStorage.getItem("chonoi.audio.v1"));
+    if (number(saved?.master)) volume *= clamp(saved.master,0,1);
+    if (number(saved?.sfx)) volume *= clamp(saved.sfx,0,1);
+  } catch { /* Dùng âm lượng mặc định. */ }
+  if (volume < .002) return;
+  const now = currentAudio.currentTime;
+  const tone = currentAudio.createOscillator();
+  const envelope = currentAudio.createGain();
+  tone.type = "triangle";
+  tone.frequency.setValueAtTime(500,now);
+  tone.frequency.setValueAtTime(680,now+.12);
+  envelope.gain.setValueAtTime(0,now);
+  envelope.gain.linearRampToValueAtTime(volume,now+.025);
+  envelope.gain.exponentialRampToValueAtTime(.001,now+.33);
+  tone.connect(envelope).connect(currentAudio.destination);
+  tone.start(now);
+  tone.stop(now+.35);
+}
 function isUnderwater(player, meta) {
   if (typeof player.at_surface === "boolean") return !player.at_surface;
   return point(player.pos) && number(meta.surface_depth) && player.pos[1] > meta.surface_depth;
@@ -530,6 +760,18 @@ function isUnderwater(player, meta) {
 function inRange(from, to, radius) {
   return point(from) && point(to) && number(radius) && radius > 0 &&
     Math.hypot(from[0] - to[0], from[1] - to[1]) <= radius;
+}
+function reservationHud(value) {
+  const entries = Array.isArray(value)
+    ? value.map(item => [string(item) ? item : item?.id, item])
+    : object(value) ? Object.entries(value) : [];
+  const list = node("ul");
+  for (const [id,entry] of entries) {
+    if (!string(id)) continue;
+    const dish = object(entry) ? dishId(entry) : null;
+    list.append(node("li",id+(dish ? " · "+dishName(dish) : "")));
+  }
+  return list.childElementCount ? section("Đặt trước",list) : null;
 }
 function recentService(data, hz) {
   if (!number(data.tick)) return null;
@@ -550,7 +792,7 @@ function updateGuide(data, meta, player) {
         ? "Oxy sắp cạn. Bơi lên mặt nước!"
         : "Bơi ngang tới đàn cá và bấm Space hoặc nút Bắt cá khi ở gần.";
     } else if (inRange(player.pos, meta.dock_pos, meta.dock_radius)) {
-      tip = Array.isArray(data.hold) && data.hold.length
+      tip = countsFrom(data.hold).size
         ? "Đã về tới bến. Bấm E hoặc nút Hái / Cập bến để kết thúc lượt."
         : "Bơi ra khỏi bến để hái bông hoặc lặn tìm đàn cá.";
     } else {
@@ -585,6 +827,8 @@ function updateHud() {
   if (!mode) return;
   const { data, meta, player, hz } = fields();
   const morning = mode === "gather";
+  const hasItems = !morning && Array.isArray(data.stock) && (!data.stock.length || data.stock.some(object));
+  document.body.classList.toggle("has-fresh-stock",hasItems);
   if (displayedMode !== mode) {
     displayedMode = mode;
     document.body.dataset.mode = mode;
@@ -613,31 +857,42 @@ function updateHud() {
     cards.push(meter("Máu", number(player.hp) ? player.hp + (number(hpMax) ? " / " + hpMax : "") : "—",
       number(player.hp) && number(hpMax) && hpMax > 0 ? player.hp / hpMax : null));
     layer("giỏ", () => {
-      const hasHold = Array.isArray(data.hold);
-      const hold = hasHold ? data.hold.filter(string) : [];
-      const count = number(data.hold_count) ? data.hold_count : hasHold ? hold.length : null;
+      const raw = data.hold;
+      const hasHold = Array.isArray(raw) || object(raw);
+      const counts = countsFrom(raw);
+      const count = number(data.hold_count) ? data.hold_count : hasHold ? [...counts.values()].reduce((a,b) => a+b,0) : null;
       const capacity = number(data.hold_capacity) ? data.hold_capacity : meta.hold_capacity;
-      const counts = new Map();
-      for (const kind of hold) counts.set(kind, (counts.get(kind) ?? 0) + 1);
       const summary = (count ?? "—") + (number(capacity) ? " / " + capacity : "");
-      panels.push(section("Giỏ · " + summary, chips(counts, hasHold && !data.hold.length ? "Giỏ đang trống." : "Chưa có dữ liệu nguyên liệu.")));
+      const rows = Array.isArray(raw) && raw.some(object)
+        ? freshInventory(raw,data,meta,false)
+        : chips(counts,hasHold && !counts.size ? "Giỏ đang trống." : "Chưa có dữ liệu nguyên liệu.");
+      panels.push(section("Giỏ · " + summary,rows));
+    });
+    layer("đặt trước", () => {
+      const reservations = reservationHud(data.reservations);
+      if (reservations) panels.push(reservations);
     });
   } else {
     cards.push(meter("Tiền", number(data.money) ? data.money + " nghìn" : "—"));
     cards.push(meter("Uy tín", number(data.reputation) ? data.reputation.toLocaleString("vi-VN", { maximumFractionDigits: 2 }) +
       (number(meta.reputation_max) ? " / " + meta.reputation_max : "") : "—"));
     layer("kho", () => {
-      panels.push(section("Kho khả dụng", chips(availableStock(data), object(data.stock) ? "Không còn nguyên liệu chưa giữ chỗ." : "Chưa có dữ liệu kho.")));
+      const rows = hasItems
+        ? freshInventory(data.stock,data,meta,true)
+        : chips(availableStock(data),object(data.stock) ? "Không còn nguyên liệu khả dụng." : "Chưa có dữ liệu kho.");
+      panels.push(section(hasItems ? "Kho & độ tươi" : "Kho khả dụng",rows));
     });
     layer("món gọi", () => updateOrders(data, meta, hz));
-    layer("tình trạng bếp", () => panels.push(section("Bếp", stoveHud(records(data.stoves), hz))));
+    layer("tình trạng bếp", () => panels.push(section("Bếp", stoveHud(records(data.stoves), hz, data.events))));
     layer("món trên tay", () => {
       const dish = dishId(data.hand);
+      const price = lockedPrice(data.hand);
       panels.push(section("Món trên tay", node("p", dish ? dishName(dish) : data.hand === null ? "Tay đang trống." : "Chưa có dữ liệu món.")));
+      if (dish && price !== null) panels.at(-1).append(node("div","Giá đã chốt · "+priceLabel(price),"locked-price"));
     });
   }
   updateContent(elements.meters, cards);
-  updateContent(elements.journal, panels);
+  updateJournal(panels);
 }
 const endings = new Map([["docked", "Đã cập bến"], ["fainted", "Út Sen bị ngất"], ["time", "Đã hết giờ"]]);
 function updateMessage() {

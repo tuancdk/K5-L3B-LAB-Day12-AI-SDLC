@@ -1,7 +1,9 @@
-"""Browser evidence for issue #5. Run from the repository root with Python, Chrome and websockets."""
+"""Browser evidence for issues #5 and #22. Requires Python, Chrome and websockets."""
+import argparse
 import base64
 from contextlib import ExitStack
 import json
+from math import dist
 from pathlib import Path
 import re
 import subprocess
@@ -11,8 +13,7 @@ import time
 from urllib.request import urlopen
 from websockets.sync.client import connect
 
-PROOF = Path("docs/proof/ui")
-CHROME = sys.argv[1] if len(sys.argv) > 1 else r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+PROOF = Path(__file__).resolve().parent
 HOOK = """
 globalThis.probe = {posts: [], modify: null, errors: [], frames: 0};
 const realFetch = fetch.bind(globalThis), realWarn = console.warn.bind(console);
@@ -61,10 +62,88 @@ def start(stack, argv, *, capture=False):
     return process
 
 
+def check_freshness(mode, js, tap, photo, modify):
+    if mode == "gather":
+        modify("s.hold = ['ca_loc', 'ca_loc', 'bong_sung']; delete s.hold_count;")
+        until(lambda: js("document.querySelector('#journal').innerText.includes('Cá lóc × 2')"))
+        modify("""s.hold = [
+            {id:'I1',kind:'ca_loc',fresh:96.5}, {id:'I2',kind:'bong_sung',fresh:30},
+            {id:'I3',kind:'ca_keo',fresh:29.999}, {id:'I4',kind:'keo_neo',fresh:0},
+            {id:'I5',kind:'ca_linh'}, null
+        ]; delete s.hold_count;
+        s.reservations = [{id:'R1',dish_id:'ca_loc_nuong_trui'}, {id:'R2'}];
+        s.events = [{name:'spoiled',phase:'gather',tick:s.tick,data:{item_id:'I3',kind:'ca_keo',location:'hold'}}];""")
+        until(lambda: js("document.querySelector('[data-item=I3].spoiled')?.innerText.includes('29,9 / 100')"))
+        assert js("!document.querySelector('[data-item=I2]').classList.contains('spoiled')")
+        assert js("document.querySelector('[data-item=I4]').innerText.includes('0 / 100')")
+        assert js("document.querySelector('[data-item=I5]').innerText.includes('Chưa có độ tươi')")
+        assert js("document.querySelector('#journal').innerText.includes('Giỏ · 5 / 12')")
+        assert js("document.querySelector('#journal').innerText.includes('R1') && document.querySelector('#journal').innerText.includes('R2')")
+        until(lambda: js("!document.querySelector('#spoiled-notice').hidden"))
+        time.sleep(.38)
+        photo("fresh-gather")
+        until(lambda: js("document.querySelector('#spoiled-notice').hidden"))
+        # Dữ liệu cùng một item tiếp tục tới mỗi poll. Thông báo phải hết hạn và không bật lại.
+        time.sleep(.3)
+        assert js("document.querySelector('#spoiled-notice').hidden")
+        js("""probe.chimes = 0;
+            const startTone = OscillatorNode.prototype.start;
+            OscillatorNode.prototype.start = function (...args) {
+                probe.chimes++;
+                return startTone.apply(this,args);
+            };""")
+        tap("q")
+        until(lambda: js("currentAudio?.state === 'running'"))
+        modify("""s.phase_tick = 1680; s.current = null;
+            s.events = [{name:'current_warning',phase:'gather',tick:s.tick,data:{starts_at_phase_tick:1800}}];""")
+        until(lambda: js("document.querySelector('#current-notice').textContent.includes('2 giây') && probe.chimes === 1"))
+        time.sleep(.15)
+        assert js("probe.chimes === 1")
+        modify("s.current = {direction:-1,ticks_left:360};")
+        until(lambda: js("document.querySelector('#current-notice').textContent.includes('← sang trái')"))
+        photo("fresh-current")
+    else:
+        modify("""s.stock = [
+            {id:'I1',kind:'ca_loc',fresh:95}, {id:'I2',kind:'ca_loc',fresh:30},
+            {id:'I3',kind:'bong_sung',fresh:29.999},{id:'I4',kind:'ca_keo',fresh:'95'},
+            {id:'I5',kind:'keo_neo',fresh:74}
+        ];
+        s.customers = [{reserved:['I1']}];
+        s.stoves[0] = {...s.stoves[0],state:'cooking',dish:{dish_id:'ca_loc_nuong_trui',order_id:'O1',base_price:47}};
+        s.hand = {dish_id:'goi_bong_sung',order_id:'O2',base_price:33};
+        s.events = [{name:'spoiled',phase:'quan',tick:s.tick,data:{item_id:'I3',kind:'bong_sung',location:'stock'}}];""")
+        until(lambda: js("document.querySelector('#journal').innerText.includes('2 cá thể khả dụng')"))
+        assert js("document.querySelector('[data-item=I1]').innerText.includes('Đã giữ chỗ')")
+        assert js("document.querySelector('[data-item=I3].spoiled').innerText.includes('Hàng ươn')")
+        assert js("document.querySelector('[data-item=I4]').innerText.includes('Chưa có độ tươi')")
+        assert js("[...document.querySelectorAll('.locked-price')].map(p => p.textContent).join('|').includes('47 nghìn|Giá đã chốt · 33 nghìn')")
+        until(lambda: js("document.querySelector('#spoiled-notice').innerText.includes('trong kho')"))
+        assert js("document.querySelector('#journal').getBoundingClientRect().top < innerHeight/2")
+        time.sleep(.38)
+        photo("fresh-quan")
+        modify("""s.stock = {ca_loc:1,bong_sung:2}; s.customers = [{reserved:{ca_loc:1}}];
+            s.stoves[0].dish = {dish_id:'ca_loc_nuong_trui',order_id:'O1'};
+            s.events = [{ name:'cook_started', data:{stove_id:'B1',order_id:'O1',dish_id:'ca_loc_nuong_trui',base_price:41} }];""")
+        until(lambda: js("document.querySelector('#journal').innerText.includes('Kho khả dụng')"))
+        assert js("!document.querySelector('#journal').innerText.includes('Cá lóc × 1')")
+        assert js("document.querySelector('#journal').innerText.includes('Giá đã chốt · 41 nghìn')")
+        modify("delete s.stock; delete s.hand; delete s.customers; delete s.stoves; delete s.events;")
+        until(lambda: js("document.querySelector('#journal').innerText.includes('Chưa có dữ liệu kho.')"))
+        assert js("document.querySelectorAll('.locked-price').length === 0")
+    assert js("probe.errors.length === 0"), js("probe.errors")
+    print(f"{mode}: snapshot độ tươi, dữ liệu thiếu và phản hồi cảnh báo OK")
+
+
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("chrome", nargs="?", default=r"C:\Program Files\Google\Chrome\Application\chrome.exe")
+    parser.add_argument("--out", type=Path, default=PROOF)
+    parser.add_argument("--freshness", action="store_true", help="Thử display v1.2 bằng phản hồi mẫu")
+    opts = parser.parse_args()
+    opts.out.mkdir(parents=True, exist_ok=True)
     with ExitStack() as stack:
         profile = Path(stack.enter_context(TemporaryDirectory(prefix="chonoi-ui-", ignore_cleanup_errors=True)))
-        start(stack, [CHROME, "--headless", "--disable-extensions", "--no-first-run",
+        start(stack, [opts.chrome, "--headless", "--disable-extensions", "--no-first-run",
                       "--disable-background-networking", "--remote-debugging-port=0",
                       f"--user-data-dir={profile}", "about:blank"])
         port = until(lambda: (profile / "DevToolsActivePort").read_text().splitlines())[0]
@@ -108,7 +187,7 @@ def main():
             cdp("Emulation.setDeviceMetricsOverride", width=width, height=height, deviceScaleFactor=1, mobile=False)
 
         def photo(name):
-            path = PROOF / f"{name}.png"
+            path = opts.out / f"{name}.png"
             path.write_bytes(base64.b64decode(cdp("Page.captureScreenshot", format="png")["data"]))
             print(path, path.stat().st_size)
 
@@ -131,6 +210,9 @@ def main():
             cdp("Page.navigate", url=url)
             until(lambda: js(f"location.port === '{port}' && document.body?.dataset.mode === '{mode}'"))
             js(HOOK)
+            if opts.freshness:
+                check_freshness(mode,js,tap,photo,modify)
+                continue
             if mode == "gather":
                 tap("e")
                 until(lambda: state()["reason"] == "docked")
@@ -214,10 +296,14 @@ def main():
                 until(lambda: state()["player"]["pos"][0] > 8.6)
                 key("ArrowRight", "keyUp")
                 key("s", "keyDown")
-                until(lambda: state()["player"]["pos"][1] < 3.25)
+                until(lambda: state()["player"]["pos"][1] < 2.8)
                 key("s", "keyUp")
+                until(lambda: state()["player"].get("vel") == [0,0])
+                delivery = state()
+                table = next(item for item in delivery["tables"] if item["id"] == "T1")
+                assert dist(delivery["player"]["pos"],table["pos"]) <= delivery["meta"]["interact_radius"], delivery["player"]
                 tap("e")
-                until(lambda: state()["customers"][0]["state"] == "eating")
+                until(lambda: any(item["id"] == "K1" and item["state"] == "eating" for item in state()["customers"]))
                 until(lambda: js("document.querySelector('#orders .ticket.eating')?.textContent.includes('Đang ăn')"))
                 until(lambda: js("document.querySelector('#action-tag').textContent === 'Đã giao món'"))
             assert js("probe.errors.length === 0"), js("probe.errors")

@@ -8,3 +8,5 @@
 | 4 | 2026-11-21 P2 | Xử lý các trường mở rộng của fixture khi lõi chưa bật tính năng như thế nào? | Từ chối `ca_ho`, `random_ho` và `attack_cd_ticks` với mã 2. Tạm ánh xạ Lao/Sổ tay sang `weapon`/`handbook` trong `extensions`; cần chốt ID với Integrator khi bật các mở rộng. | thd050810 (tạm) |
 
 > 2026-11-21 (P2): thử hỏi Anh Năm câu 1–3 trên lab board, trợ giảng trả lời "Anh chưa sẵn sàng cho Phase 2. Giảng viên sẽ mở sớm." → giữ giả định ở trên, hỏi lại khi mở.
+| 4 | 2026-11-21 P3 | Chuỗi id cá thể `I1…` có chung bộ đếm với id khác (khách `C`, cá `F`) không? | Giả định: họ `I` riêng (IdAllocator theo tiền tố), tăng xuyên pha/Ngày. | tuancdk (tạm) |
+| 5 | 2026-11-21 P3 | Khi một loại trong kho quán giảm (nấu), dùng cá thể nào? | Theo TICKET-03: tươi nhất, hòa theo id. Adapter áp dụng đúng quy tắc này tới khi #20 giữ cá thể trong sim. | tuancdk |

@@ -8,7 +8,7 @@ from chonoi.contract import load_contract
 from chonoi.inputs import InputPlayer, load_frames
 from chonoi.runner import Session
 
-from helpers import (Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json)
+from helpers import Workdir, events, frames, items, read_jsonl, run_headless, snapshots, write_json
 
 
 def make_session(scenario=None, seed=1, tuning=None):
@@ -284,7 +284,7 @@ class GatherHeadless(unittest.TestCase):
         with Workdir() as w:
             sc = write_json(w.path("sc.json"), {"gather": {
                 "player": {"pos": [20, 5.0], "oxygen_ticks": 0, "zero_oxy_ticks": 59, "hp": 1},
-                "hold": ["ca_loc", "bong_dien_dien"],
+                "hold": items("ca_loc", "bong_dien_dien"),
                 "fish": [], "nodes": [], "random_fish": False,
             }})
             out = w.path("out.jsonl")
@@ -294,13 +294,13 @@ class GatherHeadless(unittest.TestCase):
             self.assertEqual(code, 0, err)
             rows = read_jsonl(out)
             self.assertEqual([e["name"] for e in events(rows)], ["choke", "faint", "gather_end"])
-            self.assertEqual(events(rows, "faint")[0]["data"]["lost"], ["bong_dien_dien", "ca_loc"])
+            self.assertEqual(events(rows, "faint")[0]["data"]["lost"], list(reversed(items("ca_loc", "bong_dien_dien"))))
             snaps = snapshots(rows)
             self.assertEqual([s["tick"] for s in snaps], [0, 1])
             self.assertEqual(snaps[-1]["state"], "finished")
             self.assertEqual(rows[-1]["reason"], "fainted")
             with open(inv, encoding="utf-8") as f:
-                self.assertEqual(json.load(f), {"items": {}})
+                self.assertEqual(json.load(f), {"items": []})
 
     def test_full_gather_catch_dock_pipeline_to_quan_cli(self):
         with Workdir() as w:
@@ -330,12 +330,12 @@ class GatherHeadless(unittest.TestCase):
             self.assertEqual(rows[-1]["reason"], "docked")
             with open(inv, encoding="utf-8") as f:
                 saved = json.load(f)
-            self.assertEqual(saved, {"items": {"bong_dien_dien": 1, "ca_linh": 3}})
+            self.assertEqual(saved, {"items": items("bong_dien_dien", "ca_linh", "ca_linh", "ca_linh")})
             # Truyền file kho vào chế độ Quán
             code, err = run_headless("--mode", "quan", "--seed", "42", "--ticks", "0",
                                      "--inventory", inv, "--out", out_q)
             self.assertEqual(code, 0, err)
-            self.assertEqual(snapshots(read_jsonl(out_q))[0]["stock"], {"bong_dien_dien": 1, "ca_linh": 3})
+            self.assertEqual(snapshots(read_jsonl(out_q))[0]["stock"], saved["items"])
 
     def test_headless_determinism_same_seed_byte_identical(self):
         with Workdir() as w:

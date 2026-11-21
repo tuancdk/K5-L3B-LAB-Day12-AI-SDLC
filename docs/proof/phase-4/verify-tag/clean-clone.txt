@@ -1,0 +1,10 @@
+# Clone sạch tag phase-4 (= v1.0.0, 9cd42fc) — Windows 11, Python 3.12, python3 = bản sao python.exe trong venv (AGENTS.md mục Windows)
+$ git clone --branch phase-4 https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC.git cc   # tên cũ, GitHub chuyển hướng sang -1111
+9cd42fc Merge pull request #49 from tuancdk/tuancdk/p4-release-notes
+$ python3 -m chonoi.live --mode day --port 8765
+Mở trình duyệt tại http://127.0.0.1:8765/  (chế độ day, seed 1). Ctrl+C để dừng.
+GET / -> HTTP 200
+$ python3 -m chonoi.headless --mode day --days 6 --seed 1 --out x.jsonl
+exit 2   (đúng: --days chỉ 1..5 ở headless)
+$ python3 -m chonoi.bench --help
+exit 0   (đo thật cần trình duyệt; số đo nộp: docs/proof/phase-4/bench.json)

@@ -47,6 +47,16 @@ Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headl
 
 Ngoài phần đề yêu cầu, nhóm được **thêm** nhân vật, loài cá/cây, sinh vật, món, bản đồ, cơ chế, câu chuyện, đồ họa, âm nhạc… với ba điều kiện: **không phá phần cố định** (tắt ở headless), ghi mục **"Sáng tạo của nhóm"** trong README của nhóm, và **làm lõi đúng trước**.
 
+## Sáng tạo của nhóm
+
+Út Sen có chân dung và dáng đi, dáng lặn riêng, với áo bà ba màu mận, khăn rằn và kính lặn. Buổi sáng có gợn phù sa, cá quẫy đuôi và bong bóng. Buổi tối có đèn quán phản chiếu trên sông và hơi nước bốc lên từ bếp. Các hiệu ứng chạy trong trình duyệt và tôn trọng tùy chọn giảm chuyển động của thiết bị.
+
+Gợi ý bên cạnh cảnh đổi theo việc Út Sen đang làm. Người chơi có thể dùng bàn phím hoặc giữ các nút trên màn hình nhỏ để di chuyển và tương tác.
+
+Buổi tối có sàn quán nổi nhìn nghiêng, hai khu bếp và bàn ăn phân biệt bằng màu chiếu, cùng hàng đèn lồng. Thẻ đơn và đồng hồ ca nằm trên khung chơi. Khi nấu, bếp có đồng hồ riêng và sáng lên lúc món chín. Bàn cần giao được đánh dấu khi Út Sen bưng đúng món. Khi giao hoặc nhận tiền, tín hiệu hiện ngay tại bàn.
+
+Xem [ảnh chơi và kết quả đối chiếu SHA-256](docs/proof/ui/README.md) của cả hai buổi.
+
 ## Lịch 3 giờ
 
 | Mốc | Phase | Hạn tag |

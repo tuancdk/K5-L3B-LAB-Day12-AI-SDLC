@@ -12,9 +12,10 @@ from contextlib import contextmanager
 from .contract import load_contract
 from .errors import BadInput
 from .inputs import load_frames
-from .inventory import read_inventory
+from .inventory import is_item_schema, items_to_counts, read_inventory, read_inventory_for
+from .items import ItemLedger, scenario_items
 from .runner import run
-from .scenario import load_scenario
+from .scenario import load_scenario, read_scenario_json
 
 
 class _Parser(argparse.ArgumentParser):
@@ -81,9 +82,22 @@ def main(argv=None) -> int:
             raise BadInput("các đường dẫn đầu vào/đầu ra phải khác nhau")
         contract = load_contract()
         tuning = contract["tuning"]
-        inventory = read_inventory(a.inventory) if a.inventory else None
-        scenario = load_scenario(a.scenario, a.mode, tuning, inventory=inventory,
-                                 extensions=contract.get("extensions", []))
+        ledger = None
+        if is_item_schema(contract.get("contract_version", "1.0")):
+            # v1.2: kho cá thể; luật hiện còn dạng loại -> đổi ở biên, adapter dựng lại cá thể ở đầu ra
+            inv_items = read_inventory_for(a.inventory, contract["contract_version"]) if a.inventory else None
+            inventory = items_to_counts(inv_items) if inv_items is not None else None
+            raw = read_scenario_json(a.scenario) if a.scenario else None
+            raw, g_items, q_items = scenario_items(raw, a.mode)
+            if inv_items is not None:
+                q_items = inv_items
+            ledger = ItemLedger(a.mode, tuning["freshness"]["initial"], g_items, q_items)
+            scenario = load_scenario(a.scenario, a.mode, tuning, inventory=inventory,
+                                     extensions=contract.get("extensions", []), data=raw)
+        else:
+            inventory = read_inventory(a.inventory) if a.inventory else None
+            scenario = load_scenario(a.scenario, a.mode, tuning, inventory=inventory,
+                                     extensions=contract.get("extensions", []))
         frames = load_frames(a.inputs)
     except BadInput as e:
         sys.stderr.write(f"đầu vào sai: {e}\n")
@@ -91,7 +105,7 @@ def main(argv=None) -> int:
     try:
         with _output_path(a.mode, a.out) as out:
             run(a.mode, tuning, scenario, a.seed, frames, a.ticks, out, a.snapshot_every,
-                inventory=inventory, inventory_out=a.inventory_out, days=days)
+                inventory=inventory, inventory_out=a.inventory_out, days=days, ledger=ledger)
     except BadInput as e:  # lỗi mức luật phát hiện lúc dựng sim
         sys.stderr.write(f"đầu vào sai: {e}\n")
         return 2

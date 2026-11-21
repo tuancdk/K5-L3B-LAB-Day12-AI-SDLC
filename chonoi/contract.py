@@ -29,8 +29,8 @@ def load_contract(path=DEFAULT_PATH) -> dict:
         raise BadInput(f"không đọc được {path}: {e}")
     if not isinstance(c, dict):
         raise BadInput("game.contract.json phải là object")
-    if c.get("contract_version") != "1.1":
-        raise BadInput('contract_version phải là "1.1"')
+    if c.get("contract_version") not in ("1.1", "1.2"):  # 1.2: kho cá thể (TICKET-03)
+        raise BadInput('contract_version phải là "1.1" hoặc "1.2"')
     extensions = c.get("extensions", [])
     if not isinstance(extensions, list) or any(not isinstance(key, str) for key in extensions):
         raise BadInput("extensions phải là mảng id mở rộng")
@@ -288,3 +288,11 @@ def validate_tuning(t):
     _validate_menu(menu, tick_hz)
     validate_day_plans(t.get("day_plan"), t, complete=True)
     _validate_shop(t.get("shop"), tick_hz)
+    if "freshness" in t:  # v1.2 (TICKET-03)
+        f = t["freshness"]
+        if not isinstance(f, dict) or set(f) != {"initial", "gather_decay_per_s", "quan_decay_per_s", "spoiled_below"}:
+            raise BadInput("tuning.freshness phải có initial, gather_decay_per_s, quan_decay_per_s, spoiled_below")
+        _between("freshness.initial", f["initial"], 0, 100)
+        _between("freshness.gather_decay_per_s", f["gather_decay_per_s"], 0, 100)
+        _between("freshness.quan_decay_per_s", f["quan_decay_per_s"], 0, 100)
+        _between("freshness.spoiled_below", f["spoiled_below"], 0, 100)

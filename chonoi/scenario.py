@@ -29,14 +29,20 @@ def _check_ids(name, arr):
         seen.add(e["id"])
 
 
-def load_scenario(path, mode: str, tuning: dict, *, inventory=None, extensions=()) -> dict:
-    if path is None:
-        return {}
+def read_scenario_json(path):
     try:
         with open(path, encoding="utf-8") as f:
-            data = json.load(f)
+            return json.load(f)
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được scenario {path}: {e}")
+
+
+def load_scenario(path, mode: str, tuning: dict, *, inventory=None, extensions=(), data=None) -> dict:
+    """`data`: JSON đã đọc sẵn (v1.2: headless đổi mảng cá thể sang dạng loại trước khi kiểm)."""
+    if path is None and data is None:
+        return {}
+    if data is None:
+        data = read_scenario_json(path)
     if mode == "day":
         return _load_day(data, tuning, extensions)
     if not isinstance(data, dict) or not set(data) <= {"gather", "quan"}:

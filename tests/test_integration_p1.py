@@ -6,12 +6,12 @@ Hai tiến trình headless dùng chung file kho: gather cập bến ở tick 0 -
 import json
 import unittest
 
-from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
+from helpers import Workdir, events, frames, items, read_jsonl, run_headless, snapshots, write_json
 
 
 class SmokeDockToQuan(unittest.TestCase):
     def _gather(self, w, name):
-        sc = write_json(w.path("dock.json"), {"gather": {"hold": ["ca_loc", "bong_sung", "bong_sung"]}})
+        sc = write_json(w.path("dock.json"), {"gather": {"hold": items("ca_loc", "bong_sung", "bong_sung")}})
         inp = write_json(w.path("dock-inputs.json"), frames({"tick": 0, "interact": True}))
         inv = w.path(f"{name}.json")
         code, err = run_headless("--mode", "gather", "--seed", "42", "--scenario", sc, "--inputs", inp,
@@ -26,7 +26,7 @@ class SmokeDockToQuan(unittest.TestCase):
             self.assertEqual(len(end), 1)
             self.assertEqual(end[0]["tick"], 1)
             self.assertEqual(end[0]["data"]["reason"], "docked")
-            self.assertEqual(end[0]["data"]["inventory"], {"items": {"bong_sung": 2, "ca_loc": 1}})
+            self.assertEqual(end[0]["data"]["inventory"], {"items": items("ca_loc", "bong_sung", "bong_sung")})
             self.assertEqual(rows[-1]["type"], "end")
             self.assertEqual(rows[-1]["reason"], "docked")
             with open(inv, encoding="utf-8") as f:
@@ -37,7 +37,7 @@ class SmokeDockToQuan(unittest.TestCase):
             self.assertEqual(code, 0, err)
             s0 = snapshots(read_jsonl(w.path("quan.jsonl")))[0]
             self.assertEqual(s0["tick"], 0)
-            self.assertEqual(s0["stock"], {"bong_sung": 2, "ca_loc": 1})
+            self.assertEqual(s0["stock"], items("ca_loc", "bong_sung", "bong_sung"))
 
     def test_inventory_file_bytes_stable(self):
         with Workdir() as w:

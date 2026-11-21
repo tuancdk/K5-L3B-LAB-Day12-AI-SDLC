@@ -1,9 +1,10 @@
-"""Buổi sáng — Lặn & Hái (`gather`), luật Phase 1–2 (Test Contract v1.1, Issue #13/#14).
+"""Buổi sáng — Lặn & Hái (`gather`), luật Phase 1–3 (Test Contract v1.1/v1.2, Issue #13/#14/#19).
 
 Mặt cắt dòng sông nhìn NGANG: vị trí `[x, d]` (x sang phải, `d` độ sâu hướng xuống, d = 0 là mặt nước).
 `move = [x, d]`: thành phần thứ hai DƯƠNG = bơi xuống. Hướng mặt là góc từ +x, dương = xuống.
 """
 
+from fractions import Fraction
 import math
 
 from ..ids import id_key, sort_by_id
@@ -12,6 +13,24 @@ from . import monsters
 from .ramp import ramp_velocity
 
 AXES = ("x", "d")
+DEFAULT_FRESHNESS = {
+    "initial": 100,
+    "gather_decay_per_s": 0.5,
+    "quan_decay_per_s": 0.25,
+    "spoiled_below": 30,
+}
+
+
+def _to_fraction(value) -> Fraction:
+    if isinstance(value, Fraction):
+        return value
+    return Fraction(str(value))
+
+
+def _export_fresh(value: Fraction):
+    if value.denominator == 1:
+        return int(value)
+    return round(float(value), 4)
 
 
 def _reflect_axis(pos: float, delta: float, lo: float, hi: float):
@@ -77,7 +96,10 @@ class GatherSim:
         self.zero_oxy_ticks = p.get("zero_oxy_ticks", 0)
         self.invuln_ticks = p.get("invuln_ticks", 0)
         self.catch_cd_ticks = p.get("catch_cd_ticks", 0)
-        self.hold = list(scenario.get("hold", []))  # thứ tự nhặt, cuối mảng là mới nhất
+        raw_hold = list(scenario.get("hold", []))
+        self.use_items = ("freshness" in tuning) or any(isinstance(x, dict) for x in raw_hold)
+        self.freshness = dict(DEFAULT_FRESHNESS, **(tuning.get("freshness") or {}))
+        self.hold = self._init_hold(raw_hold)
         self.time_left_ticks = scenario.get("time_left_ticks", self._ticks(t["duration_s"]))
         self.random_fish = bool(scenario.get("random_fish", True))
         # nút và đàn cá: scenario THAY THẾ danh sách mặc định; random_fish=false tắt cá mặc định và cá bơi/sinh
@@ -165,8 +187,62 @@ class GatherSim:
     def _ticks(self, seconds) -> int:
         return int(round(seconds * self.tick_hz))
 
+    def _init_hold(self, raw_hold: list) -> list:
+        """Khởi tạo giỏ: v1.1 là mảng kind; v1.2 là mảng cá thể {id, kind, _fresh} theo thứ tự vào giỏ."""
+        if not self.use_items:
+            return list(raw_hold)
+        init_fresh = _to_fraction(self.freshness["initial"])
+        out = []
+        for entry in raw_hold:
+            if isinstance(entry, dict):
+                kind = entry["kind"]
+                fresh = _to_fraction(entry["fresh"]) if "fresh" in entry else init_fresh
+                raw_id = entry.get("id")
+                if raw_id and self.day == 1:
+                    iid = raw_id
+                    self.ids.reserve(iid)
+                else:
+                    iid = self.ids.new("I")
+            else:
+                kind = entry
+                fresh = init_fresh
+                iid = self.ids.new("I")
+            out.append({"id": iid, "kind": kind, "_fresh": fresh})
+        return out
+
+    def export_hold_item(self, item):
+        if not self.use_items:
+            return item
+        return {"id": item["id"], "kind": item["kind"], "fresh": _export_fresh(item["_fresh"])}
+
+    def _add_to_hold(self, kind: str, amount: int):
+        if not self.use_items:
+            self.hold.extend([kind] * amount)
+            return
+        init_fresh = _to_fraction(self.freshness["initial"])
+        for _ in range(amount):
+            self.hold.append({"id": self.ids.new("I"), "kind": kind, "_fresh": init_fresh})
+
+    def _decay_hold(self, events: list):
+        """Hao độ tươi đầu bước cho hàng đã có sẵn trong giỏ; phát spoiled đúng 1 lần theo id."""
+        if not self.use_items or not self.hold:
+            return
+        decay = _to_fraction(self.freshness["gather_decay_per_s"]) / Fraction(int(self.tick_hz))
+        threshold = _to_fraction(self.freshness["spoiled_below"])
+        zero = Fraction(0)
+        for item in sort_by_id(self.hold):
+            prev = item["_fresh"]
+            nxt = prev - decay
+            if nxt < zero:
+                nxt = zero
+            item["_fresh"] = nxt
+            if prev >= threshold and nxt < threshold:
+                events.append(("spoiled", {"item_id": item["id"], "kind": item["kind"], "location": "hold"}))
+
     # --- giao diện cho runner -------------------------------------------------
-    def inventory_items(self) -> dict:
+    def inventory_items(self):
+        if self.use_items:
+            return [self.export_hold_item(item) for item in sort_by_id(self.hold)]
         return hold_to_items(self.hold)
 
     def snapshot(self) -> dict:
@@ -176,7 +252,7 @@ class GatherSim:
                        "hp": self.hp, "hp_max": self.hp_max, "zero_oxy_ticks": self.zero_oxy_ticks,
                        "invuln_ticks": self.invuln_ticks, "catch_cd_ticks": self.catch_cd_ticks,
                        "at_surface": self._at_surface()},
-            "hold": list(self.hold), "hold_count": len(self.hold),
+            "hold": [self.export_hold_item(item) for item in self.hold], "hold_count": len(self.hold),
             "hold_capacity": self.t["hold_capacity"],
             "nodes": [{"id": n["id"], "pos": list(n["pos"]), "kind": n["kind"],
                        "ready": n["regrow_ticks"] == 0, "regrow_ticks": n["regrow_ticks"]}
@@ -187,13 +263,13 @@ class GatherSim:
             "monsters": monsters.snapshot_monsters(self),
         }
 
-    # --- một bước (TICKET-02 mục 4.5) -----------------------------------------
+    # --- một bước (TICKET-02/03) ----------------------------------------------
     def step(self, inp):
         if self.done:
             return []
         events = []
         self.phase_tick += 1
-        # 1. đồng hồ, cooldown, giảm bất tử, hồi nút
+        # 1. đồng hồ, cooldown, giảm bất tử, hồi nút và hao tươi hàng có sẵn
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
         self.invuln_ticks = max(0, self.invuln_ticks - 1)
         self.catch_cd_ticks = max(0, self.catch_cd_ticks - 1)
@@ -202,6 +278,7 @@ class GatherSim:
                 n["regrow_ticks"] -= 1
                 if n["regrow_ticks"] == 0:
                     events.append(("node_regrown", {"node_id": n["id"]}))
+        self._decay_hold(events)
         # 2. bơi + chặn mép + phân vùng mặt nước + oxy / ngạt / ngất
         was_at_surface = self._at_surface()
         self._move(inp)
@@ -235,7 +312,7 @@ class GatherSim:
         return events
 
     def _faint(self, cause: str, events: list):
-        lost = list(reversed(self.hold))
+        lost = [self.export_hold_item(item) for item in reversed(self.hold)]
         self.hold.clear()
         events.append(("faint", {"cause": cause, "lost": lost, "hp": 0}))
         self._finish("fainted", events)
@@ -254,7 +331,7 @@ class GatherSim:
             events.append(("hold_full", {"action": "gather", "node_id": node["id"],
                                          "required": required, "free": free}))
             return
-        self.hold.extend([node["kind"]] * required)
+        self._add_to_hold(node["kind"], required)
         node["regrow_ticks"] = self._ticks(self.t["regrow_s"])
         events.append(("gather", {"node_id": node["id"], "kind": node["kind"], "amount": required}))
 
@@ -271,7 +348,7 @@ class GatherSim:
             events.append(("hold_full", {"action": "catch", "fish_id": fish["id"],
                                          "required": required, "free": free}))
             return
-        self.hold.extend([fish["kind"]] * required)
+        self._add_to_hold(fish["kind"], required)
         self.fish.remove(fish)
         self.catch_cd_ticks = self._ticks(self.t["catch_cooldown_s"])
         events.append(("fish_caught", {"fish_id": fish["id"], "kind": fish["kind"], "yield": required}))

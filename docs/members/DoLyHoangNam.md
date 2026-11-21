@@ -1,4 +1,4 @@
-# DoLyHoangNam — phản tư cá nhân
+# DoLyHoangNam (Đỗ Lý Hoàng Nam — 2A202603777) — phản tư cá nhân
 
 - **Tôi đã làm:**
   - P1 ([PR #11](https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC/pull/11), [`67d8474`](https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC/commit/67d8474)): luật `chonoi/sim/gather.py` (oxy, ngạt `t+59`, ngất LIFO, hái nút, bắt cá, giỏ), 17 test (`test_gather_rules.py`).

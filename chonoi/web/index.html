@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&display=swap">
 <title>Quán Ăn Chợ Nổi</title>
+<!-- Phaser 3.80.1 (MIT) đóng gói trong chonoi/web/vendor; thiếu thì trang tự vẽ bằng Canvas 2D. -->
+<script src="/vendor/phaser.min.js"></script>
 <style>
   :root {
     color-scheme: light;
@@ -88,7 +90,9 @@
   .stage { position: relative; overflow: hidden; isolation: isolate; border-radius: 13px; background: var(--canvas); border: 1px solid #233e37; box-shadow: 0 8px 24px #1e291723; }
   body[data-mode="quan"] .stage { border: 3px solid #4a7380; box-shadow: 0 5px #0b1d28; }
   body[data-mode="quan"] .scene-key { background: #193845; }
-  #scene { width: 100%; display: block; aspect-ratio: 2.06 / 1; }
+  #scene { width: 100%; display: block; aspect-ratio: 2.06 / 1; position: relative; overflow: hidden; }
+  #scene > canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; display: block; }
+  #scene > canvas.world-layer { background: #253e37; }
   @media (min-width: 761px) {
     body[data-mode="quan"] #scene { aspect-ratio: 2.55 / 1; }
   }
@@ -269,6 +273,10 @@
     .meter--urgent { animation: tick-pulse .5s ease-in-out infinite alternate; }
   }
   @keyframes tick-pulse { to { transform: scale(1.06); } }
+  @media (prefers-reduced-motion: no-preference) {
+    .meter.bump { animation: coin-bump .35s cubic-bezier(.3,1.8,.5,1); }
+  }
+  @keyframes coin-bump { 40% { transform: scale(1.14) rotate(-2deg); background: #fff0a8; } }
 
   /* Phiếu món: giấy kẹp trên sợi dây đèn lồng */
   .order-board h2 { display: none; }
@@ -402,7 +410,7 @@
       <div id="orders"></div>
     </section>
     <div class="stage" id="game-stage">
-      <canvas id="scene" aria-label="Cảnh chơi của Út Sen"></canvas>
+      <div id="scene" role="img" aria-label="Cảnh chơi của Út Sen"></div>
       <div class="message" id="message" role="status">Đang kết nối…</div>
       <div class="notice" id="gather-alert" role="status" hidden></div>
       <div class="scene-key" id="legend"></div>
@@ -449,8 +457,9 @@
 <script>
 "use strict";
 
-const canvas = document.getElementById("scene");
-const ctx = canvas.getContext("2d");
+const sceneHost = document.getElementById("scene");
+// Bút vẽ hiện hành: canvas dự phòng hoặc texture nền của Phaser. Mọi hàm vẽ dùng chung biến này.
+let ctx = null;
 const elements = Object.fromEntries(
   ["phase", "restart", "meters", "message", "legend", "interact-label", "catch-key", "journal",
     "tip", "touch-interact", "touch-catch", "portrait", "order-board", "orders", "scene-action",
@@ -1852,19 +1861,15 @@ function serviceEffect(data,tables,map,hz) {
   }
 }
 let animationTime = 0;
-function frame(now) {
-  requestAnimationFrame(frame);
-  if (!ctx || !canvas.clientWidth || !canvas.clientHeight) return;
-  const width = canvas.clientWidth, height = canvas.clientHeight;
-  const dpr = Math.min(devicePixelRatio || 1,2);
-  const targetW = Math.round(width*dpr), targetH = Math.round(height*dpr);
-  if (canvas.width !== targetW || canvas.height !== targetH) {
-    canvas.width = targetW;
-    canvas.height = targetH;
-  }
-  const w = width, h = height;
-  ctx.setTransform(targetW/w,0,0,targetH/h,0,0);
+let lastMap = null;   // phép chiếu của frame gần nhất, để hiệu ứng Phaser đặt đúng chỗ
+let phaserScene = null;
+// Vẽ toàn bộ cảnh (nền + vật thể) bằng Canvas 2D vào `target`, kích thước CSS w×h, mật độ điểm ảnh dpr.
+function drawWorld(target,w,h,dpr,now,withOverlay) {
+  ctx = target;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.globalAlpha = 1;
   rect(0,0,w,h,"#253e37");
+  lastMap = null;
   if (!mode) return;
   const {data,meta,player,hz} = fields();
   const morning = mode === "gather";
@@ -1875,6 +1880,7 @@ function frame(now) {
     return;
   }
   const map = project(meta,w,h,morning,cachedInsets);
+  lastMap = map;
   if (morning) {
     layer("nền sông", () => river(w,h,map,meta,t),true);
     if (!map) return;
@@ -1891,9 +1897,25 @@ function frame(now) {
     layer("bàn trên sàn", () => tablesSprites(tables,map,data,player,meta),true);
     layer("khách", () => customerSprites(records(data.customers),tables,map,meta,hz,t),true);
     layer("Út Sen trong quán", () => restaurantPlayer(player,data,meta,map,t),true);
-    layer("phản hồi giao món", () => serviceEffect(data,tables,map,hz),true);
+    // Có Phaser thì đồng xu/chữ nổi do Phaser làm bằng particle + tween.
+    if (withOverlay) layer("phản hồi giao món", () => serviceEffect(data,tables,map,hz),true);
   }
-  layer("biển báo nhịp chơi", () => phaseBanner(data,hz,w,h,map),true);
+  if (withOverlay) layer("biển báo nhịp chơi", () => phaseBanner(data,hz,w,h,map),true);
+}
+// Dự phòng khi không tải được Phaser: canvas thường + requestAnimationFrame như bản trước.
+function startCanvasFallback() {
+  const fallback = document.createElement("canvas");
+  sceneHost.append(fallback);
+  const brush = fallback.getContext("2d");
+  (function loop(now) {
+    requestAnimationFrame(loop);
+    const w = sceneHost.clientWidth, h = sceneHost.clientHeight;
+    if (!brush || !w || !h) return;
+    const dpr = Math.min(devicePixelRatio || 1,2);
+    const W = Math.round(w*dpr), H = Math.round(h*dpr);
+    if (fallback.width !== W || fallback.height !== H) { fallback.width = W; fallback.height = H; }
+    drawWorld(brush,w,h,W/w,now,true);
+  })(performance.now());
 }
 // "Bắt đầu!" đầu buổi, đếm ngược 5 giây cuối và "Hết giờ!" — chỉ là hiển thị, không đổi luật.
 function bigWord(text,x,y,scale,fill) {
@@ -2359,7 +2381,8 @@ function playSfx(data) {
     return true;
   });
   if (!fresh.length || data.state === "paused") return;
-  if (fresh.some(event => shakeEvents.has(event.name)) && !reduceMotion.matches) {
+  if (phaserScene) layer("hiệu ứng Phaser", () => phaserScene.play(fresh,data));
+  else if (fresh.some(event => shakeEvents.has(event.name)) && !reduceMotion.matches) {
     const stage = elements["game-stage"];
     stage.classList.remove("hit");
     void stage.offsetWidth; // chạy lại hiệu ứng rung
@@ -2382,8 +2405,306 @@ setInterval(() => {
   note("music",melody[i % melody.length],.09,.22);
   if (i % 4 === 0) note("music",bass[(i/4) % bass.length],.12,.4,"sine");
 },180);
+// ===================== Lớp cảnh Phaser 3 =====================
+// Hai lớp canvas chồng nhau trong #scene: lớp dưới là tranh Canvas 2D vẽ tay (drawWorld) vẽ thẳng, không phải
+// chép ảnh mỗi frame; lớp trên là Phaser trong suốt lo hạt, chữ nổi, tween và camera (rung/nháy/chuyển cảnh).
+// Phaser giữ nhịp vẽ cho cả hai. Sau này có sprite sheet thì chuyển dần từng vật thể lên lớp Phaser.
+// Chỉ đọc snapshot/event: không đổi luật, headless không bị ảnh hưởng.
+const ink = "#2b1b14";
+// Renderer Canvas không tô màu (tint) được, nên mỗi màu hạt là một khung riêng trong atlas "fx".
+function buildFxAtlas(scene) {
+  const cell = 32;
+  const frames = [
+    ["spark-gold","#ffd54f"],["spark-green","#a8e06a"],["spark-white","#fff7e2"],
+    ["drop","#cdeee4"],["conf-0","#ff7a59"],["conf-1","#ffd54f"],["conf-2","#6cc6a0"],
+    ["conf-3","#7aa8ff"],["conf-4","#f28fb8"],["puff-grey","#8f817a"],["puff-white","#fff6e8"],
+    ["coin",null],["firefly","#ffe08a"],["leaf","#7fae5a"]
+  ];
+  const tex = scene.textures.createCanvas("fx",cell*frames.length,cell);
+  const g = tex.getContext();
+  frames.forEach(([name,color],i) => {
+    const x = i*cell, cx = x+cell/2, cy = cell/2;
+    g.save();
+    if (name.startsWith("spark")) {
+      g.fillStyle = color;
+      g.beginPath();
+      for (let k = 0; k < 8; k++) {
+        const r = k%2 ? 4 : 13, a = k*Math.PI/4 - Math.PI/2;
+        g.lineTo(cx+Math.cos(a)*r, cy+Math.sin(a)*r);
+      }
+      g.closePath(); g.fill();
+    } else if (name === "drop") {
+      g.fillStyle = color; g.beginPath(); g.arc(cx,cy,6,0,TAU); g.fill();
+      g.fillStyle = "#ffffffaa"; g.beginPath(); g.arc(cx-2,cy-2,2,0,TAU); g.fill();
+    } else if (name.startsWith("conf")) {
+      g.fillStyle = color; g.fillRect(cx-6,cy-3.5,12,7);
+    } else if (name.startsWith("puff") || name === "firefly") {
+      const grad = g.createRadialGradient(cx,cy,1,cx,cy,name === "firefly" ? 9 : 15);
+      grad.addColorStop(0,color); grad.addColorStop(1,color+"00");
+      g.fillStyle = grad; g.fillRect(x,0,cell,cell);
+    } else if (name === "coin") {
+      g.fillStyle = ink; g.beginPath(); g.arc(cx,cy+1.5,12,0,TAU); g.fill();
+      g.fillStyle = "#ffc847"; g.beginPath(); g.arc(cx,cy,11,0,TAU); g.fill();
+      g.strokeStyle = ink; g.lineWidth = 2; g.stroke();
+      g.fillStyle = "#f0a01e"; g.beginPath(); g.arc(cx,cy,6,0,TAU); g.fill();
+      g.fillStyle = "#fff3b0"; g.fillRect(cx-7,cy-7,3,5);
+    } else if (name === "leaf") {
+      g.fillStyle = color; g.beginPath(); g.ellipse(cx,cy,9,4,.6,0,TAU); g.fill();
+    }
+    g.restore();
+    tex.add(name,0,x,0,cell,cell);
+  });
+  tex.refresh();
+}
+
+// Chỉ định nghĩa khi Phaser đã tải, để trang vẫn chạy bản Canvas dự phòng khi thiếu thư viện.
+const ChoNoiScene = typeof Phaser === "undefined" ? null : class extends Phaser.Scene {
+  constructor() { super("cho-noi"); }
+
+  create() {
+    buildFxAtlas(this);
+    this.viewW = 0; this.viewH = 0; this.dpr = 1;
+    this.worldCanvas = document.createElement("canvas");
+    this.worldCanvas.className = "world-layer";
+    sceneHost.prepend(this.worldCanvas);
+    this.worldBrush = this.worldCanvas.getContext("2d");
+    this.shownMode = null;
+    this.lastCount = null;
+    this.steamClock = 0;
+    this.cameras.main.setOrigin(0,0);
+    const burst = extra => this.add.particles(0,0,"fx",Object.assign({ emitting:false }, extra)).setDepth(20);
+    this.fx = {
+      sparkle: burst({ frame:["spark-gold","spark-white"], speed:{min:70,max:190}, angle:{min:0,max:360},
+        scale:{start:.9,end:0}, rotate:{min:0,max:360}, lifespan:650, gravityY:160 }),
+      leaves: burst({ frame:["spark-green","leaf"], speed:{min:60,max:150}, angle:{min:200,max:340},
+        scale:{start:.8,end:.1}, rotate:{min:0,max:360}, lifespan:700, gravityY:260 }),
+      splash: burst({ frame:"drop", speed:{min:110,max:250}, angle:{min:205,max:335},
+        scale:{start:.9,end:.25}, lifespan:720, gravityY:620 }),
+      confetti: burst({ frame:["conf-0","conf-1","conf-2","conf-3","conf-4"], speed:{min:160,max:320},
+        angle:{min:215,max:325}, rotate:{min:0,max:360}, scale:{start:1,end:.6}, lifespan:1200, gravityY:380 }),
+      puff: burst({ frame:"puff-grey", speed:{min:18,max:60}, angle:{min:0,max:360},
+        scale:{start:.7,end:1.8}, alpha:{start:.85,end:0}, lifespan:900 }),
+      steam: burst({ frame:"puff-white", speedY:{min:-55,max:-30}, speedX:{min:-8,max:8},
+        scale:{start:.35,end:1.1}, alpha:{start:.55,end:0}, lifespan:1300 }).setDepth(5)
+    };
+    this.fireflyZone = new Phaser.Geom.Rectangle(0,0,10,10);
+    this.fireflies = this.add.particles(0,0,"fx",{ frame:"firefly", emitZone:{ type:"random", source:this.fireflyZone },
+      speed:{min:4,max:16}, angle:{min:0,max:360}, lifespan:{min:2500,max:4200}, frequency:260,
+      alpha:{start:1,end:0}, scale:{min:.5,max:1}, blendMode:"ADD", emitting:false }).setDepth(4);
+    this.banner = this.add.text(0,0,"",{ fontFamily:'"Baloo 2", system-ui, sans-serif', fontSize:"68px",
+      fontStyle:"800", color:"#ffd54f", stroke:ink, strokeThickness:14, align:"center" })
+      .setOrigin(.5).setDepth(30).setVisible(false).setShadow(0,6,ink,0,true,true);
+  }
+
+  resizeTo(w,h) {
+    const dpr = Math.min(devicePixelRatio || 1,2);
+    if (w === this.viewW && h === this.viewH && dpr === this.dpr) return;
+    this.viewW = w; this.viewH = h; this.dpr = dpr;
+    const W = Math.round(w*dpr), H = Math.round(h*dpr);
+    this.scale.resize(W,H);
+    this.cameras.main.setSize(W,H).setZoom(dpr).setScroll(0,0);
+    this.worldCanvas.width = W;
+    this.worldCanvas.height = H;
+    this.fireflyZone.setTo(0,0,w,h*.75);
+    this.banner.setResolution(dpr);
+  }
+
+  update(now) {
+    const w = sceneHost.clientWidth, h = sceneHost.clientHeight;
+    if (!w || !h) return;
+    this.resizeTo(w,h);
+    layer("cảnh Phaser", () => drawWorld(this.worldBrush,w,h,this.dpr,now,false));
+    // Rung camera chỉ dời lớp Phaser; dời lớp tranh theo cùng độ lệch để cả cảnh rung chung.
+    const shake = this.cameras.main.shakeEffect;
+    const dx = shake.isRunning ? (shake._offsetX ?? 0)/this.dpr : 0, dy = shake.isRunning ? (shake._offsetY ?? 0)/this.dpr : 0;
+    const offset = dx || dy ? `translate(${dx.toFixed(1)}px,${dy.toFixed(1)}px)` : "";
+    if (this.worldCanvas.style.transform !== offset) this.worldCanvas.style.transform = offset;
+    const { data, hz } = fields();
+    const frozen = data.state === "paused" || elements["game-dialog"].open;
+    const speed = frozen ? 0 : 1;
+    this.tweens.timeScale = speed;
+    for (const emitter of [...Object.values(this.fx), this.fireflies]) emitter.timeScale = speed;
+    if (mode !== this.shownMode) {
+      // Chuyển pha sáng ↔ tối: mở màn bằng fade như bật đèn sân khấu.
+      if (this.shownMode && !reduceMotion.matches) this.cameras.main.fadeIn(520,16,36,51);
+      this.shownMode = mode;
+      if (mode === "quan" && !reduceMotion.matches) this.fireflies.start(); else this.fireflies.stop();
+    }
+    layer("khói bếp", () => this.ambientSteam(data,now,frozen));
+    layer("biển nhịp chơi", () => this.updateBanner(data,hz,w,h,frozen));
+  }
+
+  ambientSteam(data,now,frozen) {
+    if (frozen || reduceMotion.matches || mode !== "quan" || !lastMap || now < this.steamClock) return;
+    this.steamClock = now + 170;
+    for (const stove of records(data.stoves)) {
+      if (stove.state !== "cooking") continue;
+      const at = lastMap.xy(stove.pos);
+      if (at) this.fx.steam.emitParticleAt(at[0]+Phaser.Math.Between(-8,8),at[1]-14,1);
+    }
+  }
+
+  updateBanner(data,hz,w,h,frozen) {
+    const banner = this.banner;
+    const cx = lastMap ? (lastMap.left+lastMap.right)/2 : w/2, cy = h*.44;
+    const sinceStart = number(data.phase_tick) ? data.phase_tick : number(data.tick) ? data.tick : null;
+    const timeUp = (number(data.time_left_ticks) && data.time_left_ticks <= 0) ||
+      ((data.finished === true || data.state === "finished") && data.reason === "time");
+    let text = "", color = "#ffd54f";
+    if (frozen || mode === "shop" || !mode) text = "";
+    else if (timeUp) { text = "Hết giờ!"; color = "#ff8a6b"; }
+    else if (number(sinceStart) && sinceStart < hz*1.3) text = "Bắt đầu!";
+    else if (number(data.time_left_ticks) && data.time_left_ticks > 0 && data.time_left_ticks <= hz*5) {
+      text = String(Math.ceil(data.time_left_ticks/hz)); color = "#fff3d6";
+    }
+    banner.setPosition(cx,cy);
+    if (!text) { banner.setVisible(false); this.lastCount = null; return; }
+    if (banner.text !== text) {
+      banner.setText(text).setColor(color).setVisible(true).setAlpha(1);
+      this.tweens.killTweensOf(banner);
+      if (!reduceMotion.matches) {
+        banner.setScale(text.length <= 2 ? 1.7 : .3).setAngle(-6);
+        this.tweens.add({ targets:banner, scale:1, angle:-2, duration:380, ease:"Back.easeOut" });
+        if (text === "Bắt đầu!") this.tweens.add({ targets:banner, alpha:0, delay:900, duration:300 });
+      } else banner.setScale(1);
+    }
+  }
+
+  popText(x,y,text,color = "#fff3d6",size = 26) {
+    const label = this.add.text(x,y,text,{ fontFamily:'"Baloo 2", system-ui, sans-serif', fontSize:size+"px",
+      fontStyle:"800", color, stroke:ink, strokeThickness:7 }).setOrigin(.5).setDepth(25).setResolution(this.dpr);
+    // Nhiều chữ cùng lúc ở gần nhau thì xếp chồng lên; giữ trong khung, tránh vùng HUD bên phải.
+    const now = this.time.now;
+    this.recentPops = (this.recentPops ?? []).filter(pop => now-pop.at < 600);
+    while (this.recentPops.some(pop => Math.abs(pop.x-x) < 90 && Math.abs(pop.y-y) < 24)) y -= 30;
+    this.recentPops.push({ x, y, at:now });
+    const half = label.width/2+8;
+    x = clamp(x, half, Math.max(half, this.viewW-cachedInsets.right-half));
+    y = Math.max(y, label.height/2+6);
+    label.setPosition(x,y);
+    if (reduceMotion.matches) {
+      this.tweens.add({ targets:label, alpha:0, delay:700, duration:300, onComplete:() => label.destroy() });
+      return;
+    }
+    label.setScale(.4);
+    this.tweens.add({ targets:label, scale:1, duration:260, ease:"Back.easeOut" });
+    this.tweens.add({ targets:label, y:y-46, alpha:0, delay:520, duration:620, ease:"Sine.easeIn",
+      onComplete:() => label.destroy() });
+  }
+
+  // Đồng xu bay từ bàn về ô "Tiền ca" trên HUD, ô đó nảy lên khi xu tới.
+  coinsToHud(x,y,count) {
+    const meter = [...elements.meters.querySelectorAll(".meter")].find(card => card.textContent.includes("Tiền"));
+    const host = sceneHost.getBoundingClientRect();
+    const box = meter?.getBoundingClientRect();
+    const tx = box ? box.left+box.width/2-host.left : this.viewW-60, ty = box ? box.top+box.height/2-host.top : 30;
+    for (let i = 0; i < count; i++) {
+      const coin = this.add.image(x+Phaser.Math.Between(-14,14),y,"fx","coin").setDepth(26).setScale(.9);
+      this.tweens.add({ targets:coin, y:y-40-Phaser.Math.Between(0,24), duration:240, delay:i*70, ease:"Quad.easeOut" });
+      this.tweens.add({ targets:coin, x:tx, y:ty, scale:.55, duration:560, delay:240+i*70, ease:"Cubic.easeIn",
+        onComplete:() => {
+          coin.destroy();
+          if (meter && i === count-1) {
+            meter.classList.remove("bump"); void meter.offsetWidth; meter.classList.add("bump");
+          }
+        } });
+    }
+  }
+
+  play(events,data) {
+    const map = lastMap;
+    if (!map || !this.fx || !this.viewW) return;   // scene chưa create xong hoặc chưa có cảnh
+    const calm = reduceMotion.matches;
+    const at = pos => map.xy(pos);
+    const byId = (list,id) => records(list).find(item => item.id === id);
+    const player = object(data.player) ? at(data.player.pos) : null;
+    const tableAt = id => at(byId(data.tables,id)?.pos);
+    const stoveAt = id => at(byId(data.stoves,id)?.pos);
+    const burst = (name,p,n) => p && this.fx[name].explode(calm ? Math.ceil(n/3) : n,p[0],p[1]);
+    for (const event of events) {
+      const d = object(event.data) ? event.data : {};
+      switch (event.name) {
+        case "gather": {
+          const p = at(byId(data.nodes,d.node_id)?.pos) ?? player;
+          burst("leaves",p,14);
+          if (p) this.popText(p[0],p[1]-26,"+"+(d.amount ?? 1)+" "+(ingredients.get(d.kind) ?? ""),"#c9f08a");
+          break;
+        }
+        case "fish_caught":
+          burst("splash",player,16); burst("sparkle",player,10);
+          if (player) this.popText(player[0],player[1]-30,"+"+(d.yield ?? 1)+" "+(ingredients.get(d.kind) ?? "cá"),"#ffe9a6");
+          break;
+        case "hold_full":
+          if (player) this.popText(player[0],player[1]-30,"Giỏ đầy!","#ff9c86");
+          break;
+        case "dive": case "surface":
+          burst("splash",at(d.pos) ?? player,event.name === "dive" ? 18 : 12);
+          break;
+        case "monster_hit": case "choke": case "faint":
+          if (!calm) {
+            this.cameras.main.shake(event.name === "faint" ? 420 : 260, event.name === "faint" ? .018 : .011);
+            this.cameras.main.flash(160,255,90,70);
+          }
+          if (player) this.popText(player[0],player[1]-30,event.name === "faint" ? "Ngất rồi!" : "−1 ♥","#ff8a6b");
+          break;
+        case "customer_arrived": burst("sparkle",tableAt(d.table_id),6); break;
+        case "dish_ready": {
+          const p = stoveAt(d.stove_id);
+          burst("sparkle",p,16);
+          if (p) this.popText(p[0],p[1]-58,"Chín rồi!","#c9f08a",22);
+          break;
+        }
+        case "served": burst("confetti",tableAt(d.table_id),26); break;
+        case "paid": {
+          const p = tableAt(d.table_id);
+          if (!p || !number(d.amount)) break;
+          this.popText(p[0],p[1]-54,"+"+d.amount+" nghìn","#ffd54f",28);
+          this.coinsToHud(p[0],p[1]-30,calm ? 1 : clamp(Math.round(d.amount/20),3,8));
+          break;
+        }
+        case "customer_left": {
+          const p = tableAt(d.table_id);
+          burst("puff",p,14);
+          if (p) this.popText(p[0],p[1]-40,"Khách bỏ đi!","#ff8a6b",22);
+          break;
+        }
+      }
+    }
+  }
+};
+
+function startPhaser() {
+  new Phaser.Game({
+    type: Phaser.CANVAS,          // ổn định trên máy trường và Chrome headless (không cần GPU)
+    parent: sceneHost,
+    width: Math.max(1,sceneHost.clientWidth), height: Math.max(1,sceneHost.clientHeight),
+    transparent: true,            // lớp tranh nằm bên dưới
+    banner: false,
+    audio: { noAudio: true },     // âm thanh vẫn do Web Audio của trang lo
+    input: { keyboard: false, mouse: false, touch: false, gamepad: false }, // phím do trang xử lý
+    scale: { mode: Phaser.Scale.NONE },
+    scene: {
+      key: "boot",
+      create() {
+        this.scene.add("cho-noi",ChoNoiScene,true);
+        phaserScene = this.scene.get("cho-noi");
+        this.scene.remove("boot");
+      }
+    }
+  });
+}
+function bootScene() {
+  if (typeof Phaser === "undefined") { startCanvasFallback(); return; }
+  try { startPhaser(); } catch (error) {
+    console.warn("Không khởi động được Phaser, dùng Canvas 2D", error);
+    sceneHost.replaceChildren();
+    startCanvasFallback();
+  }
+}
 void poll();
-requestAnimationFrame(frame);
+// Chờ phông Baloo 2 (tối đa 1,5 s) để chữ Phaser đo đúng kích thước ngay lần đầu.
+Promise.race([document.fonts?.load?.('800 64px "Baloo 2"') ?? Promise.resolve(), new Promise(r => setTimeout(r,1500))])
+  .catch(() => {}).finally(bootScene);
 </script>
 </body>
 </html>

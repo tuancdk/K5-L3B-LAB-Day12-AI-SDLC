@@ -35,10 +35,40 @@ Bản này đổi cách trình bày theo các game nấu ăn hợp tác. Mọi t
   - Shop ghi rõ số tiền còn thiếu, nhưng nút Mua vẫn gửi `buy` để server trả `buy_failed`.
 - **Chữ ≥ 18 px ở 1280×720 trong chế độ Ngày:** áp thêm cho dòng tên pha, nhãn phím, nút hộp thoại, dòng bàn/khách trên phiếu và nội dung bảng kho/bếp.
 
+## Lớp cảnh Phaser 3
+
+Cảnh chơi chạy trên [Phaser 3.80.1](../../../../chonoi/web/vendor/PHASER-LICENSE.md) (MIT), đóng gói trong `chonoi/web/vendor/`. `live.py` chỉ phục vụ đúng các file trong `VENDOR_FILES`, nên không cần mạng. HUD, phiếu món và hộp thoại vẫn là DOM, giữ nguyên selector cho các kiểm tra cũ.
+
+- **Hai lớp canvas trong `#scene`:**
+  - Lớp dưới là tranh Canvas 2D vẽ tay (`drawWorld`).
+  - Lớp trên là Phaser trong suốt, lo hạt, chữ nổi, tween và camera.
+  - Phaser giữ nhịp vẽ cho cả hai. Khi rung, lớp tranh dời theo độ lệch của camera.
+  - Cách này thay cho bản đầu chép tranh vào `CanvasTexture` mỗi frame. Trong cùng một lần chạy, bản đầu chỉ đạt khoảng 0,67 lần FPS của Canvas thường ở buổi sáng; bản hai lớp đạt khoảng 0,9–1,0.
+- **Hiệu ứng theo event của snapshot:**
+  - `gather`: lá và chữ "+1 …"; `fish_caught`: tia nước, tia sáng, "+1 …".
+  - `dive`/`surface`: tia nước; `hold_full`: "Giỏ đầy!".
+  - `monster_hit`/`choke`/`faint`: camera rung, nháy đỏ và "−1 ♥".
+  - `dish_ready`: tia sáng và "Chín rồi!" trên bếp; `served`: giấy màu tại bàn.
+  - `paid`: đồng xu bay về ô Tiền ca rồi ô đó nảy lên; `customer_left`: khói và "Khách bỏ đi!".
+  - Ngoài ra: khói bốc từ bếp đang nấu, đom đóm buổi tối, sáng/tối chuyển bằng fade.
+  - "Bắt đầu!", đếm ngược 5 giây cuối và "Hết giờ!" là Text của Phaser có tween.
+  - Hạt và tween dừng khi tạm dừng hoặc mở hộp thoại; giảm chuyển động thì bỏ rung, nháy và bớt hạt.
+- **Dự phòng:** không tải được Phaser thì trang vẽ bằng Canvas 2D như bản trước, kể cả chữ nổi và biển nhịp chơi.
+- [`phaser-check.py`](../phaser-check.py) chạy với server quan và gather thật:
+  - Xác nhận Phaser 3.80.1 khởi động với đúng hai canvas.
+  - Kích hoạt event trên client, đếm hạt và tween đang chạy.
+  - Chặn `/vendor/phaser.min.js` rồi tải lại để xác nhận bản dự phòng vẫn vẽ.
+  - Không có lỗi JavaScript.
+- Ảnh giữa hiệu ứng: [quán](phaser-quan-fx.png), [sông](phaser-gather-fx.png).
+- **FPS ở lần chạy lưu ảnh:** quán 89,9 (dự phòng 64,6), sông 45,8 (dự phòng 60,6).
+  - Số đo trên máy thử dao động mạnh theo tải. Khi máy bận, cả hai cách đều xuống khoảng 28–35, và có một lần quán Phaser đo được 27,8.
+  - Script chỉ báo đạt khi cả hai cảnh ≥ 30 FPS.
+
 ## Lệnh tái hiện
 
 ```powershell
 python -X utf8 -B docs/proof/ui/browser-check.py --day-fixture --out docs/proof/ui/phase-2
+python -X utf8 -B docs/proof/ui/phaser-check.py --out docs/proof/ui/phase-2
 python -X utf8 -B .agents/skills/headless-check/headless_check.py --seed 1 --ticks 600 --out docs/proof/ui/phase-2/headless-check.txt
 ```
 

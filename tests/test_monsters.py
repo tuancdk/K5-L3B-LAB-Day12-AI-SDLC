@@ -14,6 +14,7 @@ from chonoi.sim.gather import GatherSim
 
 def make_gather(scenario=None, seed=1, day_ctx=None, tuning=None):
     t = deepcopy(load_contract()["tuning"]) if tuning is None else deepcopy(tuning)
+    t.pop("freshness", None)  # luật P1/P2 với giỏ dạng kind; giỏ cá thể v1.2 kiểm ở test_gather_p3
     return GatherSim(t, deepcopy(scenario or {}), Streams(seed), IdAllocator(), day_ctx=day_ctx)
 
 
@@ -156,6 +157,7 @@ class MonsterChaseHitRecoil(unittest.TestCase):
     def test_monster_faint_drops_remaining_lifo_and_day_continues_with_empty_stock(self):
         # hp=1, hold có 3 món -> monster_hit bỏ floor(3/2)=1 (món cuối), faint(cause="monster") bỏ 2 món còn lại LIFO
         t = deepcopy(load_contract()["tuning"])
+        t.pop("freshness", None)  # luật P2 dạng kind; cá thể v1.2 kiểm ở test_gather_p3
         sc = {"gather": {
             "player": {"pos": [60, 24], "hp": 1},
             "hold": ["bong_sung", "ca_loc", "ca_linh"],

@@ -147,7 +147,7 @@ def run(mode, tuning, scenario, seed, frames, ticks, out_path, snapshot_every, i
         w.close()
     if ledger is not None:
         if sess.mode == "gather" and sess.done and inventory_out:
-            write_inventory_items(inventory_out, ledger.inventory()["items"])
+            write_inventory_items(inventory_out, ledger.inventory_for(sess)["items"])
     else:
         sess.write_inventory_if_done(inventory_out)
     return sess.sim

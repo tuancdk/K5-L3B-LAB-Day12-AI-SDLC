@@ -38,6 +38,7 @@ class ItemLedger:
         self.stock = [dict(it) for it in (quan_items or [])]
         self._gather_sim = None
         self._dropped = []  # cá thể vừa rơi khỏi giỏ trong bước này, theo thứ tự bỏ (LIFO)
+        self.native_gather = False
 
     # --- theo dõi pha ----------------------------------------------------------------
     def _inner(self, sess):
@@ -72,6 +73,10 @@ class ItemLedger:
             self.stock = [dict(it) for it in self.hold]  # bàn giao cùng tick, không hao thêm
 
     def _sync_hold(self, sim):
+        if getattr(sim, "use_items", False):  # #19: GatherSim giữ cá thể + hao tươi
+            self.native_gather = True
+            self.hold = [sim.export_hold_item(it) for it in sim.hold]
+            return
         native = getattr(sim, "items_hold", None)
         if native is not None:
             self.hold = deepcopy(list(native))
@@ -109,15 +114,24 @@ class ItemLedger:
     def inventory(self):
         return {"items": sort_items(self.hold)}
 
+    def inventory_for(self, sess):
+        """Kho ghi file khi gather_end: lấy từ sim nếu sim đã giữ cá thể."""
+        inner = self._inner(sess)[0]
+        if getattr(inner, "use_items", False):
+            return {"items": sort_items(inner.inventory_items())}
+        return self.inventory()
+
     def patch_snapshot(self, snap):
         phase = snap.get("phase")
-        if phase == "gather" and "hold" in snap:
+        if phase == "gather" and "hold" in snap and not self.native_gather:
             snap["hold"] = [dict(it) for it in self.hold]
         elif phase in ("quan", "shop") and "stock" in snap:
             snap["stock"] = [dict(it) for it in self.stock]
         return snap
 
     def patch_event(self, row):
+        if self.native_gather:
+            return row  # sim đã phát gather_end/lost/spoiled đúng schema v1.2
         name = row.get("name")
         if name == "gather_end":
             row["data"] = dict(row["data"], inventory=self.inventory())
@@ -141,8 +155,7 @@ def scenario_items(data, mode):
     g_items, q_items = [], []
     g = data.get("gather")
     if isinstance(g, dict) and "hold" in g:
-        g_items = validate_item_list(g["hold"], where="gather.hold")
-        g["hold"] = [it["kind"] for it in g_items]
+        g_items = validate_item_list(g["hold"], where="gather.hold")  # giữ nguyên cá thể cho GatherSim
     q = data.get("quan")
     if isinstance(q, dict) and "stock" in q:
         q_items = validate_item_list(q["stock"], where="quan.stock")

@@ -136,7 +136,13 @@ def smoke(tmp):
     run("--mode", "quan", "--seed", 42, "--inventory", inv, "--ticks", 0, "--out", tmp / "quan.jsonl")
     first = json.loads((tmp / "quan.jsonl").read_text(encoding="utf-8").splitlines()[0])
     want = json.loads(inv.read_text(encoding="utf-8"))["items"] if item_schema() else {"bong_sung": 2, "ca_loc": 1}
-    return first.get("stock") == want, f"kho {inv.read_text(encoding='utf-8').strip()} → stock tick 0 {first.get('stock')}"
+    got = first.get("stock")
+    if item_schema():  # v1.2: id/kind chính xác, fresh trong dung sai quan sát ±0.01 (JSONL làm tròn 3 số)
+        ok = (isinstance(got, list) and [(i["id"], i["kind"]) for i in got] == [(i["id"], i["kind"]) for i in want]
+              and all(abs(g["fresh"] - w["fresh"]) <= 0.01 for g, w in zip(got, want)))
+    else:
+        ok = got == want
+    return ok, f"kho {inv.read_text(encoding='utf-8').strip()} → stock tick 0 {first.get('stock')}"
 
 
 if __name__ == "__main__":

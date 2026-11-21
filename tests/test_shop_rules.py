@@ -12,7 +12,7 @@ from chonoi.runner import Session
 from chonoi.sim.day import DaySim
 from chonoi.sim.shop import ShopSim
 
-from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
+from helpers import Workdir, events, frames, item_counts, items, read_jsonl, run_headless, snapshots, write_json
 
 
 class ShopRules(unittest.TestCase):
@@ -170,7 +170,7 @@ class ShopHeadless(unittest.TestCase):
 
     def fast_scenario(self, money=200, earned=None):
         return {"day": {"money": money, "earned": money if earned is None else earned},
-                "gather": {"hold": ["ca_loc"], "random_fish": False, "monsters": []},
+                "gather": {"hold": items("ca_loc"), "random_fish": False, "monsters": []},
                 "quan": {"time_left_ticks": 1}}
 
     def test_shop_pause_drops_buy_and_done_then_resumes_gameplay_immediately(self):
@@ -206,12 +206,12 @@ class ShopHeadless(unittest.TestCase):
         s = {row["tick"]: row for row in snapshots(rows)}
         self.assertEqual(s[4]["upgrades"], {"oxygen": 1, "hp": 1})
         self.assertEqual(s[4]["active_upgrades"], {"oxygen": 0, "hp": 0})
-        self.assertEqual(s[4]["stock"], {"ca_loc": 1})
+        self.assertEqual(item_counts(s[4]["stock"]), {"ca_loc": 1})  # v1.2: kho Shop là mảng cá thể
         self.assertEqual((s[5]["day"], s[5]["phase"], s[5]["phase_tick"]), (2, "gather", 0))
         self.assertEqual(s[5]["active_upgrades"], {"oxygen": 1, "hp": 1})
         self.assertEqual((s[5]["player"]["oxygen_max_ticks"], s[5]["player"]["oxygen_ticks"],
                           s[5]["player"]["hp_max"], s[5]["player"]["hp"]), (2700, 2700, 4, 4))
-        self.assertEqual(s[5]["hold"], ["ca_loc"])  # mẫu gather; không cộng kho dư Shop
+        self.assertEqual([it["kind"] for it in s[5]["hold"]], ["ca_loc"])  # mẫu gather; không cộng kho dư Shop
         self.assertEqual((s[5]["money"], s[5]["earned"], s[5]["score"]), (0, 700, 1000))
 
     def test_last_day_counts_only_after_shop_timeout(self):

@@ -145,7 +145,10 @@ def _validate_gather(b, tuning, extensions):
         raise BadInput("random_ho phải là boolean")
     if "hold" in b:
         h = b["hold"]
-        if not isinstance(h, list) or any(k not in KINDS_P1 for k in h):
+        if isinstance(h, list) and any(isinstance(x, dict) for x in h):  # v1.2: mảng cá thể
+            from .inventory import validate_item_list
+            validate_item_list(h, where="gather.hold")
+        elif not isinstance(h, list) or any(k not in KINDS_P1 for k in h):
             raise BadInput("hold phải là mảng id nguyên liệu hợp lệ")
         if len(h) > g["hold_capacity"]:
             raise BadInput("hold vượt sức chứa")

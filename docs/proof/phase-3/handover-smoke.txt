@@ -1,0 +1,6 @@
+# Mẫu ngưỡng TICKET-03 (fresh 30, gather 1 bước):
+{"type":"event","tick":1,"phase":"gather","name":"spoiled","data":{"item_id":"I1","kind":"ca_linh","location":"hold"}}
+# Smoke bàn giao: file kho sau 1 bước hao
+{"items":[{"id":"I1","kind":"ca_linh","fresh":99.99166666666666}]}
+# quan --inventory --ticks 0: stock (JSONL làm tròn 3 số)
+[{"id": "I1", "kind": "ca_linh", "fresh": 99.992}]

@@ -18,7 +18,6 @@ from copy import deepcopy
 
 from ..contract import plan_ingredients
 from ..errors import BadInput
-from ..items import scenario_items
 from ..scenario import validate_quan
 from .gather import GatherSim
 from .quan import QuanSim
@@ -215,11 +214,7 @@ class DaySim:
     def _to_quan(self, gather, out):
         quan_tpl = deepcopy(self.scenario.get("quan", {}))
         inventory = gather.inventory_items()
-        if isinstance(inventory, list):
-            checked, _, _ = scenario_items({"quan": dict(quan_tpl, stock=inventory)}, "quan")
-            validate_quan(checked["quan"], self.t_day, None)
-        else:
-            validate_quan(quan_tpl, self.t_day, inventory)
+        validate_quan(quan_tpl, self.t_day, inventory)
         self.sim = _build(QuanSim, self.t_day, quan_tpl, self.rng, self.ids,
                           inventory=inventory, day_ctx=self._ctx())
         self._push(self.sim)

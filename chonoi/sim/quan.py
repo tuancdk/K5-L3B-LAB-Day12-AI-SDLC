@@ -72,8 +72,8 @@ class QuanSim:
             if "reserved" not in raw:
                 if self.use_items:
                     c["reserved"] = self._pick_items(self.menu[c["dish_id"]]["recipe"]) if c["order_status"] == "reserved" else []
-                    if c["reserved"] is None:
-                        raise BadInput(f"customers.{c['id']}: không đủ hàng chưa ươn để giữ chỗ")
+                    if c["reserved"] is None:  # thiếu hàng chưa ươn: đơn không làm được (như khi ươn mất phần giữ)
+                        c["order_status"], c["reserved"] = "unfulfillable", []
                 else:
                     c["reserved"] = (dict(self.menu[c["dish_id"]]["recipe"])
                                      if c["order_status"] == "reserved" and c["dish_id"] else {})

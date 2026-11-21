@@ -1,0 +1,14 @@
+{
+  "legacy_counts": {"customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "reserved": {"ca_loc": 1}}]},
+  "unknown_id": {"customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "reserved": ["I9"]}]},
+  "spoiled_id": {"customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "reserved": ["I3"]}]},
+  "non_string_id": {"customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "reserved": [[]]}]},
+  "empty_id": {"customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "reserved": [""]}]},
+  "duplicate_same_order": {"customers": [{"id": "C1", "table_id": "T1", "dish_id": "goi_bong_sung", "reserved": ["I4", "I4"]}]},
+  "duplicate_two_orders": {"customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "reserved": ["I1"]}, {"id": "C2", "table_id": "T2", "dish_id": "ca_loc_nuong_trui", "reserved": ["I1"]}]},
+  "wrong_ingredient": {"customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "reserved": ["I2"]}]},
+  "missing_ingredient": {"customers": [{"id": "C1", "table_id": "T1", "dish_id": "goi_bong_sung", "reserved": ["I4"]}]},
+  "assigned_with_reservation": {"customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "order_status": "assigned", "reserved": ["I1"]}], "hand": {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": 18}},
+  "hand_bad_price": {"customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "order_status": "assigned", "reserved": []}], "hand": {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": -1}},
+  "stove_missing_price": {"customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "order_status": "assigned", "reserved": []}], "stoves": [{"id": "B1", "state": "ready", "dish": {"order_id": "C1", "dish_id": "ca_loc_nuong_trui"}}]}
+}

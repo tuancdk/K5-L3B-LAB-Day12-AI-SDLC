@@ -1,0 +1,10 @@
+{
+  "hold_legacy_items": ["hold", ["ca_loc"]],
+  "hold_wrong_shape": ["hold", {}],
+  "hold_duplicate_id": ["hold", [{"id": "I1", "kind": "ca_loc", "fresh": 100}, {"id": "I1", "kind": "ca_keo", "fresh": 100}]],
+  "hold_invalid_freshness": ["hold", [{"id": "I1", "kind": "ca_loc", "fresh": 101}]],
+  "stock_legacy_counts": ["stock", {"ca_loc": 1}],
+  "stock_duplicate_id": ["stock", [{"id": "I1", "kind": "ca_loc", "fresh": 100}, {"id": "I1", "kind": "ca_keo", "fresh": 100}]],
+  "stock_bad_kind": ["stock", [{"id": "I1", "kind": "missing", "fresh": 100}]],
+  "stock_malformed_item": ["stock", [{"id": "I1", "fresh": 100}]]
+}

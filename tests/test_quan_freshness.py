@@ -83,9 +83,10 @@ class FreshQuan(unittest.TestCase):
             with self.subTest(reserved=reserved), self.assertRaises(BadInput):
                 self.sim([item("I1")], [customer(reserved=reserved)])
 
-    def test_implicit_reservation_rejects_spoiled_or_insufficient_stock(self):
-        with self.assertRaises(BadInput):
-            self.sim([item("I1", fresh=29.9)], [customer()])
+    def test_implicit_reservation_without_fresh_stock_is_unfulfillable(self):
+        # Đầu vào hợp lệ (validator #43 chấp nhận) -> không mã 2; đơn thành unfulfillable như khi ươn mất phần giữ.
+        sim = self.sim([item("I1", fresh=29.9)], [customer()])
+        self.assertEqual((sim.customers[0]["order_status"], sim.customers[0]["reserved"]), ("unfulfillable", []))
 
     def test_rereserves_whole_recipe_once_when_part_spoils(self):
         sim = self.sim([item("I1", "bong_sung", 30), item("I2", "bong_sung", 90),

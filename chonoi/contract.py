@@ -29,12 +29,13 @@ def load_contract(path=DEFAULT_PATH) -> dict:
         raise BadInput(f"không đọc được {path}: {e}")
     if not isinstance(c, dict):
         raise BadInput("game.contract.json phải là object")
-    if c.get("contract_version") not in ("1.1", "1.2"):  # 1.2: kho cá thể (TICKET-03)
+    version = c.get("contract_version")
+    if version not in ("1.1", "1.2"):
         raise BadInput('contract_version phải là "1.1" hoặc "1.2"')
     extensions = c.get("extensions", [])
     if not isinstance(extensions, list) or any(not isinstance(key, str) for key in extensions):
         raise BadInput("extensions phải là mảng id mở rộng")
-    validate_tuning(c.get("tuning"))
+    validate_tuning(c.get("tuning"), contract_version=version)
     return c
 
 
@@ -275,9 +276,29 @@ def _validate_shop(shop, tick_hz):
                 raise BadInput(f"tuning.{label}.hp_max phải là số nguyên dương")
 
 
-def validate_tuning(t):
+def _validate_freshness(freshness):
+    decay_keys = ("gather_decay_per_s", "quan_decay_per_s")
+    if not isinstance(freshness, dict) or freshness.keys() != {"initial", "spoiled_below", *decay_keys}:
+        raise BadInput("tuning.freshness phải có đúng initial, spoiled_below và hai tốc độ hao")
+    initial = freshness["initial"]
+    if not _num(initial) or not 0 < initial <= 100:
+        raise BadInput("tuning.freshness.initial phải trong (0, 100]")
+    spoiled = freshness["spoiled_below"]
+    if not _num(spoiled) or not 0 < spoiled <= initial:
+        raise BadInput("tuning.freshness.spoiled_below phải trong (0, initial]")
+    for key in decay_keys:
+        decay = freshness[key]
+        if not _num(decay) or not 0 < decay <= sys.float_info.max:
+            raise BadInput(f"tuning.freshness.{key} phải dương và hữu hạn")
+
+
+def validate_tuning(t, *, contract_version="1.1"):
     if not isinstance(t, dict):
         raise BadInput("thiếu khối tuning")
+    if contract_version == "1.2":
+        _validate_freshness(t.get("freshness"))
+    elif "freshness" in t:
+        raise BadInput("tuning.freshness chỉ dùng với contract_version 1.2")
     g, q, menu = t.get("gather"), t.get("quan"), t.get("menu")
     if not isinstance(g, dict) or not isinstance(q, dict) or not isinstance(menu, dict):
         raise BadInput("tuning phải có gather, quan, menu")
@@ -288,11 +309,3 @@ def validate_tuning(t):
     _validate_menu(menu, tick_hz)
     validate_day_plans(t.get("day_plan"), t, complete=True)
     _validate_shop(t.get("shop"), tick_hz)
-    if "freshness" in t:  # v1.2 (TICKET-03)
-        f = t["freshness"]
-        if not isinstance(f, dict) or set(f) != {"initial", "gather_decay_per_s", "quan_decay_per_s", "spoiled_below"}:
-            raise BadInput("tuning.freshness phải có initial, gather_decay_per_s, quan_decay_per_s, spoiled_below")
-        _between("freshness.initial", f["initial"], 0, 100)
-        _between("freshness.gather_decay_per_s", f["gather_decay_per_s"], 0, 100)
-        _between("freshness.quan_decay_per_s", f["quan_decay_per_s"], 0, 100)
-        _between("freshness.spoiled_below", f["spoiled_below"], 0, 100)

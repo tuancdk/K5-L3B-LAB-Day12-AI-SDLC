@@ -11,7 +11,7 @@
   "float_ingredients": {"day": {"day_plan": [{"day": 1, "dishes": {"goi_bong_sung": 1}, "ingredients": {"bong_sung": 2.0}}]}},
   "forbidden_quan_stock": {"quan": {"stock": {}}},
   "forbidden_quan_reputation": {"quan": {"reputation": 3}},
-  "stock_insufficient_at_transition": {"gather": {"time_left_ticks": 1}, "quan": {"customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui"}]}},
+  "stock_insufficient_at_transition": {"gather": {"time_left_ticks": 1}, "quan": {"customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "reserved": ["I1"]}]}},
   "stock_lost_before_transition": {"gather": {"hold": ["ca_loc"], "player": {"pos": [20, 8], "oxygen_ticks": 0, "zero_oxy_ticks": 59, "hp": 1}}, "quan": {"customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui"}]}},
   "dish_outside_plan_at_transition": {"gather": {"time_left_ticks": 1, "hold": ["ca_keo", "ca_keo"]}, "quan": {"customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_keo_nuong"}]}}
 }

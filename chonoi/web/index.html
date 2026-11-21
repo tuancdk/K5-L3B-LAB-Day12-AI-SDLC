@@ -218,7 +218,7 @@
   body[data-mode="shop"] :is(aside,.controls,.touch-controls,.scene-key,.scene-action) { display: none; }
   @media (min-width: 1000px) {
     body[data-run="day"] :is(h1,h2) { font-family: system-ui, sans-serif; }
-    body[data-run="day"] :is(.label,.value,.journal h2,.detail,.chip,.controls,.ticket strong,.ticket-meta,
+    body :is(.label,.value,.journal h2,.detail,.chip,.controls,.ticket strong,.ticket-meta,
       .scene-action p,.scene-action strong,.notice,.guide-sub,.scene-key,.order-board h2,.need-row) { font-size: 18px; }
     body[data-run="day"] .orders { grid-template-columns: repeat(auto-fill,minmax(min(100%,260px),1fr)); }
     body[data-run="day"] #scene { aspect-ratio: 2.65 / 1; }
@@ -340,9 +340,62 @@
   .modal-actions button:active:not(:disabled), .shop-item button:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink-line); }
   .shop-item { border: var(--chunk); border-radius: 14px; background: #fff8e6; box-shadow: var(--drop); }
   .shop-item .shortfall { color: #8d2f34; font-weight: 700; }
+
+  /* ===== #34: cảnh báo có chữ + biểu tượng (không chỉ màu) ===== */
+  .notice::before { content: "⚠"; margin-right: .4em; }
+  .warn-badge {
+    display: inline-flex; align-items: center; gap: .3em; width: max-content; padding: 1px 9px;
+    border: 2px solid var(--ink-line); border-radius: 999px; background: #ffd400; color: #1a1208;
+    font-weight: 800; font-size: 18px; line-height: 1.35;
+  }
+  .warn-badge::before { content: "⚠"; }
+  .ticket .warn-badge { grid-column: 1 / -1; justify-self: start; margin-top: 2px; }
+  .meter .warn-badge { margin-top: 3px; }
+  .toast {
+    position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 10; padding: 8px 18px;
+    border: 3px solid var(--ink-line); border-radius: 12px; background: var(--cream); color: #2b1b14;
+    font: 800 18px var(--display); box-shadow: var(--drop);
+  }
+  .setting-toggle { display: flex; align-items: center; gap: 10px; margin: 6px 0 14px; font-weight: 700; }
+  .setting-toggle input { width: 22px; height: 22px; accent-color: #317360; }
+
+  /* ===== #34: chế độ tương phản cao (phím H hoặc Cài đặt) =====
+     Đen / trắng / vàng, viền dày; mức nguy hiểm thể hiện bằng chữ, biểu tượng và nét đứt thay vì sắc độ. */
+  body[data-contrast="high"] {
+    --cream: #000; --ink-line: #fff; --lantern: #ffd400; --leaf: #fff; --chili: #ffd400;
+    --paper: #000; --ink: #fff; --muted: #fff; --line: #fff; --accent: #ffd400; --panel: #000; --halo: #333;
+    background: #000 !important; color: #fff;
+  }
+  body[data-contrast="high"] :is(.meter,.journal,.ticket,.header-actions button,.scene-action,.notice,.message) {
+    background: #000 !important; color: #fff !important; border-color: #fff !important; box-shadow: none !important;
+  }
+  body[data-contrast="high"] :is(.meter .label,.meter .value,.meter-icon,.journal h2,.journal p,.journal .detail,
+    .ticket strong,.ticket-meta,.need-row strong,h1,.eyebrow,.controls,kbd) { color: #fff !important; }
+  body[data-contrast="high"] :is(.meter--time,.meter--urgent,.meter--low-oxygen) { border: 4px dashed #ffd400 !important; }
+  body[data-contrast="high"] .meter--time .value { color: #ffd400 !important; }
+  body[data-contrast="high"] :is(.track,.ticket .track,.meter .track,.journal .track) { background: #000 !important; border-color: #fff !important; }
+  body[data-contrast="high"] :is(.fill,.ticket .fill,.meter .fill) { background: #fff !important; }
+  body[data-contrast="high"] :is(.fill.warn,.ticket.urgent .fill) { background: repeating-linear-gradient(45deg,#ffd400 0 6px,#000 6px 10px) !important; }
+  body[data-contrast="high"] .ticket.urgent { border: 4px dashed #ffd400 !important; }
+  body[data-contrast="high"] .ticket::before { background: #fff; border-color: #000; }
+  body[data-contrast="high"] .ticket canvas { background: #fff; border-color: #fff; }
+  body[data-contrast="high"] .chip { background: #000 !important; color: #fff !important; border-color: #fff !important; }
+  body[data-contrast="high"] .warn-badge { background: #ffd400; color: #000; border-color: #000; outline: 2px solid #ffd400; }
+  body[data-contrast="high"] .notice { color: #ffd400 !important; border: 4px solid #ffd400 !important; }
+  body[data-contrast="high"] .scene-action strong { background: #ffd400 !important; color: #000 !important; border-color: #000 !important; }
+  body[data-contrast="high"] .stage { border-color: #fff !important; }
+  body[data-contrast="high"] .stage.danger { outline: 6px dashed #ffd400; outline-offset: -6px; }
+  body[data-contrast="high"] #scene > canvas.world-layer, body[data-contrast="high"] #scene > canvas:only-child { filter: contrast(1.25) saturate(.8); }
+  body[data-contrast="high"] kbd, body[data-contrast="high"] #restart kbd { background: #000 !important; color: #fff !important; border-color: #fff !important; }
+  body[data-contrast="high"] .toast { background: #000; color: #ffd400; border-color: #ffd400; }
+  body[data-contrast="high"] dialog { background: #fff; color: #000; border-color: #000; }
+  body[data-contrast="high"] .modal-actions button, body[data-contrast="high"] .shop-item button {
+    --panel: #fff; --ink: #000; --line: #000; --halo: #ffd400; border-color: #000;
+  }
+  body[data-contrast="high"] .modal-actions .primary { --panel: #000; --ink: #fff; --halo: #333; }
   /* Tiêu chí #16: chữ không chân ≥ 18 px ở 1280×720 — cả nhãn phím, nút và dòng tiêu đề pha */
   @media (min-width: 1000px) {
-    body[data-run="day"] :is(.eyebrow,kbd,.header-actions button,.modal-actions button,.shop-item button,.ticket-meta span,.journal :is(p,li,strong)) { font-size: 18px; }
+    body :is(.eyebrow,kbd,.header-actions button,.modal-actions button,.shop-item button,.ticket-meta span,.journal :is(p,li,strong)) { font-size: 18px; }
   }
   .shop-item button.poor { --panel: #e9dcc0; --halo: #e9dcc0; --ink: #7a6a58; box-shadow: 0 2px 0 var(--ink-line); }
   dialog button:disabled { cursor: not-allowed; }
@@ -596,6 +649,11 @@ addEventListener("keydown", event => {
     if (!event.repeat) togglePause();
     return;
   }
+  if (event.key.toLowerCase() === "h" && !event.target.closest?.("input")) {
+    event.preventDefault();
+    if (!event.repeat) setContrast(!highContrast,true);
+    return;
+  }
   if (elements["game-dialog"].open) {
     const nativeClick = event.target.closest?.("button") && (event.key === "Enter" || event.key === " ");
     if (campaign.panel === "day-intro" && !event.repeat && event.key !== "Tab" && !nativeClick) {
@@ -799,6 +857,7 @@ function ordersHud(data, meta, hz) {
     else if (number(patience)) detail.append(node("span", "Kiên nhẫn " + seconds(patience, hz) + " giây"));
     info.append(detail);
     if (!eating && number(fraction)) info.append(track(fraction));
+    if (state === " urgent") info.append(node("span", "Sắp giận!", "warn-badge"));
     item.append(icon, info);
     list.append(item);
   }
@@ -839,18 +898,26 @@ function inRange(from, to, radius) {
   return point(from) && point(to) && number(radius) && radius > 0 &&
     Math.hypot(from[0] - to[0], from[1] - to[1]) <= radius;
 }
+// Oxy dưới 25% bình (#34).
+function lowOxygen(player) {
+  return number(player.oxygen_ticks) && number(player.oxygen_max_ticks) && player.oxygen_max_ticks > 0 &&
+    player.oxygen_ticks > 0 && player.oxygen_ticks < player.oxygen_max_ticks/4;
+}
+// Cá Sấu đang đuổi hoặc trong tầm phát hiện của Út Sen (#34).
+function monsterThreat(monster,player,meta) {
+  if (!point(player.pos) || !point(monster.pos)) return false;
+  const species = meta.monsters?.species?.[monster.kind ?? "ca_sau"];
+  return monster.state === "chase" || inRange(player.pos,monster.pos,species?.detect_radius);
+}
 function updateGatherAlerts(data,meta,player) {
-  const threat = records(data.monsters).some(monster => {
-    if (!point(player.pos) || !point(monster.pos)) return false;
-    const species = meta.monsters?.species?.[monster.kind ?? "ca_sau"];
-    return monster.state === "chase" || inRange(player.pos,monster.pos,species?.detect_radius);
-  });
+  const threat = records(data.monsters).some(monster => monsterThreat(monster,player,meta));
   const air = number(player.oxygen_ticks) && player.oxygen_ticks <= 0 && isUnderwater(player,meta);
+  const lowAir = !air && lowOxygen(player) && isUnderwater(player,meta);
   const alert = elements["gather-alert"];
-  const message = [threat ? "Thủy quái!" : "",air ? "Hết hơi!" : ""].filter(Boolean).join(" · ");
+  const message = [threat ? "Thủy quái!" : "",air ? "Hết hơi!" : lowAir ? "Oxy sắp hết!" : ""].filter(Boolean).join(" · ");
   if (alert.textContent !== message) alert.textContent = message;
   alert.hidden = !message;
-  alert.classList.toggle("air",air && !threat);
+  alert.classList.toggle("air",(air || lowAir) && !threat);
   elements["game-stage"].classList.toggle("danger",threat);
 }
 function recentService(data, hz) {
@@ -936,8 +1003,10 @@ function updateHud() {
     const oxyMax = number(player.oxygen_max_ticks) && player.oxygen_max_ticks > 0 ? player.oxygen_max_ticks : null;
     const hpMax = number(player.hp_max) && player.hp_max > 0 ? player.hp_max : meta.hp_max;
     const oxyRatio = oxyMax && number(player.oxygen_ticks) ? player.oxygen_ticks/oxyMax : null;
-    cards.push(meter("Oxy", number(player.oxygen_ticks) ? seconds(player.oxygen_ticks, hz) + " giây" : "—",
-      oxyRatio, number(oxyRatio) && oxyRatio < .25 ? " meter--low-oxygen" : ""));
+    const oxyCard = meter("Oxy", number(player.oxygen_ticks) ? seconds(player.oxygen_ticks, hz) + " giây" : "—",
+      oxyRatio, number(oxyRatio) && oxyRatio < .25 ? " meter--low-oxygen" : "");
+    if (number(oxyRatio) && oxyRatio < .25) oxyCard.append(node("span", oxyRatio <= 0 ? "Hết oxy" : "Sắp hết", "warn-badge"));
+    cards.push(oxyCard);
     cards.push(meter("Máu", number(player.hp) ? player.hp + (number(hpMax) ? " / " + hpMax : "") : "—",
       number(player.hp) && number(hpMax) && hpMax > 0 ? player.hp / hpMax : null));
     cards.push(meter("Độ sâu",point(player.pos) ? player.pos[1].toLocaleString("vi-VN",{maximumFractionDigits:1})+" m" : "—"));
@@ -1002,6 +1071,33 @@ function updateMessage() {
 }
 
 const TAU = Math.PI * 2;
+// ===== #34: chế độ tương phản cao =====
+const contrastKey = "chonoi.contrast.v1";
+let highContrast = false;
+try { highContrast = localStorage.getItem(contrastKey) === "high"; } catch { /* không có bộ lưu trữ */ }
+let toastTimer = 0;
+function toast(text) {
+  let box = document.getElementById("toast");
+  if (!box) {
+    box = node("div",undefined,"toast");
+    box.id = "toast";
+    box.setAttribute("role","status");
+    document.body.append(box);
+  }
+  box.textContent = text;
+  box.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { box.hidden = true; },1800);
+}
+function setContrast(on,announce = false) {
+  highContrast = on;
+  document.body.dataset.contrast = on ? "high" : "";
+  try { localStorage.setItem(contrastKey,on ? "high" : "normal"); } catch { /* chỉ giữ trong lượt */ }
+  const box = document.getElementById("contrast-toggle");
+  if (box) box.checked = on;
+  if (announce) toast(on ? "Tương phản cao: BẬT (phím H)" : "Tương phản cao: TẮT (phím H)");
+}
+setContrast(highContrast);
 const canvasFont = '"Baloo 2", system-ui, sans-serif';
 // Thanh tiến độ viền mực, đặt ngay trên đồ vật (bếp nấu, kiên nhẫn của khách).
 function progressBar(x, y, width, fraction, color) {
@@ -1025,6 +1121,30 @@ function progressBar(x, y, width, fraction, color) {
     ctx.fill();
     rect(left+3, y-h/2+2, Math.max(0, filled-6), 2.5, "#ffffff55");
   }
+}
+// Biển cảnh báo (#34): hình tam giác "!" + chữ, để không phụ thuộc màu. Chữ ≥ 18 px ở màn rộng.
+let placedBadges = [];   // vùng các biển đã vẽ trong frame hiện tại
+function warnBadge(x,y,text,t = 0) {
+  const size = innerWidth >= 1000 ? 18 : 14;
+  ctx.save();
+  ctx.font = "800 "+size+"px "+canvasFont;
+  const width = text ? ctx.measureText(text).width + 50 : 30;
+  ctx.restore();
+  while (placedBadges.some(b => x < b.x+b.w && x+width > b.x && Math.abs(b.y-y) < 30)) y -= 32;
+  placedBadges.push({ x:x-15, y, w:width+15 });
+  const by = y + (reduceMotion.matches ? 0 : Math.sin(t*6)*2);
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(x,by-14); ctx.lineTo(x+14,by+11); ctx.lineTo(x-14,by+11); ctx.closePath();
+  ctx.fillStyle = "#ffd400"; ctx.fill();
+  ctx.lineJoin = "round"; ctx.lineWidth = 3; ctx.strokeStyle = "#000"; ctx.stroke();
+  ctx.fillStyle = "#000"; ctx.font = "800 17px "+canvasFont; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText("!",x,by+3);
+  ctx.restore();
+  if (!text) return;
+  ctx.font = "800 "+size+"px "+canvasFont;
+  const half = ctx.measureText(text).width/2 + 9;
+  pill(text,x+18+half,by,"#ffd400","#000",size);
 }
 const patienceColor = fraction => fraction > .5 ? "#3f8f5a" : fraction > .25 ? "#eaa22a" : "#d9483b";
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
@@ -1101,17 +1221,19 @@ function gradient(y1, y2, stops) {
 }
 function label(text, x, y, options = {}) {
   const { align = "center", size = 12, color = "#fff1ce", outline = "#2b1b14", maxWidth = 170 } = options;
-  const legible = runMode === "day" && innerWidth >= 1000 ? Math.max(18,size) : size;
+  const legible = innerWidth >= 1000 ? Math.max(18,size) : size;
   ctx.font = "800 " + legible + "px " + canvasFont;
+  // Tương phản cao: chữ trắng viền đen cho mọi nhãn trên cảnh.
+  const ink2 = highContrast ? "#fff" : color, rim = highContrast && outline ? "#000" : outline;
   ctx.textAlign = align;
   ctx.textBaseline = "middle";
   if (outline) {
     ctx.lineJoin = "round";
     ctx.lineWidth = Math.max(4, legible*.3);
-    ctx.strokeStyle = outline;
+    ctx.strokeStyle = rim;
     ctx.strokeText(text, x, y, maxWidth);
   }
-  ctx.fillStyle = color;
+  ctx.fillStyle = outline ? ink2 : color;
   ctx.fillText(text, x, y, maxWidth);
 }
 function ring(x, y, radius, color) {
@@ -1124,8 +1246,8 @@ function ring(x, y, radius, color) {
   ctx.stroke();
   ctx.setLineDash([]);
 }
-function pill(text,x,y,fill,ink = "#263430") {
-  const size = runMode === "day" && innerWidth >= 1000 ? 18 : 11;
+function pill(text,x,y,fill,ink = "#263430",forced = null) {
+  const size = forced ?? (innerWidth >= 1000 ? 18 : 11);
   const height = size+9;
   ctx.font = "800 "+size+"px "+canvasFont;
   const half = ctx.measureText(text).width/2 + 9;
@@ -1393,7 +1515,7 @@ function fishSchool(fish, map, t) {
   }
 }
 const gatorStates = new Map([["patrol","Tuần tra"],["chase","Đang đuổi"],["recoil","Lùi lại"],["stunned","Choáng"]]);
-function gators(list,player,map,t) {
+function gators(list,player,map,t,meta = {}) {
   for (const item of list) {
     const at = map.xy(item.pos);
     if (!at || (string(item.kind) && item.kind !== "ca_sau")) continue;
@@ -1420,6 +1542,7 @@ function gators(list,player,map,t) {
       for (const dx of [20,24,27]) polygon([[dx-1,2],[dx+1,2],[dx,4.5]],"#f7ecc7");
     } finally { ctx.restore(); }
     const state = gatorStates.get(item.state);
+    if (monsterThreat(item,player,meta)) warnBadge(x,y-44*scale,"Thủy quái!",t);
     label(state ? "Cá Sấu · "+state : "Cá Sấu",x,y-19*scale,
       { color:chase ? "#ffe0a2" : "#e7f1c3",size:11,maxWidth:200 });
   }
@@ -1556,6 +1679,7 @@ function gatherPlayer(player, data, meta, map, t) {
   sen(x,y,size,below ? (left ? -1.07-tilt : 1.07+tilt) : 0,below,stride,below ? 1 : left ? -1 : 1);
   ctx.globalAlpha = 1;
   label("Út Sen",x,y+(below ? 28 : 26)*size,{ size:12 });
+  if (below && lowOxygen(player)) warnBadge(x,y-34*size,"Oxy sắp hết!",t);
 }
 
 function quay(w,h,map,t) {
@@ -1796,6 +1920,7 @@ function customerSprites(customers,tables,map,meta,hz,t) {
         ctx.stroke();
       }
       dishArt(ctx,dish,x,y-30,.72);
+      if (number(fraction) && fraction <= .25) warnBadge(x+24,y-48,"Sắp giận!",t);
     } else label(customer.state === "eating" ? "Đang ăn" : "Khách",x,y-19,{ size:11 });
   }
 }
@@ -1868,6 +1993,7 @@ let phaserScene = null;
 // Vẽ toàn bộ cảnh (nền + vật thể) bằng Canvas 2D vào `target`, kích thước CSS w×h, mật độ điểm ảnh dpr.
 function drawWorld(target,w,h,dpr,now,withOverlay) {
   ctx = target;
+  placedBadges = [];
   ctx.setTransform(dpr,0,0,dpr,0,0);
   ctx.globalAlpha = 1;
   rect(0,0,w,h,"#253e37");
@@ -1889,7 +2015,7 @@ function drawWorld(target,w,h,dpr,now,withOverlay) {
     layer("bến", () => dock(map,meta),true);
     layer("nút hái", () => plants(records(data.nodes),map,hz),true);
     layer("đàn cá", () => fishSchool(records(data.fish),map,t),true);
-    layer("Cá Sấu", () => gators(records(data.monsters),player,map,t),true);
+    layer("Cá Sấu", () => gators(records(data.monsters),player,map,t,meta),true);
     layer("Út Sen dưới sông", () => gatherPlayer(player,data,meta,map,t),true);
   } else {
     layer("nền quán", () => quay(w,h,map,t),true);
@@ -2324,6 +2450,14 @@ function startAudio() {
 }
 function audioSettings() {
   const form = node("div");
+  const toggle = node("label",undefined,"setting-toggle");
+  const box = node("input");
+  box.type = "checkbox";
+  box.id = "contrast-toggle";
+  box.checked = highContrast;
+  if (highContrast) box.setAttribute("checked","");
+  toggle.append(box,node("span","Tương phản cao (phím H)"));
+  form.append(toggle);
   for (const [key,title] of soundChannels) {
     const row = node("label",undefined,"setting-row");
     const slider = node("input");
@@ -2342,6 +2476,9 @@ function audioSettings() {
   }
   return [modalTitle("Âm thanh"),form,actions(action("Quay lại","settings-back",true))];
 }
+elements["game-dialog"].addEventListener("change",event => {
+  if (event.target.id === "contrast-toggle") setContrast(event.target.checked,true);
+});
 elements["game-dialog"].addEventListener("input",event => {
   const key = event.target.dataset.volume;
   if (!soundChannels.has(key)) return;
@@ -2703,6 +2840,54 @@ function bootScene() {
     startCanvasFallback();
   }
 }
+// ===== #32/#34: chế độ đo hiệu năng `?bench=1&duration=30` =====
+// Làm nóng 3 s kể từ frame đầu tiên của cảnh đo, rồi ghi khoảng cách giữa các frame trong `duration` giây
+// bằng requestAnimationFrame. Kết quả: window.benchResult + POST /bench-result (server của bench ghi bench.json).
+// Chỉ chạy trên trình duyệt, không đụng mô phỏng; headless không bị ảnh hưởng.
+const benchParams = new URLSearchParams(location.search);
+const benchMode = benchParams.get("bench") === "1";
+function benchSummary(frameMs) {
+  const frames = frameMs.length;
+  const measured = frameMs.reduce((sum,ms) => sum+ms,0)/1000;
+  const worst = Math.max(1,Math.ceil(.01*frames));
+  const slowest = [...frameMs].sort((a,b) => b-a).slice(0,worst);
+  const slowMean = slowest.reduce((sum,ms) => sum+ms,0)/worst/1000;
+  return { avg_fps: measured > 0 ? frames/measured : 0, p1_low_fps: slowMean > 0 ? 1/slowMean : 0,
+    frames, measured_s: measured };
+}
+function startBench() {
+  const warmupMs = 3000;
+  const durationMs = Math.max(1,Number(benchParams.get("duration")) || 30)*1000;
+  let firstAt = null, startAt = null, previous = null;
+  const frameMs = [];
+  document.body.dataset.bench = "1";
+  (function tick(now) {
+    if (firstAt === null) {
+      // Frame đầu của cảnh đo: đã có phép chiếu buổi sáng (sông, cá, Cá Sấu đã vẽ).
+      if (mode === "gather" && lastMap) firstAt = now;
+      requestAnimationFrame(tick);
+      return;
+    }
+    if (startAt === null) {
+      if (now-firstAt >= warmupMs) { startAt = now; previous = now; }
+      requestAnimationFrame(tick);
+      return;
+    }
+    frameMs.push(now-previous);
+    previous = now;
+    if (now-startAt < durationMs) { requestAnimationFrame(tick); return; }
+    const result = Object.assign(benchSummary(frameMs), {
+      first_frame_epoch_ms: performance.timeOrigin+firstAt,   // để server tính load_ms từ lúc khởi chạy tiến trình
+      warmup_s: warmupMs/1000, renderer: phaserScene ? "phaser-canvas" : "canvas2d",
+      viewport: [innerWidth,innerHeight], frame_ms: frameMs.map(ms => Math.round(ms*1000)/1000)
+    });
+    window.benchResult = result;
+    document.title = "bench xong · " + result.avg_fps.toFixed(1) + " FPS";
+    fetch("/bench-result",{ method:"POST", body:JSON.stringify(result), headers:{ "Content-Type":"application/json" } })
+      .catch(() => {});   // live.py thường không có route này; kết quả vẫn ở window.benchResult
+  })(performance.now());
+}
+if (benchMode) startBench();
 void poll();
 // Chờ phông Baloo 2 (tối đa 1,5 s) để chữ Phaser đo đúng kích thước ngay lần đầu.
 Promise.race([document.fonts?.load?.('800 64px "Baloo 2"') ?? Promise.resolve(), new Promise(r => setTimeout(r,1500))])

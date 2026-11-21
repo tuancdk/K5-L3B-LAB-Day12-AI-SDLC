@@ -10,6 +10,7 @@
 ## Cấu trúc & quy ước
 - (Starter Python là TÙY CHỌN; nhóm có thể dùng ngôn ngữ khác nếu giữ Test Contract.) Khung do giảng viên cấp: `chonoi/{headless,inputs,scenario,contract,rng,ids,jsonl,inventory,runner,live}.py` và `chonoi/web/`. Hạn chế sửa; nếu phải sửa thì báo cả nhóm và ghi lại lý do.
 - Luật chơi của nhóm: `chonoi/sim/gather.py`, `chonoi/sim/quan.py` (tìm `TODO(nhóm)`).
+- Cửa sổ chơi: `chonoi/web/index.html` (HUD/hộp thoại là DOM, cảnh là Phaser 3 trong `chonoi/web/vendor/`, tự lùi về Canvas 2D khi thiếu thư viện). `live.py` chỉ phục vụ file vendor có trong `VENDOR_FILES`. Kiểm UI: `python -X utf8 -B docs/proof/ui/browser-check.py --day-fixture` và `docs/proof/ui/phaser-check.py` (cần Chrome + gói `websockets`).
 - **Số liệu chỉ đọc từ `game.contract.json` / dữ liệu**, không hard-code trong luật.
 - Mọi số ngẫu nhiên đi qua `Streams` (`chonoi/rng.py`); không dùng `random` toàn cục, không dùng đồng hồ hệ thống.
 - Sắp danh sách thực thể bằng `ids.sort_by_id`; cấp id bằng `IdAllocator`.

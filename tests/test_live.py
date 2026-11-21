@@ -57,6 +57,23 @@ class LiveServerTest(unittest.TestCase):
         self.assertFalse(server.game._thread.is_alive())
         self.assertFalse(server._thread.is_alive())
 
+    def test_vendor_whitelist_only(self):
+        tuning = load_contract()["tuning"]
+        server = LiveServer(LiveGame("gather", tuning, {}, 1), port=0)
+        server.start()
+        try:
+            base = f"http://127.0.0.1:{server.port}"
+            code, body = _get(base + "/vendor/phaser.min.js")
+            self.assertEqual(code, 200)
+            self.assertIn(b"3.80.1", body[:400000] + body[-400000:])
+            for path in ("/vendor/", "/vendor/../live.py", "/vendor/%2e%2e/live.py", "/web/index.html"):
+                with self.assertRaises(urllib.error.HTTPError, msg=path) as caught:
+                    _get(base + path)
+                self.assertEqual(caught.exception.code, 404, path)
+                caught.exception.close()
+        finally:
+            server.stop()
+
 
 if __name__ == "__main__":
     unittest.main()

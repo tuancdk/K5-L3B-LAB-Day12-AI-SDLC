@@ -18,4 +18,4 @@ python3 -m chonoi.soak --seed 7 --days 10 --out docs/proof/phase-4/soak.json
 - **Tất định:** chạy 2 lần cùng `--seed 7 --days 10` cho mọi trường (`days, days_completed, crashes, results`) giống hệt nhau, chỉ khác `duration_s`.
 - **Cô lập lỗi:** test tiêm exception ở Ngày 2 xác nhận `crashes = 1`, không làm chết tiến trình và Ngày 3 vẫn chạy tiếp.
 - **Bảo toàn headless:** `python3 -m chonoi.headless --mode day --days 6` vẫn trả mã thoát `2`; không ghi bảng xếp hạng.
-- **Toàn bộ test suite:** `141/141` pass (`exit code 0`), `git diff --check` sạch.
+- **Toàn bộ test suite (trên `origin/main` sau tag `phase-3`):** `178/178` pass (`exit code 0`, [unittest.log](unittest.log)), `headless-check` `5/5` PASS ([headless-check.txt](headless-check.txt)), `git diff --check` sạch.

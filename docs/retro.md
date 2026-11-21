@@ -36,4 +36,6 @@
   2. Sau mỗi lần merge, chạy `run-tests` trên `main`; nếu đỏ thì dừng merge tiếp. — người merge
   3. Gắn tag ở phút 50 kể cả khi còn lát dở, ghi phần chưa xong vào verification. — tuancdk
   4. QA viết `verification/phase-n.md` song song từ đầu phase, không để cuối phase. — thd050810
+- **Ý kiến từng người:**
+  - **Minhduc7904:** tôi vào nhóm sau tag `phase-4`, nên việc UI định nhận (#22) đã có người làm xong. Khi có người vào muộn, nên mở ngay một issue kiểm chứng hoặc review có người nhận, thay vì để người đó tự tìm việc. Review sau merge (#38, #43, #44, #53) vẫn tìm ra một lỗi thật: UI không hiển thị đơn `unfulfillable` có từ #44. Lỗi này lẽ ra đã bị bắt nếu có người review trước khi merge, nên tôi ủng hộ hành động 1 (mỗi PR một người khác bấm Approve).
   <!-- TODO(cả nhóm): mỗi người thêm 1 dòng ý kiến của mình. -->

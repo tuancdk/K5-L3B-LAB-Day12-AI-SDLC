@@ -1,4 +1,6 @@
-"""Issue #34: ba cảnh báo chữ/biểu tượng + chế độ tương phản cao, kèm thử nhanh `?bench=1` (#32).
+"""Issue #34: ba cảnh báo chữ/biểu tượng + chế độ tương phản cao.
+
+`?bench=1` thuộc #32 (`chonoi/bench.py`, PR #44) và được kiểm ở test của bench, không ở đây.
 
 Chạy server `chonoi.live` thật (gather, quan), chèn trạng thái nguy hiểm vào snapshot phía trình duyệt
 (probe.modify — không đụng mô phỏng) rồi chụp ảnh ở chế độ thường và tương phản cao, 1280×720.
@@ -143,22 +145,8 @@ def main():
                 bc.until(lambda: js("snapshot.state !== 'paused' && !document.querySelector('dialog').open"))
                 assert js("probe.errors.length === 0"), js("probe.errors")
 
-                if mode == "gather":
-                    # Thử nhanh chế độ bench: 3 s làm nóng + 3 s đo.
-                    load(url.rstrip("/") + "/?bench=1&duration=3")
-                    bc.until(lambda: js("document.readyState === 'complete'"))
-                    deadline = time.time() + 25
-                    while time.time() < deadline and not js("!!window.benchResult"):
-                        time.sleep(.3)
-                    bench = js("window.benchResult")
-                    assert bench, "bench không ra kết quả"
-                    assert {"avg_fps", "p1_low_fps", "frames", "measured_s"} <= set(bench), bench
-                    assert abs(bench["avg_fps"] - bench["frames"] / bench["measured_s"]) < 1e-6
-                    assert bench["p1_low_fps"] <= bench["avg_fps"] and 2.5 <= bench["measured_s"] <= 4
-                    report["bench_3s"] = {k: (round(v, 2) if isinstance(v, float) else v)
-                                          for k, v in bench.items() if k != "frame_ms"}
     print(json.dumps(report, ensure_ascii=False))
-    print("Cảnh báo #34 OK: chữ + biểu tượng, tương phản cao (H / Cài đặt / lưu lại), bench trả kết quả.")
+    print("Cảnh báo #34 OK: chữ + biểu tượng, tương phản cao (H / Cài đặt / lưu lại).")
 
 
 if __name__ == "__main__":

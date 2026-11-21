@@ -359,6 +359,40 @@
   .setting-toggle { display: flex; align-items: center; gap: 10px; margin: 6px 0 14px; font-weight: 700; }
   .setting-toggle input { width: 22px; height: 22px; accent-color: #317360; }
 
+  /* ===== #22: độ tươi từng cá thể, hàng ươn, giá chốt ===== */
+  .fresh-summary { margin: 0 0 6px; font-weight: 700; }
+  .fresh-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .journal .fresh-list li + li { margin-top: 0; }
+  .fresh-list { gap: 4px; }
+  .fresh-row {
+    display: grid; grid-template-columns: auto minmax(36px,1fr) auto; grid-template-areas: "name gauge num" "tag tag tag";
+    align-items: center; gap: 0 8px; padding: 2px 8px; border: 2px solid var(--ink-line); border-radius: 9px;
+    background: #fff8e6; line-height: 1.3;
+  }
+  .fresh-row strong { grid-area: name; font-weight: 800; white-space: nowrap; }
+  .fresh-num { grid-area: num; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .fresh-gauge { grid-area: gauge; height: 9px; border: 2px solid var(--ink-line); border-radius: 6px; background: #f1e4c4; overflow: hidden; }
+  .fresh-gauge span { display: block; height: 100%; background: var(--leaf); }
+  .fresh-row .fresh-tag { grid-area: tag; justify-self: start; font-weight: 800; margin: 2px 0 3px; }
+  .fresh-row.reserved { background: #e8f1ff; }
+  .fresh-row.spoiled { background: #ece2d6; border-style: dashed; }
+  .fresh-row.spoiled .fresh-gauge span { background: repeating-linear-gradient(45deg,#8f817a 0 5px,#5b4f49 5px 9px); }
+  .locked-price { font-weight: 800; color: #2e6b45; }
+  .notice.spoil { background: #6b4a2a; }
+  .notice.flood { background: #1f5f73; }
+  @media (min-width: 900px) {
+    .notice.spoil, .notice.flood { right: auto; left: 18px; transform: none; bottom: 64px; }
+    .notice.flood { bottom: 116px; }
+  }
+  @media (max-width: 899px) {
+    .notice.spoil, .notice.flood { top: auto; bottom: 10px; right: 10px; }
+    .notice.flood { bottom: 56px; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .notice.spoil:not([hidden]) { animation: spoil-in .35s cubic-bezier(.3,1.6,.5,1); }
+  }
+  @keyframes spoil-in { from { transform: translateY(14px) scale(.9); opacity: .2; } }
+
   /* ===== #34: chế độ tương phản cao (phím H hoặc Cài đặt) =====
      Đen / trắng / vàng, viền dày; mức nguy hiểm thể hiện bằng chữ, biểu tượng và nét đứt thay vì sắc độ. */
   body[data-contrast="high"] {
@@ -387,6 +421,13 @@
   body[data-contrast="high"] .stage.danger { outline: 6px dashed #ffd400; outline-offset: -6px; }
   body[data-contrast="high"] #scene > canvas.world-layer, body[data-contrast="high"] #scene > canvas:only-child { filter: contrast(1.25) saturate(.8); }
   body[data-contrast="high"] kbd, body[data-contrast="high"] #restart kbd { background: #000 !important; color: #fff !important; border-color: #fff !important; }
+  body[data-contrast="high"] .fresh-row { background: #000 !important; color: #fff; border-color: #fff; }
+  body[data-contrast="high"] .fresh-row.spoiled { border: 3px dashed #ffd400; }
+  body[data-contrast="high"] .fresh-row.reserved { border-style: double; border-width: 4px; }
+  body[data-contrast="high"] .fresh-gauge { background: #000; border-color: #fff; }
+  body[data-contrast="high"] .fresh-gauge span { background: #fff; }
+  body[data-contrast="high"] .fresh-row.spoiled .fresh-gauge span { background: repeating-linear-gradient(45deg,#ffd400 0 5px,#000 5px 9px); }
+  body[data-contrast="high"] .locked-price { color: #ffd400; }
   body[data-contrast="high"] .toast { background: #000; color: #ffd400; border-color: #ffd400; }
   body[data-contrast="high"] dialog { background: #fff; color: #000; border-color: #000; }
   body[data-contrast="high"] .modal-actions button, body[data-contrast="high"] .shop-item button {
@@ -466,6 +507,8 @@
       <div id="scene" role="img" aria-label="Cảnh chơi của Út Sen"></div>
       <div class="message" id="message" role="status">Đang kết nối…</div>
       <div class="notice" id="gather-alert" role="status" hidden></div>
+      <div class="notice spoil" id="spoiled-notice" role="status" hidden></div>
+      <div class="notice flood" id="current-notice" role="status" hidden></div>
       <div class="scene-key" id="legend"></div>
       <div class="scene-action" id="scene-action" hidden>
         <strong id="action-tag" aria-live="polite">Gợi ý</strong>
@@ -516,7 +559,8 @@ let ctx = null;
 const elements = Object.fromEntries(
   ["phase", "restart", "meters", "message", "legend", "interact-label", "catch-key", "journal",
     "tip", "touch-interact", "touch-catch", "portrait", "order-board", "orders", "scene-action",
-    "action-tag", "action-tip", "game-stage", "gather-alert", "game-dialog", "pause-game"]
+    "action-tag", "action-tip", "game-stage", "gather-alert", "game-dialog", "pause-game",
+    "spoiled-notice", "current-notice"]
     .map(id => [id, document.getElementById(id)])
 );
 const object = value => value !== null && typeof value === "object" && !Array.isArray(value);
@@ -748,6 +792,7 @@ async function poll() {
     layer("HUD", updateHud);
     layer("chỗ HUD che", measureInsets);
     layer("thông báo", updateMessage);
+    layer("độ tươi và dòng lũ", updateStageNotices);
     setTimeout(poll, 33);
   }
 }
@@ -798,7 +843,91 @@ function chips(counts, empty) {
   }
   return list.childElementCount ? list : node("p", empty, "detail");
 }
+// ===== #22: kho/giỏ dạng cá thể {id, kind, fresh} (v1.2), vẫn đọc dạng đếm/tên cũ =====
+const itemKind = entry => string(entry) ? entry : object(entry) && string(entry.kind) ? entry.kind : null;
+const spoiledIds = new Set();   // id đã có event `spoiled` — dùng khi meta chưa gửi ngưỡng
+// Ngưỡng ươn đọc từ contract qua meta.freshness; không tự đặt số.
+const spoilLimit = meta => number(meta.freshness?.spoiled_below) ? meta.freshness.spoiled_below : null;
+function isSpoiled(entry, limit) {
+  if (!object(entry)) return false;
+  if (number(limit) && number(entry.fresh)) return entry.fresh < limit;
+  return string(entry.id) && spoiledIds.has(entry.id);
+}
+function countsFrom(value, usableOnly = false, limit = null) {
+  if (object(value)) return new Map(Object.entries(value).filter(([,amount]) => number(amount) && amount > 0));
+  const counts = new Map();
+  if (Array.isArray(value)) for (const entry of value) {
+    const kind = itemKind(entry);
+    if (!kind || (usableOnly && isSpoiled(entry,limit))) continue;
+    counts.set(kind,(counts.get(kind) ?? 0)+1);
+  }
+  return counts;
+}
+const hasItems = value => Array.isArray(value) && value.some(object);
+function reservedIds(customers) {
+  const ids = new Set();
+  for (const customer of records(customers)) {
+    if (Array.isArray(customer.reserved)) for (const id of customer.reserved) if (string(id)) ids.add(id);
+  }
+  return ids;
+}
+function freshList(items, data, meta, isStock) {
+  const limit = spoilLimit(meta);
+  const held = isStock ? reservedIds(data.customers) : new Set();
+  const list = node("ul",undefined,"fresh-list");
+  list.setAttribute("aria-label",(isStock ? "Độ tươi từng nguyên liệu trong kho" : "Độ tươi từng nguyên liệu trong giỏ")+", thang 0–100");
+  let usable = 0, reservedCount = 0, spoiledCount = 0;
+  for (const entry of items) {
+    const kind = itemKind(entry);
+    if (!kind) continue;
+    const fresh = object(entry) && number(entry.fresh) ? clamp(entry.fresh,0,100) : null;
+    const spoiled = isSpoiled(entry,limit);
+    const reserved = isStock && object(entry) && string(entry.id) && held.has(entry.id);
+    if (spoiled) spoiledCount++; else if (reserved) reservedCount++; else usable++;
+    const row = node("li",undefined,"fresh-row"+(spoiled ? " spoiled" : reserved ? " reserved" : ""));
+    if (object(entry) && string(entry.id)) row.dataset.item = entry.id;
+    // Cắt phần lẻ: 29,9 hiện "29" chứ không làm tròn lên thành mốc ươn.
+    row.append(node("strong",ingredients.get(kind) ?? kind),
+      node("span",fresh === null ? "—" : String(Math.floor(fresh)),"fresh-num"));
+    if (fresh !== null) {
+      const gauge = node("div",undefined,"fresh-gauge");
+      gauge.setAttribute("aria-hidden","true");
+      const fill = node("span");
+      fill.style.width = fresh+"%";
+      gauge.append(fill);
+      row.append(gauge);
+    }
+    if (spoiled) row.append(node("span",isStock ? "Ươn · không dùng được" : "Ươn","warn-badge fresh-tag"));
+    else if (reserved) row.append(node("span","Đã giữ chỗ cho khách","fresh-tag"));
+    list.append(row);
+  }
+  const wrapper = node("div");
+  if (!list.childElementCount) {
+    wrapper.append(node("p",items.length ? "Chưa có dữ liệu nguyên liệu." : isStock ? "Kho đang trống." : "Giỏ đang trống.","detail"));
+    return wrapper;
+  }
+  const parts = [usable+" dùng được"];
+  if (reservedCount) parts.push(reservedCount+" đã giữ chỗ");
+  if (spoiledCount) parts.push(spoiledCount+" ươn");
+  wrapper.append(node("p",parts.join(" · "),"fresh-summary"),list);
+  return wrapper;
+}
+function reservationHud(value) {
+  const entries = Array.isArray(value) ? value.map(item => [string(item) ? item : item?.id, item])
+    : object(value) ? Object.entries(value) : [];
+  const list = node("ul");
+  for (const [id,entry] of entries) {
+    if (!string(id)) continue;
+    const dish = object(entry) ? dishId(entry) : null;
+    list.append(node("li",id+(dish ? " · "+dishName(dish) : "")));
+  }
+  return list.childElementCount ? section("Đặt trước",list) : null;
+}
 function availableStock(data) {
+  if (Array.isArray(data.stock)) {
+    const held = reservedIds(data.customers), limit = spoilLimit(fields().meta);
+    return countsFrom(data.stock.filter(entry => !(object(entry) && string(entry.id) && held.has(entry.id))),true,limit);
+  }
   const stock = new Map(object(data.stock) ? Object.entries(data.stock).filter(([, amount]) => number(amount) && amount > 0) : []);
   for (const customer of records(data.customers)) {
     if (!object(customer.reserved)) continue;
@@ -811,7 +940,13 @@ function availableStock(data) {
   }
   return stock;
 }
-function stoveHud(stoves, hz, meta) {
+// Giá chốt lúc bắt đầu nấu = floor(niêm yết × độ tươi TB / 100) — server tính, client chỉ hiển thị.
+const lockedPrice = payload => object(payload) && number(payload.base_price) && payload.base_price >= 0 ? payload.base_price : null;
+function priceNote(dish, price, meta) {
+  const listed = object(meta.menu) ? meta.menu[dish]?.price : null;
+  return "Giá chốt " + moneyLabel(price) + (number(listed) && listed !== price ? " (niêm yết " + listed + ")" : "");
+}
+function stoveHud(stoves, hz, meta, events = []) {
   const list = node("ul");
   for (const stove of stoves) {
     const item = node("li");
@@ -822,6 +957,11 @@ function stoveHud(stoves, hz, meta) {
       ? " · " + seconds(stove.cook_ticks_left, hz) + " giây" : "";
     item.append(node("strong", id + status));
     if (dish || timer) item.append(node("div", (dish ? dishName(dish) : "Còn") + timer, "detail"));
+    const order = object(stove.dish) ? stove.dish.order_id : null;
+    const started = string(order) ? records(events).findLast(event => event.name === "cook_started" &&
+      event.data?.stove_id === stove.id && event.data?.order_id === order) : null;
+    const price = lockedPrice(stove.dish) ?? lockedPrice(started?.data);
+    if (dish && price !== null) item.append(node("div", priceNote(dish, price, meta), "locked-price"));
     const cookTime = dish && object(meta.menu) ? meta.menu[dish]?.cook_s : null;
     if (stove.state === "cooking" && number(cookTime) && cookTime > 0 && number(stove.cook_ticks_left)) {
       item.append(track(1-stove.cook_ticks_left/(cookTime*hz)));
@@ -908,6 +1048,51 @@ function monsterThreat(monster,player,meta) {
   if (!point(player.pos) || !point(monster.pos)) return false;
   const species = meta.monsters?.species?.[monster.kind ?? "ca_sau"];
   return monster.state === "chase" || inRange(player.pos,monster.pos,species?.detect_radius);
+}
+// #22: thông báo khi có event `spoiled` (mỗi id một lần) và dòng lũ (mở rộng `current`).
+const freshNotices = { scope:null, tick:null, expires:0, text:"", warning:null };
+function updateStageNotices() {
+  const { data, hz } = fields();
+  const location = mode === "gather" ? "hold" : mode === "quan" ? "stock" : null;
+  const scope = JSON.stringify([data.day, mode]);
+  if (freshNotices.scope !== scope || (number(data.tick) && number(freshNotices.tick) && data.tick < freshNotices.tick)) {
+    Object.assign(freshNotices, { scope, expires:0, text:"", warning:null });
+  }
+  if (number(data.tick)) freshNotices.tick = data.tick;
+  const events = records(data.events).filter(event => !number(data.day) || !number(event.day) || event.day === data.day);
+  const now = performance.now();
+  const fresh = events.filter(event => {
+    const d = event.data;
+    if (event.name !== "spoiled" || !object(d) || !string(d.item_id) || spoiledIds.has(d.item_id)) return false;
+    spoiledIds.add(d.item_id);
+    return d.location === location && number(event.tick) && number(data.tick) && data.tick-event.tick <= hz*3;
+  });
+  if (fresh.length) {
+    const where = location === "hold" ? "trong giỏ" : "trong kho";
+    const kind = fresh[0].data.kind;
+    freshNotices.text = fresh.length > 1 ? fresh.length+" nguyên liệu "+where+" đã ươn!"
+      : (ingredients.get(kind) ?? (string(kind) ? kind : "Nguyên liệu"))+" "+where+" đã ươn!";
+    freshNotices.expires = now+3000;
+  }
+  showNotice("spoiled-notice", now < freshNotices.expires ? freshNotices.text : "");
+  showNotice("current-notice", mode === "gather" ? currentText(data,events,hz) : "");
+}
+function showNotice(id, text) {
+  const box = elements[id];
+  if (box.textContent !== text) box.textContent = text;
+  box.hidden = !text;
+}
+function currentText(data,events,hz) {
+  const current = data.current;
+  if (object(current) && number(current.ticks_left) && current.ticks_left > 0 && (current.direction === 1 || current.direction === -1)) {
+    return "Dòng lũ " + (current.direction === 1 ? "→ đẩy sang phải" : "← đẩy sang trái") + " · " + seconds(current.ticks_left,hz) + " giây";
+  }
+  if (!number(data.phase_tick)) return "";
+  const warning = events.findLast(event => event.name === "current_warning" &&
+    number(event.data?.starts_at_phase_tick) && event.data.starts_at_phase_tick > data.phase_tick);
+  if (!warning) return "";
+  const start = warning.data.starts_at_phase_tick;   // tiếng báo do playSfx phát theo event current_warning
+  return "Dòng lũ sắp tới · " + seconds(start-data.phase_tick,hz) + " giây";
 }
 function updateGatherAlerts(data,meta,player) {
   const threat = records(data.monsters).some(monster => monsterThreat(monster,player,meta));
@@ -1011,26 +1196,28 @@ function updateHud() {
       number(player.hp) && number(hpMax) && hpMax > 0 ? player.hp / hpMax : null));
     cards.push(meter("Độ sâu",point(player.pos) ? player.pos[1].toLocaleString("vi-VN",{maximumFractionDigits:1})+" m" : "—"));
     layer("giỏ", () => {
-      const hasHold = Array.isArray(data.hold);
       // v1.0/v1.1: mảng tên kind; v1.2: mảng cá thể {id, kind, fresh}.
-      const hold = hasHold ? data.hold.map(item => string(item) ? item : object(item) && string(item.kind) ? item.kind : null)
-        .filter(Boolean) : [];
-      const count = number(data.hold_count) ? data.hold_count : hasHold ? hold.length : null;
+      const hasHold = Array.isArray(data.hold);
+      const counts = countsFrom(data.hold);
+      const count = number(data.hold_count) ? data.hold_count : hasHold ? [...counts.values()].reduce((a,b) => a+b,0) : null;
       const capacity = number(data.hold_capacity) ? data.hold_capacity : meta.hold_capacity;
-      const counts = new Map();
-      for (const kind of hold) counts.set(kind, (counts.get(kind) ?? 0) + 1);
       const summary = (count ?? "—") + (number(capacity) ? " / " + capacity : "");
-      panels.push(section("Giỏ · " + summary, chips(counts, hasHold && !data.hold.length ? "Giỏ đang trống." : "Chưa có dữ liệu nguyên liệu.")));
+      panels.push(section("Giỏ · " + summary, hasItems(data.hold) ? freshList(data.hold,data,meta,false)
+        : chips(counts, hasHold && !data.hold.length ? "Giỏ đang trống." : "Chưa có dữ liệu nguyên liệu.")));
+      // Hàng ươn không giữ chỗ được ở quán, nên "đã lấy" chỉ tính hàng còn dùng được.
+      const usable = hasItems(data.hold) ? countsFrom(data.hold,true,spoilLimit(meta)) : counts;
       const needs = plannedNeeds(data);
       if (needs.length) {
         const list = node("ul");
         for (const [kind,needed] of needs) {
           const item = node("li",undefined,"need-row");
-          item.append(node("span",ingredients.get(kind) ?? kind), node("strong",(hasHold ? counts.get(kind) ?? 0 : "—")+" / "+needed));
+          item.append(node("span",ingredients.get(kind) ?? kind), node("strong",(hasHold ? usable.get(kind) ?? 0 : "—")+" / "+needed));
           list.append(item);
         }
         panels.push(section("Nguyên liệu cần lấy",list));
       }
+      const reservations = reservationHud(data.reservations);
+      if (reservations) panels.push(reservations);
       if (number(player.catch_cd_ticks)) {
         const ready = player.catch_cd_ticks <= 0;
         panels.push(section("Hồi bắt cá",node("p",ready ? "Sẵn sàng" :
@@ -1044,14 +1231,20 @@ function updateHud() {
     cards.push(meter("Tiền ca", moneyLabel(dayMoney)));
     cards.push(meter("Uy tín", number(data.reputation) ? data.reputation.toLocaleString("vi-VN", { maximumFractionDigits: 2 }) +
       (number(meta.reputation_max) ? " / " + meta.reputation_max : "") : "—"));
-    layer("kho", () => {
-      panels.push(section("Kho khả dụng", chips(availableStock(data), object(data.stock) ? "Không còn nguyên liệu chưa giữ chỗ." : "Chưa có dữ liệu kho.")));
-    });
     layer("món gọi", () => updateOrders(data, meta, hz));
-    layer("tình trạng bếp", () => panels.push(section("Bếp", stoveHud(records(data.stoves), hz, meta))));
+    layer("tình trạng bếp", () => panels.push(section("Bếp", stoveHud(records(data.stoves), hz, meta, data.events))));
     layer("món trên tay", () => {
       const dish = dishId(data.hand);
-      panels.push(section("Món trên tay", node("p", dish ? dishName(dish) : data.hand === null ? "Tay đang trống." : "Chưa có dữ liệu món.")));
+      const hand = node("div");
+      hand.append(node("p", dish ? dishName(dish) : data.hand === null ? "Tay đang trống." : "Chưa có dữ liệu món."));
+      const price = lockedPrice(data.hand);
+      if (dish && price !== null) hand.append(node("p", priceNote(dish, price, meta), "locked-price"));
+      panels.push(section("Món trên tay", hand));
+    });
+    layer("kho", () => {
+      panels.push(hasItems(data.stock) ? section("Kho & độ tươi", freshList(data.stock,data,meta,true))
+        : section("Kho khả dụng", chips(availableStock(data), object(data.stock) || Array.isArray(data.stock)
+          ? "Không còn nguyên liệu chưa giữ chỗ." : "Chưa có dữ liệu kho.")));
     });
   } else cards.push(meter("Tiền",moneyLabel(data.money)));
   updateContent(elements.meters, cards);
@@ -2244,15 +2437,18 @@ function dayIntro(data) {
     actions(action("Bắt đầu lặn hái","continue",true))];
 }
 function eveningIntro(data,meta) {
-  const entries = inventoryList(data.stock);
-  const stock = new Map(entries);
+  const entries = [...countsFrom(data.stock)];
+  const limit = spoilLimit(meta);
+  const spoiledCount = Array.isArray(data.stock) ? data.stock.filter(entry => isSpoiled(entry,limit)).length : 0;
+  const stock = Array.isArray(data.stock) ? countsFrom(data.stock,true,limit) : new Map(entries);
   const plan = planDishes(data.day_plan);
   const menu = object(meta.menu) ? meta.menu : {};
   const ids = plan.length ? plan.map(([id]) => id) : Object.keys(menu);
   const cookable = ids.filter(id => object(menu[id]?.recipe) && Object.entries(menu[id].recipe)
     .every(([kind,count]) => number(count) && (stock.get(kind) ?? 0) >= count));
   return [modalTitle("Chuẩn bị mở quán"),
-    node("p",object(data.stock) ? "Đã nhập "+entries.reduce((sum,[,qty]) => sum+qty,0)+" nguyên liệu." : "Chưa có dữ liệu nhập kho."),
+    node("p",object(data.stock) || Array.isArray(data.stock) ? "Đã nhập "+entries.reduce((sum,[,qty]) => sum+qty,0)+" nguyên liệu."
+      + (spoiledCount ? " "+spoiledCount+" đã ươn, không dùng được." : "") : "Chưa có dữ liệu nhập kho."),
     chips(entries,"Kho chưa có nguyên liệu."),
     node("h3","Món có thể nấu"),listOf(cookable.map(dishName),"Chưa có món đủ nguyên liệu."),
     actions(action("Mở cửa quán","continue",true))];
@@ -2546,7 +2742,10 @@ const sfxBank = {
   paid: () => { note("sfx",988,.18,.08,"square"); note("sfx",1319,.18,.28,"square",.08); },
   customer_left: () => note("sfx",260,.24,.45,"sawtooth",0,110),
   bought: () => [523,659,784,1047].forEach((hz,i) => note("sfx",hz,.18,.18,"triangle",i*.07)),
-  buy_failed: () => note("sfx",160,.22,.25,"square")
+  buy_failed: () => note("sfx",160,.22,.25,"square"),
+  spoiled: () => { note("sfx",392,.18,.18,"triangle",0,330); note("sfx",311,.18,.3,"triangle",.16,233); },
+  current_warning: () => { note("sfx",500,.2,.12,"triangle"); note("sfx",680,.2,.2,"triangle",.12); },
+  current_start: () => note("sfx",180,.18,.5,"sine",0,320)
 };
 const shakeEvents = new Set(["monster_hit","choke","faint"]);
 const heardEvents = new Set();
@@ -2828,6 +3027,17 @@ const ChoNoiScene = typeof Phaser === "undefined" ? null : class extends Phaser.
           if (player) this.popText(player[0],player[1]-30,event.name === "faint" ? "Ngất rồi!" : "−1 ♥","#ff8a6b");
           break;
         case "customer_arrived": burst("sparkle",tableAt(d.table_id),6); break;
+        case "spoiled": {
+          const p = d.location === "hold" ? player : [(map.left+map.right)/2, map.top+40];
+          burst("puff",p,12);
+          if (p) this.popText(p[0],p[1]-32,"Ươn rồi!","#d9c7a3",22);
+          break;
+        }
+        case "cook_started": {
+          const p = stoveAt(d.stove_id);
+          if (p && number(d.base_price)) this.popText(p[0],p[1]-62,"Chốt "+d.base_price+" nghìn","#ffe9a6",20);
+          break;
+        }
         case "dish_ready": {
           const p = stoveAt(d.stove_id);
           burst("sparkle",p,16);

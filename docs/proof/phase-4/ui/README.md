@@ -32,38 +32,9 @@ Phạm vi: `chonoi/web/index.html`. Không đổi luật, contract hay `live.py`
 | Sông: Thủy quái và Oxy sắp hết | ![](canh-bao-gather-thuong.png) | ![](canh-bao-gather-tuong-phan.png) |
 | Quán: Khách sắp giận | ![](canh-bao-quan-thuong.png) | ![](canh-bao-quan-tuong-phan.png) |
 
-## Chế độ `?bench=1` (phối hợp với #32, Hie24)
+## Chế độ `?bench=1` (#32)
 
-`/?bench=1&duration=30` chạy cảnh như bình thường, rồi:
-
-1. Chờ **frame đầu của cảnh đo** (buổi sáng đã vẽ), sau đó làm nóng **3 s**.
-2. Ghi khoảng cách giữa các frame bằng `requestAnimationFrame` trong `duration` giây.
-3. Tính theo đúng công thức của #32:
-   - `frames` = số khoảng frame trong cửa sổ đo.
-   - `measured_s` = tổng các khoảng đó.
-   - `avg_fps = frames / measured_s`.
-   - `p1_low_fps` = 1 / trung bình của `max(1, ceil(0.01 × frames))` khoảng **chậm nhất** (giây).
-4. Gán kết quả vào `window.benchResult`, đổi tiêu đề tab thành `bench xong · N FPS`, và gửi:
-
-```http
-POST /bench-result
-{"avg_fps", "p1_low_fps", "frames", "measured_s",           // 4/5 trường của bench.json
- "first_frame_epoch_ms",                                   // epoch ms của frame đầu → server tính load_ms
- "warmup_s", "renderer", "viewport", "frame_ms": [...]}    // phụ, để kiểm tra lại
-```
-
-Ghi chú cho `chonoi/bench.py`:
-- Phía server ghi đúng 5 trường. `load_ms = first_frame_epoch_ms − thời điểm khởi chạy tiến trình` (cùng đồng hồ epoch).
-- Server có thể tự tính lại `avg_fps`/`p1_low_fps` từ `frame_ms` để dùng trong `tests/test_bench.py`.
-- `live.py` không có route `/bench-result`: lỗi 404 được bỏ qua và kết quả vẫn ở `window.benchResult`.
-
-Script thử nhanh 3 s làm nóng + 3 s đo trên server gather thật; số đo ở lần chạy lưu ảnh:
-
-```
-avg_fps 69.95 · p1_low_fps 32.61 · frames 211 · measured_s 3.02 · renderer phaser-canvas · 1280×720
-```
-
-(Chrome headless trên máy thử có tải nền, số dao động mạnh giữa các lần: 43–120 FPS. Số chính thức do bench #32 đo.)
+Bản đầu (trong PR #45) đo bằng `requestAnimationFrame` và gửi `POST /bench-result`. Hie24 đã thay bằng bản của #32 (PR #44, `chonoi/bench.py`): trang lấy cấu hình qua `/bench-config`, đo ngay trong `drawWorld`, và server ghi `bench.json`. Phần bench vì thế được kiểm trong `tests/test_bench.py`, không nằm trong script này nữa.
 
 ## Lệnh tái hiện
 
@@ -76,7 +47,7 @@ Script cần Chrome và gói `websockets`. Nó:
 - Chèn trạng thái nguy hiểm vào snapshot phía trình duyệt (`probe.modify`, không đụng sim), kiểm chữ cảnh báo, biểu tượng `⚠` và cỡ chữ ≥ 18 px.
 - Bấm `H` rồi kiểm cảnh báo vẫn còn và khung có viền nét đứt.
 - Tải lại trang để kiểm việc lưu lại, rồi tắt bằng ô chọn trong Cài đặt.
-- Thử `?bench=1&duration=3`; không được có lỗi JavaScript.
+- Không được có lỗi JavaScript.
 
 ## Hồi quy
 

@@ -1,4 +1,6 @@
-# Hợp đồng tích hợp — Phase 1 (Test Contract v1.0)
+# Hợp đồng tích hợp — Test Contract v1.1 (Phase 2)
+
+> Mục 1–5 là v1.0 (Phase 1, vẫn hiệu lực). **Mục 6 là thay đổi v1.1** (TICKET-02, issue #12).
 
 > Integrator giữ file này (issue #1). Chốt ở phút 15 của Phase 1. **Đổi gì ở đây phải báo cả nhóm**, ghi lý do vào mục "Lịch sử đổi" cuối file (hoặc một ADR trong `docs/adr/`).
 > Nguồn: PRD-0 trên lab board, Test Contract v1.0 mục B/D/E/F/G. Chỗ PRD chưa rõ → `docs/clarify.md`.
@@ -92,8 +94,74 @@ python3 -m chonoi.headless --mode quan --seed 42 --inventory catch.json --ticks 
 
 Test tự động: `tests/test_integration_p1.py`. Chạy nhanh: skill `headless-check`.
 
+## 6. Contract v1.1 (Phase 2) — thay đổi từ v1.0
+
+### 6.1 Manifest và số chuẩn (`game.contract.json`)
+
+| Phạm vi | Khóa thêm/đổi | Ai dùng |
+|---|---|---|
+| gốc | `contract_version:"1.1"`, `extensions: []` (mã mở rộng đã bật, vd `"burn"`) | mọi module |
+| `gather` | `fish_initial: 8` (**số**, không còn là mảng), `fish_speed, fish_turn_ticks, fish_max, fish_spawn_ticks, fish_spawn_clearance, fish_x, fish_depths{loài}, fish_spawn_x[], fish_spawn_depths{loài}, fish_weights{loài}`; `fish_yield` có `ca_keo:2`; nút `N5, N6` (`keo_neo`) | #13 gather |
+| `gather.monsters` | `species.ca_sau{patrol_speed, chase_speed, detect_radius, exit_radius, depths, hit_radius, recoil_ticks, recoil_dist}`, `spawns[]{id, kind, pos, waypoints, from_day}`, `invuln_ticks:90`, `loss_ratio:0.5` | #14 monsters |
+| `quan`, `menu` | bếp `B1, B2`; bàn `T1–T4`; 6 món (`canh_chua_ca_loc, ca_keo_nuong, lau_mam` mới) | #7 quan |
+| `day_plan` | 5 object `{day, dishes{món:suất}, ingredients{kind:n}}`; `ingredients` = tổng công thức × suất | #7, day, UI |
+| `shop` | `{max_ticks:600, upgrades{oxygen[]{level, price, oxygen_max_s}, hp[]{level, price, hp_max}}}` | #8 shop |
+
+Kind nguyên liệu v1.1 (6): `ca_loc, ca_linh, ca_keo, bong_dien_dien, bong_sung, keo_neo` (`chonoi/inventory.py`). Tuning không được hard-code ở `sim/*`.
+
+### 6.2 CLI, inputs, pause
+
+- `--mode gather|quan|day`; `--days N` (1–5, mặc định 1) **chỉ** với `day`, sai → mã 2. `--inventory`/`--inventory-out` vẫn chỉ cho hai mode độc lập; `day` chuyển kho trong bộ nhớ.
+- Nút mới: `pause` (cả ba mode), `shop_done` (Shop), `buy` = chuỗi khác rỗng, chỉ chạy ở frame khai báo: `oxygen`, `hp` (mở rộng: `weapon`, `net`, `buy:<kind>`, `sell:<kind>`). Nút đúng kiểu nhưng sai pha/chưa bật thì bỏ qua; `buy` không hỗ trợ → `buy_failed{reason:"unknown"}`.
+- Pause (runner/day lo, sim **không** cần biết): xét cạnh `pause` trước. Vào pause: chỉ tăng `tick`, phát `paused`, snapshot `state:"paused"`. Trong pause bỏ hành động và `buy`; `sim_tick`, `phase_tick`, lịch, timer đứng yên. Cạnh lên kế → `resumed`, gameplay chạy ngay bước đó.
+
+### 6.3 Mode `day` — vòng ngày (`chonoi/sim/day.py`, #12)
+
+`day_start → day_plan → phase_start(gather)` ở đầu Ngày; sau `gather_end` dựng quán + `phase_start(quan)` **cùng tick** (kể cả ngất); sau `quan_end` dựng Shop + `phase_start(shop)` cùng tick. Pha mới chạy gameplay từ bước sau. Shop đóng (`shop_end`) → `days_completed += 1` → dựng Ngày kế ngay tick đó hoặc kết thúc (`end.reason:"days_complete"`, `end.days_completed`).
+Giữ qua Ngày: `money`, `earned`, `reputation`, `upgrades`. Mỗi Ngày: oxy/Máu đầy theo `active_upgrades`, giỏ mới, kho dư bỏ sau Shop. Cấp mua trong Shop chỉ vào `active_upgrades` khi dựng Ngày mới.
+
+### 6.4 Giao diện `day_ctx` (sim ↔ day) — **#7, #8, #13, #14 dùng đúng chữ ký này**
+
+```python
+day_ctx = {"day": 1,                                  # 1..5
+           "day_plan": {"day": 1, "dishes": {...}, "ingredients": {...}},
+           "active_upgrades": {"oxygen": 0, "hp": 0}}  # cấp đang áp dụng (0 = chưa mua)
+
+GatherSim(tuning, scenario, streams, ids, day_ctx=None)            # None = mode gather độc lập (Ngày 1, cấp 0)
+QuanSim(tuning, scenario, streams, ids, inventory=None, day_ctx=None)
+ShopSim(tuning, streams, ids, money, upgrades, day_ctx)            # #8; upgrades = cấp đã mua {"oxygen":n,"hp":n}
+```
+
+| Sim | Đọc gì trong `day_ctx` |
+|---|---|
+| gather (#13) | `active_upgrades` → `oxygen_max = upgrades.oxygen[lvl-1].oxygen_max_s` (cấp 0 dùng `oxygen_max_s`), `hp_max` tương tự; `day` cho monsters |
+| monsters (#14) | `day` ≥ `spawns[].from_day` mới có con đó (gather độc lập = Ngày 1) |
+| quan (#7) | `day_plan.dishes`: lọc menu theo id món trong kế hoạch **trước** khi lọc nguyên liệu khả dụng; `None` → dùng cả 6 món |
+| shop (#8) | `money`, `upgrades` vào; ra thuộc tính `money`, `upgrades`, `done`, `reason` (`done`/`time`); `step(inp)` trả event `bought/buy_failed/shop_end` |
+
+Mọi sim giữ giao diện runner hiện có: thuộc tính `mode, phase, done, reason, time_left_ticks, money, earned, reputation`, `snapshot()`, `step(inp) -> [(name, data)]`. `day.py` gán `money/earned/reputation` của pha trước vào sim mới **ngay sau khi dựng**; sim không reset lại sau đó. Gather thêm `inventory_items()` (đã có).
+
+### 6.5 Output v1.1
+
+Snapshot: `state` thêm `"paused"`. Gather thêm `monsters[]`, `player.invuln_ticks`. Trong `day` **mọi** snapshot có `day, day_plan, upgrades, active_upgrades`; `phase` ∈ `gather/quan/shop`; snapshot Shop có `stock` (dư từ ca) và `time_left_ticks`. Snapshot đổi pha ghi **pha mới** với `phase_tick:0`. Event kết thúc mang pha cũ. Trong `day` mọi event có thêm khóa `day`.
+
+| `name` | `data` | Ai phát |
+|---|---|---|
+| `monster_hit` | `monster_id, hp, lost, pos` (vị trí người chơi; `lost` LIFO) | #14 |
+| `fish_spawned` | `id, kind, pos` | #13 |
+| `faint` | thêm `cause:"monster"` khi do chạm; `lost` = phần giỏ còn lại; `hp:0` | #13/#14 |
+| `day_start`, `phase_start` | `{}` | day (#12) |
+| `day_plan` | `dishes, ingredients` của Ngày đó | day (#12) |
+| `paused`, `resumed` | `{}` | runner/day (#12) |
+| `bought` | `upgrade, level, price, money` | shop (#8) |
+| `buy_failed` | `action, reason` (`funds/max_level/out_of_stock/unknown`) | shop (#8) |
+| `shop_end` | `reason` (`done`/`time`) | shop (#8) |
+
+Dòng `end` của `day` thêm `days_completed`; đủ Ngày → `reason:"days_complete"`.
+
 ## Lịch sử đổi
 
 | Ngày | Thay đổi | Lý do | Ai |
 |---|---|---|---|
 | 2026-11-21 | v1.0 chốt Phase 1 | Theo PRD-0 mục E/G | tuancdk |
+| 2026-11-21 | v1.1 số chuẩn Phase 2, mode `day`, `day_ctx` | TICKET-02 mục 1–4 (#12) | tuancdk |

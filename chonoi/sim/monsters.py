@@ -149,7 +149,9 @@ def step(sim, events: list) -> bool:
     spec = species_map[hitter["kind"]]
     sim.hp = max(0, sim.hp - 1)
     loss_count = math.floor(len(sim.hold) * float(cfg["loss_ratio"]))
-    lost = [sim.hold.pop() for _ in range(loss_count)]
+    raw_lost = [sim.hold.pop() for _ in range(loss_count)]
+    export_fn = getattr(sim, "export_hold_item", lambda x: x)
+    lost = [export_fn(item) for item in raw_lost]
     sim.invuln_ticks = int(cfg["invuln_ticks"])
     events.append(("monster_hit", {
         "monster_id": hitter["id"],

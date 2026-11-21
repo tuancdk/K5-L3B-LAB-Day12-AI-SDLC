@@ -2,7 +2,8 @@
 
     python3 -m chonoi.live --mode gather|quan|day [--days N] [--seed N] [--port 8000]
 
-Máy chủ HTTP nhỏ (ThreadingHTTPServer) phục vụ `chonoi/web/index.html` và hai API:
+Máy chủ HTTP nhỏ (ThreadingHTTPServer) phục vụ `chonoi/web/index.html`, thư viện `chonoi/web/vendor/` theo
+danh sách `VENDOR_FILES`, và các API:
     GET  /state  -> snapshot JSON hiện tại (cùng trường như dòng snapshot của headless) + `meta` + `events`
     POST /input  -> {"move": [a, b], "interact": bool, "catch": bool, "pause": bool,
                      "shop_done": bool, "buy": str} (buy chỉ dùng ở bước kế tiếp)
@@ -32,6 +33,7 @@ from .runner import Session
 from .scenario import load_scenario
 
 WEB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
+VENDOR_FILES = {"/vendor/phaser.min.js": "phaser.min.js"}  # Phaser 3.80.1, MIT — xem CREDITS.md
 MAX_BODY = 4096
 RECENT_EVENTS = 40
 LIVE_BUTTONS = ("interact", "catch", "pause", "shop_done")
@@ -196,6 +198,13 @@ class _Handler(BaseHTTPRequestHandler):
                     self._send(200, f.read(), "text/html; charset=utf-8")
             except OSError:
                 self._send(404, b'{"error":"thieu index.html"}')
+        elif path in VENDOR_FILES:
+            # Thư viện client đóng gói sẵn (Phaser) — chỉ phục vụ đúng danh sách cho phép, không duyệt thư mục.
+            try:
+                with open(os.path.join(WEB_DIR, "vendor", VENDOR_FILES[path]), "rb") as f:
+                    self._send(200, f.read(), "text/javascript; charset=utf-8")
+            except OSError:
+                self._send(404, b'{"error":"thieu thu vien"}')
         else:
             self._send(404, b'{"error":"khong co"}')
 

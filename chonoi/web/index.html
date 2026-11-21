@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&display=swap">
 <title>Quán Ăn Chợ Nổi</title>
+<!-- Phaser 3.80.1 (MIT) đóng gói trong chonoi/web/vendor; thiếu thì trang tự vẽ bằng Canvas 2D. -->
+<script src="/vendor/phaser.min.js"></script>
 <style>
   :root {
     color-scheme: light;
@@ -88,7 +90,9 @@
   .stage { position: relative; overflow: hidden; isolation: isolate; border-radius: 13px; background: var(--canvas); border: 1px solid #233e37; box-shadow: 0 8px 24px #1e291723; }
   body[data-mode="quan"] .stage { border: 3px solid #4a7380; box-shadow: 0 5px #0b1d28; }
   body[data-mode="quan"] .scene-key { background: #193845; }
-  #scene { width: 100%; display: block; aspect-ratio: 2.06 / 1; }
+  #scene { width: 100%; display: block; aspect-ratio: 2.06 / 1; position: relative; overflow: hidden; }
+  #scene > canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; display: block; }
+  #scene > canvas.world-layer { background: #253e37; }
   @media (min-width: 761px) {
     body[data-mode="quan"] #scene { aspect-ratio: 2.55 / 1; }
   }
@@ -214,7 +218,7 @@
   body[data-mode="shop"] :is(aside,.controls,.touch-controls,.scene-key,.scene-action) { display: none; }
   @media (min-width: 1000px) {
     body[data-run="day"] :is(h1,h2) { font-family: system-ui, sans-serif; }
-    body[data-run="day"] :is(.label,.value,.journal h2,.detail,.chip,.controls,.ticket strong,.ticket-meta,
+    body :is(.label,.value,.journal h2,.detail,.chip,.controls,.ticket strong,.ticket-meta,
       .scene-action p,.scene-action strong,.notice,.guide-sub,.scene-key,.order-board h2,.need-row) { font-size: 18px; }
     body[data-run="day"] .orders { grid-template-columns: repeat(auto-fill,minmax(min(100%,260px),1fr)); }
     body[data-run="day"] #scene { aspect-ratio: 2.65 / 1; }
@@ -269,6 +273,10 @@
     .meter--urgent { animation: tick-pulse .5s ease-in-out infinite alternate; }
   }
   @keyframes tick-pulse { to { transform: scale(1.06); } }
+  @media (prefers-reduced-motion: no-preference) {
+    .meter.bump { animation: coin-bump .35s cubic-bezier(.3,1.8,.5,1); }
+  }
+  @keyframes coin-bump { 40% { transform: scale(1.14) rotate(-2deg); background: #fff0a8; } }
 
   /* Phiếu món: giấy kẹp trên sợi dây đèn lồng */
   .order-board h2 { display: none; }
@@ -332,9 +340,62 @@
   .modal-actions button:active:not(:disabled), .shop-item button:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink-line); }
   .shop-item { border: var(--chunk); border-radius: 14px; background: #fff8e6; box-shadow: var(--drop); }
   .shop-item .shortfall { color: #8d2f34; font-weight: 700; }
+
+  /* ===== #34: cảnh báo có chữ + biểu tượng (không chỉ màu) ===== */
+  .notice::before { content: "⚠"; margin-right: .4em; }
+  .warn-badge {
+    display: inline-flex; align-items: center; gap: .3em; width: max-content; padding: 1px 9px;
+    border: 2px solid var(--ink-line); border-radius: 999px; background: #ffd400; color: #1a1208;
+    font-weight: 800; font-size: 18px; line-height: 1.35;
+  }
+  .warn-badge::before { content: "⚠"; }
+  .ticket .warn-badge { grid-column: 1 / -1; justify-self: start; margin-top: 2px; }
+  .meter .warn-badge { margin-top: 3px; }
+  .toast {
+    position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 10; padding: 8px 18px;
+    border: 3px solid var(--ink-line); border-radius: 12px; background: var(--cream); color: #2b1b14;
+    font: 800 18px var(--display); box-shadow: var(--drop);
+  }
+  .setting-toggle { display: flex; align-items: center; gap: 10px; margin: 6px 0 14px; font-weight: 700; }
+  .setting-toggle input { width: 22px; height: 22px; accent-color: #317360; }
+
+  /* ===== #34: chế độ tương phản cao (phím H hoặc Cài đặt) =====
+     Đen / trắng / vàng, viền dày; mức nguy hiểm thể hiện bằng chữ, biểu tượng và nét đứt thay vì sắc độ. */
+  body[data-contrast="high"] {
+    --cream: #000; --ink-line: #fff; --lantern: #ffd400; --leaf: #fff; --chili: #ffd400;
+    --paper: #000; --ink: #fff; --muted: #fff; --line: #fff; --accent: #ffd400; --panel: #000; --halo: #333;
+    background: #000 !important; color: #fff;
+  }
+  body[data-contrast="high"] :is(.meter,.journal,.ticket,.header-actions button,.scene-action,.notice,.message) {
+    background: #000 !important; color: #fff !important; border-color: #fff !important; box-shadow: none !important;
+  }
+  body[data-contrast="high"] :is(.meter .label,.meter .value,.meter-icon,.journal h2,.journal p,.journal .detail,
+    .ticket strong,.ticket-meta,.need-row strong,h1,.eyebrow,.controls,kbd) { color: #fff !important; }
+  body[data-contrast="high"] :is(.meter--time,.meter--urgent,.meter--low-oxygen) { border: 4px dashed #ffd400 !important; }
+  body[data-contrast="high"] .meter--time .value { color: #ffd400 !important; }
+  body[data-contrast="high"] :is(.track,.ticket .track,.meter .track,.journal .track) { background: #000 !important; border-color: #fff !important; }
+  body[data-contrast="high"] :is(.fill,.ticket .fill,.meter .fill) { background: #fff !important; }
+  body[data-contrast="high"] :is(.fill.warn,.ticket.urgent .fill) { background: repeating-linear-gradient(45deg,#ffd400 0 6px,#000 6px 10px) !important; }
+  body[data-contrast="high"] .ticket.urgent { border: 4px dashed #ffd400 !important; }
+  body[data-contrast="high"] .ticket::before { background: #fff; border-color: #000; }
+  body[data-contrast="high"] .ticket canvas { background: #fff; border-color: #fff; }
+  body[data-contrast="high"] .chip { background: #000 !important; color: #fff !important; border-color: #fff !important; }
+  body[data-contrast="high"] .warn-badge { background: #ffd400; color: #000; border-color: #000; outline: 2px solid #ffd400; }
+  body[data-contrast="high"] .notice { color: #ffd400 !important; border: 4px solid #ffd400 !important; }
+  body[data-contrast="high"] .scene-action strong { background: #ffd400 !important; color: #000 !important; border-color: #000 !important; }
+  body[data-contrast="high"] .stage { border-color: #fff !important; }
+  body[data-contrast="high"] .stage.danger { outline: 6px dashed #ffd400; outline-offset: -6px; }
+  body[data-contrast="high"] #scene > canvas.world-layer, body[data-contrast="high"] #scene > canvas:only-child { filter: contrast(1.25) saturate(.8); }
+  body[data-contrast="high"] kbd, body[data-contrast="high"] #restart kbd { background: #000 !important; color: #fff !important; border-color: #fff !important; }
+  body[data-contrast="high"] .toast { background: #000; color: #ffd400; border-color: #ffd400; }
+  body[data-contrast="high"] dialog { background: #fff; color: #000; border-color: #000; }
+  body[data-contrast="high"] .modal-actions button, body[data-contrast="high"] .shop-item button {
+    --panel: #fff; --ink: #000; --line: #000; --halo: #ffd400; border-color: #000;
+  }
+  body[data-contrast="high"] .modal-actions .primary { --panel: #000; --ink: #fff; --halo: #333; }
   /* Tiêu chí #16: chữ không chân ≥ 18 px ở 1280×720 — cả nhãn phím, nút và dòng tiêu đề pha */
   @media (min-width: 1000px) {
-    body[data-run="day"] :is(.eyebrow,kbd,.header-actions button,.modal-actions button,.shop-item button,.ticket-meta span,.journal :is(p,li,strong)) { font-size: 18px; }
+    body :is(.eyebrow,kbd,.header-actions button,.modal-actions button,.shop-item button,.ticket-meta span,.journal :is(p,li,strong)) { font-size: 18px; }
   }
   .shop-item button.poor { --panel: #e9dcc0; --halo: #e9dcc0; --ink: #7a6a58; box-shadow: 0 2px 0 var(--ink-line); }
   dialog button:disabled { cursor: not-allowed; }
@@ -402,7 +463,7 @@
       <div id="orders"></div>
     </section>
     <div class="stage" id="game-stage">
-      <canvas id="scene" aria-label="Cảnh chơi của Út Sen"></canvas>
+      <div id="scene" role="img" aria-label="Cảnh chơi của Út Sen"></div>
       <div class="message" id="message" role="status">Đang kết nối…</div>
       <div class="notice" id="gather-alert" role="status" hidden></div>
       <div class="scene-key" id="legend"></div>
@@ -449,8 +510,9 @@
 <script>
 "use strict";
 
-const canvas = document.getElementById("scene");
-const ctx = canvas.getContext("2d");
+const sceneHost = document.getElementById("scene");
+// Bút vẽ hiện hành: canvas dự phòng hoặc texture nền của Phaser. Mọi hàm vẽ dùng chung biến này.
+let ctx = null;
 const elements = Object.fromEntries(
   ["phase", "restart", "meters", "message", "legend", "interact-label", "catch-key", "journal",
     "tip", "touch-interact", "touch-catch", "portrait", "order-board", "orders", "scene-action",
@@ -585,6 +647,11 @@ addEventListener("keydown", event => {
   if (event.key === "Escape" || event.key.toLowerCase() === "p") {
     event.preventDefault();
     if (!event.repeat) togglePause();
+    return;
+  }
+  if (event.key.toLowerCase() === "h" && !event.target.closest?.("input")) {
+    event.preventDefault();
+    if (!event.repeat) setContrast(!highContrast,true);
     return;
   }
   if (elements["game-dialog"].open) {
@@ -790,6 +857,7 @@ function ordersHud(data, meta, hz) {
     else if (number(patience)) detail.append(node("span", "Kiên nhẫn " + seconds(patience, hz) + " giây"));
     info.append(detail);
     if (!eating && number(fraction)) info.append(track(fraction));
+    if (state === " urgent") info.append(node("span", "Sắp giận!", "warn-badge"));
     item.append(icon, info);
     list.append(item);
   }
@@ -830,18 +898,26 @@ function inRange(from, to, radius) {
   return point(from) && point(to) && number(radius) && radius > 0 &&
     Math.hypot(from[0] - to[0], from[1] - to[1]) <= radius;
 }
+// Oxy dưới 25% bình (#34).
+function lowOxygen(player) {
+  return number(player.oxygen_ticks) && number(player.oxygen_max_ticks) && player.oxygen_max_ticks > 0 &&
+    player.oxygen_ticks > 0 && player.oxygen_ticks < player.oxygen_max_ticks/4;
+}
+// Cá Sấu đang đuổi hoặc trong tầm phát hiện của Út Sen (#34).
+function monsterThreat(monster,player,meta) {
+  if (!point(player.pos) || !point(monster.pos)) return false;
+  const species = meta.monsters?.species?.[monster.kind ?? "ca_sau"];
+  return monster.state === "chase" || inRange(player.pos,monster.pos,species?.detect_radius);
+}
 function updateGatherAlerts(data,meta,player) {
-  const threat = records(data.monsters).some(monster => {
-    if (!point(player.pos) || !point(monster.pos)) return false;
-    const species = meta.monsters?.species?.[monster.kind ?? "ca_sau"];
-    return monster.state === "chase" || inRange(player.pos,monster.pos,species?.detect_radius);
-  });
+  const threat = records(data.monsters).some(monster => monsterThreat(monster,player,meta));
   const air = number(player.oxygen_ticks) && player.oxygen_ticks <= 0 && isUnderwater(player,meta);
+  const lowAir = !air && lowOxygen(player) && isUnderwater(player,meta);
   const alert = elements["gather-alert"];
-  const message = [threat ? "Thủy quái!" : "",air ? "Hết hơi!" : ""].filter(Boolean).join(" · ");
+  const message = [threat ? "Thủy quái!" : "",air ? "Hết hơi!" : lowAir ? "Oxy sắp hết!" : ""].filter(Boolean).join(" · ");
   if (alert.textContent !== message) alert.textContent = message;
   alert.hidden = !message;
-  alert.classList.toggle("air",air && !threat);
+  alert.classList.toggle("air",(air || lowAir) && !threat);
   elements["game-stage"].classList.toggle("danger",threat);
 }
 function recentService(data, hz) {
@@ -927,14 +1003,18 @@ function updateHud() {
     const oxyMax = number(player.oxygen_max_ticks) && player.oxygen_max_ticks > 0 ? player.oxygen_max_ticks : null;
     const hpMax = number(player.hp_max) && player.hp_max > 0 ? player.hp_max : meta.hp_max;
     const oxyRatio = oxyMax && number(player.oxygen_ticks) ? player.oxygen_ticks/oxyMax : null;
-    cards.push(meter("Oxy", number(player.oxygen_ticks) ? seconds(player.oxygen_ticks, hz) + " giây" : "—",
-      oxyRatio, number(oxyRatio) && oxyRatio < .25 ? " meter--low-oxygen" : ""));
+    const oxyCard = meter("Oxy", number(player.oxygen_ticks) ? seconds(player.oxygen_ticks, hz) + " giây" : "—",
+      oxyRatio, number(oxyRatio) && oxyRatio < .25 ? " meter--low-oxygen" : "");
+    if (number(oxyRatio) && oxyRatio < .25) oxyCard.append(node("span", oxyRatio <= 0 ? "Hết oxy" : "Sắp hết", "warn-badge"));
+    cards.push(oxyCard);
     cards.push(meter("Máu", number(player.hp) ? player.hp + (number(hpMax) ? " / " + hpMax : "") : "—",
       number(player.hp) && number(hpMax) && hpMax > 0 ? player.hp / hpMax : null));
     cards.push(meter("Độ sâu",point(player.pos) ? player.pos[1].toLocaleString("vi-VN",{maximumFractionDigits:1})+" m" : "—"));
     layer("giỏ", () => {
       const hasHold = Array.isArray(data.hold);
-      const hold = hasHold ? data.hold.filter(string) : [];
+      // v1.0/v1.1: mảng tên kind; v1.2: mảng cá thể {id, kind, fresh}.
+      const hold = hasHold ? data.hold.map(item => string(item) ? item : object(item) && string(item.kind) ? item.kind : null)
+        .filter(Boolean) : [];
       const count = number(data.hold_count) ? data.hold_count : hasHold ? hold.length : null;
       const capacity = number(data.hold_capacity) ? data.hold_capacity : meta.hold_capacity;
       const counts = new Map();
@@ -991,6 +1071,33 @@ function updateMessage() {
 }
 
 const TAU = Math.PI * 2;
+// ===== #34: chế độ tương phản cao =====
+const contrastKey = "chonoi.contrast.v1";
+let highContrast = false;
+try { highContrast = localStorage.getItem(contrastKey) === "high"; } catch { /* không có bộ lưu trữ */ }
+let toastTimer = 0;
+function toast(text) {
+  let box = document.getElementById("toast");
+  if (!box) {
+    box = node("div",undefined,"toast");
+    box.id = "toast";
+    box.setAttribute("role","status");
+    document.body.append(box);
+  }
+  box.textContent = text;
+  box.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { box.hidden = true; },1800);
+}
+function setContrast(on,announce = false) {
+  highContrast = on;
+  document.body.dataset.contrast = on ? "high" : "";
+  try { localStorage.setItem(contrastKey,on ? "high" : "normal"); } catch { /* chỉ giữ trong lượt */ }
+  const box = document.getElementById("contrast-toggle");
+  if (box) box.checked = on;
+  if (announce) toast(on ? "Tương phản cao: BẬT (phím H)" : "Tương phản cao: TẮT (phím H)");
+}
+setContrast(highContrast);
 const canvasFont = '"Baloo 2", system-ui, sans-serif';
 // Thanh tiến độ viền mực, đặt ngay trên đồ vật (bếp nấu, kiên nhẫn của khách).
 function progressBar(x, y, width, fraction, color) {
@@ -1014,6 +1121,30 @@ function progressBar(x, y, width, fraction, color) {
     ctx.fill();
     rect(left+3, y-h/2+2, Math.max(0, filled-6), 2.5, "#ffffff55");
   }
+}
+// Biển cảnh báo (#34): hình tam giác "!" + chữ, để không phụ thuộc màu. Chữ ≥ 18 px ở màn rộng.
+let placedBadges = [];   // vùng các biển đã vẽ trong frame hiện tại
+function warnBadge(x,y,text,t = 0) {
+  const size = innerWidth >= 1000 ? 18 : 14;
+  ctx.save();
+  ctx.font = "800 "+size+"px "+canvasFont;
+  const width = text ? ctx.measureText(text).width + 50 : 30;
+  ctx.restore();
+  while (placedBadges.some(b => x < b.x+b.w && x+width > b.x && Math.abs(b.y-y) < 30)) y -= 32;
+  placedBadges.push({ x:x-15, y, w:width+15 });
+  const by = y + (reduceMotion.matches ? 0 : Math.sin(t*6)*2);
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(x,by-14); ctx.lineTo(x+14,by+11); ctx.lineTo(x-14,by+11); ctx.closePath();
+  ctx.fillStyle = "#ffd400"; ctx.fill();
+  ctx.lineJoin = "round"; ctx.lineWidth = 3; ctx.strokeStyle = "#000"; ctx.stroke();
+  ctx.fillStyle = "#000"; ctx.font = "800 17px "+canvasFont; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText("!",x,by+3);
+  ctx.restore();
+  if (!text) return;
+  ctx.font = "800 "+size+"px "+canvasFont;
+  const half = ctx.measureText(text).width/2 + 9;
+  pill(text,x+18+half,by,"#ffd400","#000",size);
 }
 const patienceColor = fraction => fraction > .5 ? "#3f8f5a" : fraction > .25 ? "#eaa22a" : "#d9483b";
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
@@ -1090,17 +1221,19 @@ function gradient(y1, y2, stops) {
 }
 function label(text, x, y, options = {}) {
   const { align = "center", size = 12, color = "#fff1ce", outline = "#2b1b14", maxWidth = 170 } = options;
-  const legible = runMode === "day" && innerWidth >= 1000 ? Math.max(18,size) : size;
+  const legible = innerWidth >= 1000 ? Math.max(18,size) : size;
   ctx.font = "800 " + legible + "px " + canvasFont;
+  // Tương phản cao: chữ trắng viền đen cho mọi nhãn trên cảnh.
+  const ink2 = highContrast ? "#fff" : color, rim = highContrast && outline ? "#000" : outline;
   ctx.textAlign = align;
   ctx.textBaseline = "middle";
   if (outline) {
     ctx.lineJoin = "round";
     ctx.lineWidth = Math.max(4, legible*.3);
-    ctx.strokeStyle = outline;
+    ctx.strokeStyle = rim;
     ctx.strokeText(text, x, y, maxWidth);
   }
-  ctx.fillStyle = color;
+  ctx.fillStyle = outline ? ink2 : color;
   ctx.fillText(text, x, y, maxWidth);
 }
 function ring(x, y, radius, color) {
@@ -1113,8 +1246,8 @@ function ring(x, y, radius, color) {
   ctx.stroke();
   ctx.setLineDash([]);
 }
-function pill(text,x,y,fill,ink = "#263430") {
-  const size = runMode === "day" && innerWidth >= 1000 ? 18 : 11;
+function pill(text,x,y,fill,ink = "#263430",forced = null) {
+  const size = forced ?? (innerWidth >= 1000 ? 18 : 11);
   const height = size+9;
   ctx.font = "800 "+size+"px "+canvasFont;
   const half = ctx.measureText(text).width/2 + 9;
@@ -1382,7 +1515,7 @@ function fishSchool(fish, map, t) {
   }
 }
 const gatorStates = new Map([["patrol","Tuần tra"],["chase","Đang đuổi"],["recoil","Lùi lại"],["stunned","Choáng"]]);
-function gators(list,player,map,t) {
+function gators(list,player,map,t,meta = {}) {
   for (const item of list) {
     const at = map.xy(item.pos);
     if (!at || (string(item.kind) && item.kind !== "ca_sau")) continue;
@@ -1409,6 +1542,7 @@ function gators(list,player,map,t) {
       for (const dx of [20,24,27]) polygon([[dx-1,2],[dx+1,2],[dx,4.5]],"#f7ecc7");
     } finally { ctx.restore(); }
     const state = gatorStates.get(item.state);
+    if (monsterThreat(item,player,meta)) warnBadge(x,y-44*scale,"Thủy quái!",t);
     label(state ? "Cá Sấu · "+state : "Cá Sấu",x,y-19*scale,
       { color:chase ? "#ffe0a2" : "#e7f1c3",size:11,maxWidth:200 });
   }
@@ -1545,6 +1679,7 @@ function gatherPlayer(player, data, meta, map, t) {
   sen(x,y,size,below ? (left ? -1.07-tilt : 1.07+tilt) : 0,below,stride,below ? 1 : left ? -1 : 1);
   ctx.globalAlpha = 1;
   label("Út Sen",x,y+(below ? 28 : 26)*size,{ size:12 });
+  if (below && lowOxygen(player)) warnBadge(x,y-34*size,"Oxy sắp hết!",t);
 }
 
 function quay(w,h,map,t) {
@@ -1785,6 +1920,7 @@ function customerSprites(customers,tables,map,meta,hz,t) {
         ctx.stroke();
       }
       dishArt(ctx,dish,x,y-30,.72);
+      if (number(fraction) && fraction <= .25) warnBadge(x+24,y-48,"Sắp giận!",t);
     } else label(customer.state === "eating" ? "Đang ăn" : "Khách",x,y-19,{ size:11 });
   }
 }
@@ -1892,19 +2028,16 @@ function benchFrame(now, map, data) {
   }).catch(error => { document.documentElement.dataset.bench="failed"; console.error(error); });
 }
 let animationTime = 0;
-function frame(now) {
-  requestAnimationFrame(frame);
-  if (!ctx || !canvas.clientWidth || !canvas.clientHeight) return;
-  const width = canvas.clientWidth, height = canvas.clientHeight;
-  const dpr = Math.min(devicePixelRatio || 1,2);
-  const targetW = Math.round(width*dpr), targetH = Math.round(height*dpr);
-  if (canvas.width !== targetW || canvas.height !== targetH) {
-    canvas.width = targetW;
-    canvas.height = targetH;
-  }
-  const w = width, h = height;
-  ctx.setTransform(targetW/w,0,0,targetH/h,0,0);
+let lastMap = null;   // phép chiếu của frame gần nhất, để hiệu ứng Phaser đặt đúng chỗ
+let phaserScene = null;
+// Vẽ toàn bộ cảnh (nền + vật thể) bằng Canvas 2D vào `target`, kích thước CSS w×h, mật độ điểm ảnh dpr.
+function drawWorld(target,w,h,dpr,now,withOverlay) {
+  ctx = target;
+  placedBadges = [];
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.globalAlpha = 1;
   rect(0,0,w,h,"#253e37");
+  lastMap = null;
   if (!mode) return;
   const {data,meta,player,hz} = fields();
   const morning = mode === "gather";
@@ -1915,13 +2048,14 @@ function frame(now) {
     return;
   }
   const map = project(meta,w,h,morning,cachedInsets);
+  lastMap = map;
   if (morning) {
     layer("nền sông", () => river(w,h,map,meta,t),true);
     if (!map) return;
     layer("bến", () => dock(map,meta),true);
     layer("nút hái", () => plants(records(data.nodes),map,hz),true);
     layer("đàn cá", () => fishSchool(records(data.fish),map,t),true);
-    layer("Cá Sấu", () => gators(records(data.monsters),player,map,t),true);
+    layer("Cá Sấu", () => gators(records(data.monsters),player,map,t,meta),true);
     layer("Út Sen dưới sông", () => gatherPlayer(player,data,meta,map,t),true);
   } else {
     layer("nền quán", () => quay(w,h,map,t),true);
@@ -1931,10 +2065,26 @@ function frame(now) {
     layer("bàn trên sàn", () => tablesSprites(tables,map,data,player,meta),true);
     layer("khách", () => customerSprites(records(data.customers),tables,map,meta,hz,t),true);
     layer("Út Sen trong quán", () => restaurantPlayer(player,data,meta,map,t),true);
-    layer("phản hồi giao món", () => serviceEffect(data,tables,map,hz),true);
+    // Có Phaser thì đồng xu/chữ nổi do Phaser làm bằng particle + tween.
+    if (withOverlay) layer("phản hồi giao món", () => serviceEffect(data,tables,map,hz),true);
   }
-  layer("biển báo nhịp chơi", () => phaseBanner(data,hz,w,h,map),true);
+  if (withOverlay) layer("biển báo nhịp chơi", () => phaseBanner(data,hz,w,h,map),true);
   if (benchMode) benchFrame(now,map,data);
+}
+// Dự phòng khi không tải được Phaser: canvas thường + requestAnimationFrame như bản trước.
+function startCanvasFallback() {
+  const fallback = document.createElement("canvas");
+  sceneHost.append(fallback);
+  const brush = fallback.getContext("2d");
+  (function loop(now) {
+    requestAnimationFrame(loop);
+    const w = sceneHost.clientWidth, h = sceneHost.clientHeight;
+    if (!brush || !w || !h) return;
+    const dpr = Math.min(devicePixelRatio || 1,2);
+    const W = Math.round(w*dpr), H = Math.round(h*dpr);
+    if (fallback.width !== W || fallback.height !== H) { fallback.width = W; fallback.height = H; }
+    drawWorld(brush,w,h,W/w,now,true);
+  })(performance.now());
 }
 // "Bắt đầu!" đầu buổi, đếm ngược 5 giây cuối và "Hết giờ!" — chỉ là hiển thị, không đổi luật.
 function bigWord(text,x,y,scale,fill) {
@@ -2341,6 +2491,14 @@ function startAudio() {
 }
 function audioSettings() {
   const form = node("div");
+  const toggle = node("label",undefined,"setting-toggle");
+  const box = node("input");
+  box.type = "checkbox";
+  box.id = "contrast-toggle";
+  box.checked = highContrast;
+  if (highContrast) box.setAttribute("checked","");
+  toggle.append(box,node("span","Tương phản cao (phím H)"));
+  form.append(toggle);
   for (const [key,title] of soundChannels) {
     const row = node("label",undefined,"setting-row");
     const slider = node("input");
@@ -2359,6 +2517,9 @@ function audioSettings() {
   }
   return [modalTitle("Âm thanh"),form,actions(action("Quay lại","settings-back",true))];
 }
+elements["game-dialog"].addEventListener("change",event => {
+  if (event.target.id === "contrast-toggle") setContrast(event.target.checked,true);
+});
 elements["game-dialog"].addEventListener("input",event => {
   const key = event.target.dataset.volume;
   if (!soundChannels.has(key)) return;
@@ -2400,7 +2561,8 @@ function playSfx(data) {
     return true;
   });
   if (!fresh.length || data.state === "paused") return;
-  if (fresh.some(event => shakeEvents.has(event.name)) && !reduceMotion.matches) {
+  if (phaserScene) layer("hiệu ứng Phaser", () => phaserScene.play(fresh,data));
+  else if (fresh.some(event => shakeEvents.has(event.name)) && !reduceMotion.matches) {
     const stage = elements["game-stage"];
     stage.classList.remove("hit");
     void stage.offsetWidth; // chạy lại hiệu ứng rung
@@ -2423,8 +2585,306 @@ setInterval(() => {
   note("music",melody[i % melody.length],.09,.22);
   if (i % 4 === 0) note("music",bass[(i/4) % bass.length],.12,.4,"sine");
 },180);
+// ===================== Lớp cảnh Phaser 3 =====================
+// Hai lớp canvas chồng nhau trong #scene: lớp dưới là tranh Canvas 2D vẽ tay (drawWorld) vẽ thẳng, không phải
+// chép ảnh mỗi frame; lớp trên là Phaser trong suốt lo hạt, chữ nổi, tween và camera (rung/nháy/chuyển cảnh).
+// Phaser giữ nhịp vẽ cho cả hai. Sau này có sprite sheet thì chuyển dần từng vật thể lên lớp Phaser.
+// Chỉ đọc snapshot/event: không đổi luật, headless không bị ảnh hưởng.
+const ink = "#2b1b14";
+// Renderer Canvas không tô màu (tint) được, nên mỗi màu hạt là một khung riêng trong atlas "fx".
+function buildFxAtlas(scene) {
+  const cell = 32;
+  const frames = [
+    ["spark-gold","#ffd54f"],["spark-green","#a8e06a"],["spark-white","#fff7e2"],
+    ["drop","#cdeee4"],["conf-0","#ff7a59"],["conf-1","#ffd54f"],["conf-2","#6cc6a0"],
+    ["conf-3","#7aa8ff"],["conf-4","#f28fb8"],["puff-grey","#8f817a"],["puff-white","#fff6e8"],
+    ["coin",null],["firefly","#ffe08a"],["leaf","#7fae5a"]
+  ];
+  const tex = scene.textures.createCanvas("fx",cell*frames.length,cell);
+  const g = tex.getContext();
+  frames.forEach(([name,color],i) => {
+    const x = i*cell, cx = x+cell/2, cy = cell/2;
+    g.save();
+    if (name.startsWith("spark")) {
+      g.fillStyle = color;
+      g.beginPath();
+      for (let k = 0; k < 8; k++) {
+        const r = k%2 ? 4 : 13, a = k*Math.PI/4 - Math.PI/2;
+        g.lineTo(cx+Math.cos(a)*r, cy+Math.sin(a)*r);
+      }
+      g.closePath(); g.fill();
+    } else if (name === "drop") {
+      g.fillStyle = color; g.beginPath(); g.arc(cx,cy,6,0,TAU); g.fill();
+      g.fillStyle = "#ffffffaa"; g.beginPath(); g.arc(cx-2,cy-2,2,0,TAU); g.fill();
+    } else if (name.startsWith("conf")) {
+      g.fillStyle = color; g.fillRect(cx-6,cy-3.5,12,7);
+    } else if (name.startsWith("puff") || name === "firefly") {
+      const grad = g.createRadialGradient(cx,cy,1,cx,cy,name === "firefly" ? 9 : 15);
+      grad.addColorStop(0,color); grad.addColorStop(1,color+"00");
+      g.fillStyle = grad; g.fillRect(x,0,cell,cell);
+    } else if (name === "coin") {
+      g.fillStyle = ink; g.beginPath(); g.arc(cx,cy+1.5,12,0,TAU); g.fill();
+      g.fillStyle = "#ffc847"; g.beginPath(); g.arc(cx,cy,11,0,TAU); g.fill();
+      g.strokeStyle = ink; g.lineWidth = 2; g.stroke();
+      g.fillStyle = "#f0a01e"; g.beginPath(); g.arc(cx,cy,6,0,TAU); g.fill();
+      g.fillStyle = "#fff3b0"; g.fillRect(cx-7,cy-7,3,5);
+    } else if (name === "leaf") {
+      g.fillStyle = color; g.beginPath(); g.ellipse(cx,cy,9,4,.6,0,TAU); g.fill();
+    }
+    g.restore();
+    tex.add(name,0,x,0,cell,cell);
+  });
+  tex.refresh();
+}
+
+// Chỉ định nghĩa khi Phaser đã tải, để trang vẫn chạy bản Canvas dự phòng khi thiếu thư viện.
+const ChoNoiScene = typeof Phaser === "undefined" ? null : class extends Phaser.Scene {
+  constructor() { super("cho-noi"); }
+
+  create() {
+    buildFxAtlas(this);
+    this.viewW = 0; this.viewH = 0; this.dpr = 1;
+    this.worldCanvas = document.createElement("canvas");
+    this.worldCanvas.className = "world-layer";
+    sceneHost.prepend(this.worldCanvas);
+    this.worldBrush = this.worldCanvas.getContext("2d");
+    this.shownMode = null;
+    this.lastCount = null;
+    this.steamClock = 0;
+    this.cameras.main.setOrigin(0,0);
+    const burst = extra => this.add.particles(0,0,"fx",Object.assign({ emitting:false }, extra)).setDepth(20);
+    this.fx = {
+      sparkle: burst({ frame:["spark-gold","spark-white"], speed:{min:70,max:190}, angle:{min:0,max:360},
+        scale:{start:.9,end:0}, rotate:{min:0,max:360}, lifespan:650, gravityY:160 }),
+      leaves: burst({ frame:["spark-green","leaf"], speed:{min:60,max:150}, angle:{min:200,max:340},
+        scale:{start:.8,end:.1}, rotate:{min:0,max:360}, lifespan:700, gravityY:260 }),
+      splash: burst({ frame:"drop", speed:{min:110,max:250}, angle:{min:205,max:335},
+        scale:{start:.9,end:.25}, lifespan:720, gravityY:620 }),
+      confetti: burst({ frame:["conf-0","conf-1","conf-2","conf-3","conf-4"], speed:{min:160,max:320},
+        angle:{min:215,max:325}, rotate:{min:0,max:360}, scale:{start:1,end:.6}, lifespan:1200, gravityY:380 }),
+      puff: burst({ frame:"puff-grey", speed:{min:18,max:60}, angle:{min:0,max:360},
+        scale:{start:.7,end:1.8}, alpha:{start:.85,end:0}, lifespan:900 }),
+      steam: burst({ frame:"puff-white", speedY:{min:-55,max:-30}, speedX:{min:-8,max:8},
+        scale:{start:.35,end:1.1}, alpha:{start:.55,end:0}, lifespan:1300 }).setDepth(5)
+    };
+    this.fireflyZone = new Phaser.Geom.Rectangle(0,0,10,10);
+    this.fireflies = this.add.particles(0,0,"fx",{ frame:"firefly", emitZone:{ type:"random", source:this.fireflyZone },
+      speed:{min:4,max:16}, angle:{min:0,max:360}, lifespan:{min:2500,max:4200}, frequency:260,
+      alpha:{start:1,end:0}, scale:{min:.5,max:1}, blendMode:"ADD", emitting:false }).setDepth(4);
+    this.banner = this.add.text(0,0,"",{ fontFamily:'"Baloo 2", system-ui, sans-serif', fontSize:"68px",
+      fontStyle:"800", color:"#ffd54f", stroke:ink, strokeThickness:14, align:"center" })
+      .setOrigin(.5).setDepth(30).setVisible(false).setShadow(0,6,ink,0,true,true);
+  }
+
+  resizeTo(w,h) {
+    const dpr = Math.min(devicePixelRatio || 1,2);
+    if (w === this.viewW && h === this.viewH && dpr === this.dpr) return;
+    this.viewW = w; this.viewH = h; this.dpr = dpr;
+    const W = Math.round(w*dpr), H = Math.round(h*dpr);
+    this.scale.resize(W,H);
+    this.cameras.main.setSize(W,H).setZoom(dpr).setScroll(0,0);
+    this.worldCanvas.width = W;
+    this.worldCanvas.height = H;
+    this.fireflyZone.setTo(0,0,w,h*.75);
+    this.banner.setResolution(dpr);
+  }
+
+  update(now) {
+    const w = sceneHost.clientWidth, h = sceneHost.clientHeight;
+    if (!w || !h) return;
+    this.resizeTo(w,h);
+    layer("cảnh Phaser", () => drawWorld(this.worldBrush,w,h,this.dpr,now,false));
+    // Rung camera chỉ dời lớp Phaser; dời lớp tranh theo cùng độ lệch để cả cảnh rung chung.
+    const shake = this.cameras.main.shakeEffect;
+    const dx = shake.isRunning ? (shake._offsetX ?? 0)/this.dpr : 0, dy = shake.isRunning ? (shake._offsetY ?? 0)/this.dpr : 0;
+    const offset = dx || dy ? `translate(${dx.toFixed(1)}px,${dy.toFixed(1)}px)` : "";
+    if (this.worldCanvas.style.transform !== offset) this.worldCanvas.style.transform = offset;
+    const { data, hz } = fields();
+    const frozen = data.state === "paused" || elements["game-dialog"].open;
+    const speed = frozen ? 0 : 1;
+    this.tweens.timeScale = speed;
+    for (const emitter of [...Object.values(this.fx), this.fireflies]) emitter.timeScale = speed;
+    if (mode !== this.shownMode) {
+      // Chuyển pha sáng ↔ tối: mở màn bằng fade như bật đèn sân khấu.
+      if (this.shownMode && !reduceMotion.matches) this.cameras.main.fadeIn(520,16,36,51);
+      this.shownMode = mode;
+      if (mode === "quan" && !reduceMotion.matches) this.fireflies.start(); else this.fireflies.stop();
+    }
+    layer("khói bếp", () => this.ambientSteam(data,now,frozen));
+    layer("biển nhịp chơi", () => this.updateBanner(data,hz,w,h,frozen));
+  }
+
+  ambientSteam(data,now,frozen) {
+    if (frozen || reduceMotion.matches || mode !== "quan" || !lastMap || now < this.steamClock) return;
+    this.steamClock = now + 170;
+    for (const stove of records(data.stoves)) {
+      if (stove.state !== "cooking") continue;
+      const at = lastMap.xy(stove.pos);
+      if (at) this.fx.steam.emitParticleAt(at[0]+Phaser.Math.Between(-8,8),at[1]-14,1);
+    }
+  }
+
+  updateBanner(data,hz,w,h,frozen) {
+    const banner = this.banner;
+    const cx = lastMap ? (lastMap.left+lastMap.right)/2 : w/2, cy = h*.44;
+    const sinceStart = number(data.phase_tick) ? data.phase_tick : number(data.tick) ? data.tick : null;
+    const timeUp = (number(data.time_left_ticks) && data.time_left_ticks <= 0) ||
+      ((data.finished === true || data.state === "finished") && data.reason === "time");
+    let text = "", color = "#ffd54f";
+    if (frozen || mode === "shop" || !mode) text = "";
+    else if (timeUp) { text = "Hết giờ!"; color = "#ff8a6b"; }
+    else if (number(sinceStart) && sinceStart < hz*1.3) text = "Bắt đầu!";
+    else if (number(data.time_left_ticks) && data.time_left_ticks > 0 && data.time_left_ticks <= hz*5) {
+      text = String(Math.ceil(data.time_left_ticks/hz)); color = "#fff3d6";
+    }
+    banner.setPosition(cx,cy);
+    if (!text) { banner.setVisible(false); this.lastCount = null; return; }
+    if (banner.text !== text) {
+      banner.setText(text).setColor(color).setVisible(true).setAlpha(1);
+      this.tweens.killTweensOf(banner);
+      if (!reduceMotion.matches) {
+        banner.setScale(text.length <= 2 ? 1.7 : .3).setAngle(-6);
+        this.tweens.add({ targets:banner, scale:1, angle:-2, duration:380, ease:"Back.easeOut" });
+        if (text === "Bắt đầu!") this.tweens.add({ targets:banner, alpha:0, delay:900, duration:300 });
+      } else banner.setScale(1);
+    }
+  }
+
+  popText(x,y,text,color = "#fff3d6",size = 26) {
+    const label = this.add.text(x,y,text,{ fontFamily:'"Baloo 2", system-ui, sans-serif', fontSize:size+"px",
+      fontStyle:"800", color, stroke:ink, strokeThickness:7 }).setOrigin(.5).setDepth(25).setResolution(this.dpr);
+    // Nhiều chữ cùng lúc ở gần nhau thì xếp chồng lên; giữ trong khung, tránh vùng HUD bên phải.
+    const now = this.time.now;
+    this.recentPops = (this.recentPops ?? []).filter(pop => now-pop.at < 600);
+    while (this.recentPops.some(pop => Math.abs(pop.x-x) < 90 && Math.abs(pop.y-y) < 24)) y -= 30;
+    this.recentPops.push({ x, y, at:now });
+    const half = label.width/2+8;
+    x = clamp(x, half, Math.max(half, this.viewW-cachedInsets.right-half));
+    y = Math.max(y, label.height/2+6);
+    label.setPosition(x,y);
+    if (reduceMotion.matches) {
+      this.tweens.add({ targets:label, alpha:0, delay:700, duration:300, onComplete:() => label.destroy() });
+      return;
+    }
+    label.setScale(.4);
+    this.tweens.add({ targets:label, scale:1, duration:260, ease:"Back.easeOut" });
+    this.tweens.add({ targets:label, y:y-46, alpha:0, delay:520, duration:620, ease:"Sine.easeIn",
+      onComplete:() => label.destroy() });
+  }
+
+  // Đồng xu bay từ bàn về ô "Tiền ca" trên HUD, ô đó nảy lên khi xu tới.
+  coinsToHud(x,y,count) {
+    const meter = [...elements.meters.querySelectorAll(".meter")].find(card => card.textContent.includes("Tiền"));
+    const host = sceneHost.getBoundingClientRect();
+    const box = meter?.getBoundingClientRect();
+    const tx = box ? box.left+box.width/2-host.left : this.viewW-60, ty = box ? box.top+box.height/2-host.top : 30;
+    for (let i = 0; i < count; i++) {
+      const coin = this.add.image(x+Phaser.Math.Between(-14,14),y,"fx","coin").setDepth(26).setScale(.9);
+      this.tweens.add({ targets:coin, y:y-40-Phaser.Math.Between(0,24), duration:240, delay:i*70, ease:"Quad.easeOut" });
+      this.tweens.add({ targets:coin, x:tx, y:ty, scale:.55, duration:560, delay:240+i*70, ease:"Cubic.easeIn",
+        onComplete:() => {
+          coin.destroy();
+          if (meter && i === count-1) {
+            meter.classList.remove("bump"); void meter.offsetWidth; meter.classList.add("bump");
+          }
+        } });
+    }
+  }
+
+  play(events,data) {
+    const map = lastMap;
+    if (!map || !this.fx || !this.viewW) return;   // scene chưa create xong hoặc chưa có cảnh
+    const calm = reduceMotion.matches;
+    const at = pos => map.xy(pos);
+    const byId = (list,id) => records(list).find(item => item.id === id);
+    const player = object(data.player) ? at(data.player.pos) : null;
+    const tableAt = id => at(byId(data.tables,id)?.pos);
+    const stoveAt = id => at(byId(data.stoves,id)?.pos);
+    const burst = (name,p,n) => p && this.fx[name].explode(calm ? Math.ceil(n/3) : n,p[0],p[1]);
+    for (const event of events) {
+      const d = object(event.data) ? event.data : {};
+      switch (event.name) {
+        case "gather": {
+          const p = at(byId(data.nodes,d.node_id)?.pos) ?? player;
+          burst("leaves",p,14);
+          if (p) this.popText(p[0],p[1]-26,"+"+(d.amount ?? 1)+" "+(ingredients.get(d.kind) ?? ""),"#c9f08a");
+          break;
+        }
+        case "fish_caught":
+          burst("splash",player,16); burst("sparkle",player,10);
+          if (player) this.popText(player[0],player[1]-30,"+"+(d.yield ?? 1)+" "+(ingredients.get(d.kind) ?? "cá"),"#ffe9a6");
+          break;
+        case "hold_full":
+          if (player) this.popText(player[0],player[1]-30,"Giỏ đầy!","#ff9c86");
+          break;
+        case "dive": case "surface":
+          burst("splash",at(d.pos) ?? player,event.name === "dive" ? 18 : 12);
+          break;
+        case "monster_hit": case "choke": case "faint":
+          if (!calm) {
+            this.cameras.main.shake(event.name === "faint" ? 420 : 260, event.name === "faint" ? .018 : .011);
+            this.cameras.main.flash(160,255,90,70);
+          }
+          if (player) this.popText(player[0],player[1]-30,event.name === "faint" ? "Ngất rồi!" : "−1 ♥","#ff8a6b");
+          break;
+        case "customer_arrived": burst("sparkle",tableAt(d.table_id),6); break;
+        case "dish_ready": {
+          const p = stoveAt(d.stove_id);
+          burst("sparkle",p,16);
+          if (p) this.popText(p[0],p[1]-58,"Chín rồi!","#c9f08a",22);
+          break;
+        }
+        case "served": burst("confetti",tableAt(d.table_id),26); break;
+        case "paid": {
+          const p = tableAt(d.table_id);
+          if (!p || !number(d.amount)) break;
+          this.popText(p[0],p[1]-54,"+"+d.amount+" nghìn","#ffd54f",28);
+          this.coinsToHud(p[0],p[1]-30,calm ? 1 : clamp(Math.round(d.amount/20),3,8));
+          break;
+        }
+        case "customer_left": {
+          const p = tableAt(d.table_id);
+          burst("puff",p,14);
+          if (p) this.popText(p[0],p[1]-40,"Khách bỏ đi!","#ff8a6b",22);
+          break;
+        }
+      }
+    }
+  }
+};
+
+function startPhaser() {
+  new Phaser.Game({
+    type: Phaser.CANVAS,          // ổn định trên máy trường và Chrome headless (không cần GPU)
+    parent: sceneHost,
+    width: Math.max(1,sceneHost.clientWidth), height: Math.max(1,sceneHost.clientHeight),
+    transparent: true,            // lớp tranh nằm bên dưới
+    banner: false,
+    audio: { noAudio: true },     // âm thanh vẫn do Web Audio của trang lo
+    input: { keyboard: false, mouse: false, touch: false, gamepad: false }, // phím do trang xử lý
+    scale: { mode: Phaser.Scale.NONE },
+    scene: {
+      key: "boot",
+      create() {
+        this.scene.add("cho-noi",ChoNoiScene,true);
+        phaserScene = this.scene.get("cho-noi");
+        this.scene.remove("boot");
+      }
+    }
+  });
+}
+function bootScene() {
+  if (typeof Phaser === "undefined") { startCanvasFallback(); return; }
+  try { startPhaser(); } catch (error) {
+    console.warn("Không khởi động được Phaser, dùng Canvas 2D", error);
+    sceneHost.replaceChildren();
+    startCanvasFallback();
+  }
+}
 void poll();
-requestAnimationFrame(frame);
+// Chờ phông Baloo 2 (tối đa 1,5 s) để chữ Phaser đo đúng kích thước ngay lần đầu.
+Promise.race([document.fonts?.load?.('800 64px "Baloo 2"') ?? Promise.resolve(), new Promise(r => setTimeout(r,1500))])
+  .catch(() => {}).finally(bootScene);
 </script>
 </body>
 </html>

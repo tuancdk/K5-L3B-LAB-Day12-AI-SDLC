@@ -94,10 +94,10 @@ def validate_item_list(items, kinds=KINDS_P1, where="items"):
         if ident in seen:
             raise BadInput(f"{where}: id trùng {ident}")
         seen.add(ident)
-        if kind not in kinds:
-            raise BadInput(f"{where}[{i}]: nguyên liệu lạ {kind!r}")
-        if isinstance(fresh, bool) or not isinstance(fresh, (int, float)) or not math.isfinite(fresh) \
-                or not 0 <= fresh <= 100:
+        if not isinstance(kind, str) or kind not in kinds:
+            raise BadInput(f"{where}[{i}].kind không hợp lệ: {kind!r}")
+        if isinstance(fresh, bool) or not isinstance(fresh, (int, float)) \
+                or not 0 <= fresh <= 100 or not math.isfinite(fresh):
             raise BadInput(f"{where}[{i}].fresh phải hữu hạn trong [0, 100]")
         out.append({"id": ident, "kind": kind, "fresh": fresh})
     return out

@@ -17,7 +17,8 @@ adapter dùng thẳng dữ liệu đó thay vì tự gán.
 from copy import deepcopy
 
 from .ids import IdAllocator, id_key
-from .inventory import sort_items
+from .inventory import is_item_schema, items_to_counts, read_inventory_for, sort_items
+from .scenario import load_scenario
 
 
 def split_items(items):
@@ -142,36 +143,47 @@ class ItemLedger:
         return row
 
 
-def scenario_items(data, mode):
-    """v1.2: tách `gather.hold` / `quan.stock` dạng cá thể khỏi scenario thô.
+def load_game_inputs(mode, contract, scenario_path, inventory_path):
+    version = contract["contract_version"]
+    tuning = contract["tuning"]
+    inventory = read_inventory_for(inventory_path, version) if inventory_path else None
+    scenario = load_scenario(scenario_path, mode, tuning, inventory=inventory,
+                             extensions=contract.get("extensions", []))
+    ledger = None
+    if is_item_schema(version):
+        gather = scenario.get("gather", {}) if mode == "day" else scenario
+        stock = []
+        if mode == "quan":
+            stock = inventory if inventory is not None else scenario.get("stock", [])
+            scenario = quan_counts(scenario, stock, tuning)
+            if inventory is not None:
+                inventory = items_to_counts(inventory)
+        ledger = ItemLedger(mode, tuning["freshness"]["initial"], gather.get("hold"), stock)
+    return scenario, inventory, ledger
 
-    Trả (data cho validator hiện có — hold là mảng kind, stock là object đếm, gather_items, quan_items).
-    Sai schema (vd hold dạng kind, stock dạng đếm ở v1.2) -> BadInput (mã 2).
-    """
-    from .inventory import items_to_counts, validate_item_list
-    if not isinstance(data, dict):
-        return data, [], []
-    data = deepcopy(data)
-    g_items, q_items = [], []
-    g = data.get("gather")
-    if isinstance(g, dict) and "hold" in g:
-        g_items = validate_item_list(g["hold"], where="gather.hold")  # giữ nguyên cá thể cho GatherSim
-    q = data.get("quan")
-    if isinstance(q, dict) and "stock" in q:
-        q_items = validate_item_list(q["stock"], where="quan.stock")
-        q["stock"] = items_to_counts(q_items)
-    if isinstance(q, dict):  # customers[].reserved: mảng id cá thể trong kho, không dùng chung giữa các đơn
-        by_id, used = {it["id"]: it for it in q_items}, set()
-        for c in q.get("customers", []) if isinstance(q.get("customers"), list) else []:
-            if isinstance(c, dict) and isinstance(c.get("reserved"), list):
-                from .errors import BadInput
-                for ident in c["reserved"]:
-                    if ident not in by_id or ident in used:
-                        raise BadInput(f"customers.{c.get('id')}.reserved: id {ident!r} không có trong kho hoặc bị giữ trùng")
-                    used.add(ident)
-                c["reserved"] = items_to_counts([by_id[i] for i in c["reserved"]])
-    ids = [it["id"] for it in g_items + q_items]
-    if len(ids) != len(set(ids)):
-        from .errors import BadInput
-        raise BadInput("id cá thể trùng giữa gather.hold và quan.stock")
-    return data, g_items, q_items
+
+def quan_counts(scenario, stock, tuning):
+    # Adapter tạm cho Quán trong lúc chờ #20 chuyển sang kho cá thể.
+    scenario = deepcopy(scenario)
+    if "stock" in scenario:
+        scenario["stock"] = items_to_counts(stock)
+    customers = scenario.get("customers", [])
+    by_id = {item["id"]: item for item in stock}
+    claimed = {item_id for customer in customers for item_id in customer.get("reserved", [])}
+    available = {}
+    for item in sorted(stock, key=lambda item: (-item["fresh"], id_key(item["id"]))):
+        if item["id"] not in claimed and item["fresh"] >= tuning["freshness"]["spoiled_below"]:
+            available.setdefault(item["kind"], []).append(item)
+
+    for customer in sorted(customers, key=lambda c: (c.get("order_tick", 0), id_key(c["table_id"]))):
+        if "reserved" in customer:
+            customer["reserved"] = items_to_counts([by_id[item_id] for item_id in customer["reserved"]])
+        elif customer.get("order_status", "reserved") == "reserved":
+            recipe = tuning["menu"][customer["dish_id"]]["recipe"]
+            if any(len(available.get(kind, [])) < amount for kind, amount in recipe.items()):
+                customer.update(order_status="unfulfillable", reserved={})
+                continue
+            customer["reserved"] = dict(recipe)
+            for kind, amount in recipe.items():
+                del available[kind][:amount]
+    return scenario

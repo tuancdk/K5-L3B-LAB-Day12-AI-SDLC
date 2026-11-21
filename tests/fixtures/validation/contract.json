@@ -1,0 +1,21 @@
+{
+  "duplicate_stove_id": ["tuning.quan.stoves", [{"id": "B1", "pos": [2, 8]}, {"id": "B1", "pos": [3, 8]}]],
+  "duplicate_table_id": ["tuning.quan.tables", [{"id": "T1", "pos": [9, 2]}, {"id": "T1", "pos": [8, 2]}]],
+  "stove_outside_bounds": ["tuning.quan.stoves", [{"id": "B1", "pos": [2, 11]}]],
+  "table_outside_bounds": ["tuning.quan.tables", [{"id": "T1", "pos": [17, 2]}]],
+  "invalid_stove_list": ["tuning.quan.stoves", null],
+  "missing_table_position": ["tuning.quan.tables", [{"id": "T1"}]],
+  "reputation_below_minimum": ["tuning.quan.reputation_initial", -1],
+  "reputation_above_maximum": ["tuning.quan.reputation_initial", 6],
+  "inverted_reputation_bounds": ["tuning.quan.reputation_min", 6],
+  "zero_carry_limit": ["tuning.quan.carry_limit", 0],
+  "fractional_carry_limit": ["tuning.quan.carry_limit", 1.5],
+  "malformed_menu_entry": ["tuning.menu.ca_loc_nuong_trui", null],
+  "unknown_recipe_ingredient": ["tuning.menu.ca_loc_nuong_trui.recipe", {"shrimp": 1}],
+  "zero_recipe_amount": ["tuning.menu.ca_loc_nuong_trui.recipe", {"ca_loc": 0}],
+  "non_object_recipe": ["tuning.menu.ca_loc_nuong_trui.recipe", ["ca_loc"]],
+  "cook_time_rounds_to_zero": ["tuning.menu.ca_loc_nuong_trui.cook_s", 0.001],
+  "cook_ticks_overflow": ["tuning.menu.ca_loc_nuong_trui.cook_s", 1e308],
+  "cooldown_rounds_to_zero": ["tuning.gather.catch_cooldown_s", 0.001],
+  "invalid_tick_rate": ["tuning.tick_hz", 0]
+}

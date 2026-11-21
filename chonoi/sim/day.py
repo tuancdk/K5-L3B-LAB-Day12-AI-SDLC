@@ -17,6 +17,7 @@ import inspect
 from copy import deepcopy
 
 from ..errors import BadInput
+from ..scenario import _validate_reservations
 from .gather import GatherSim
 from .quan import QuanSim
 
@@ -215,8 +216,11 @@ class DaySim:
         for c in quan_tpl.get("customers", []):
             if c.get("dish_id") and c["dish_id"] not in self.plan["dishes"]:
                 raise BadInput(f"quan.customers.{c['id']}: món {c['dish_id']} không thuộc kế hoạch Ngày {self.day}")
+        stock = gather.inventory_items()
+        _validate_reservations({c["id"]: c for c in quan_tpl.get("customers", [])},
+                               {t["id"] for t in self.t_day["quan"]["tables"]}, self.t_day["menu"], stock)
         self.sim = _build(QuanSim, self.t_day, quan_tpl, self.rng, self.ids,
-                          inventory=gather.inventory_items(), day_ctx=self._ctx())
+                          inventory=stock, day_ctx=self._ctx())
         self._push(self.sim)
         self.phase_tick = 0
         self._emit(out, "phase_start", {})

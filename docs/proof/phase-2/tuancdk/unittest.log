@@ -1,4 +1,4 @@
-# commit 57173d8 · Python 3.12.3 · Windows
+# commit 45da1de · Python 3.12.3 · Windows
 # PYTHONPATH=tests:. python3 -m unittest discover -s tests -v
 test_day_plan_ingredients_are_recipe_sums (test_contract_v11.ContractV11.test_day_plan_ingredients_are_recipe_sums) ... ok
 test_gather_starts_with_fish_initial_schools_on_distinct_spawn_points (test_contract_v11.ContractV11.test_gather_starts_with_fish_initial_schools_on_distinct_spawn_points) ... ok
@@ -100,8 +100,15 @@ test_repo_team_md_matches_contract (test_team_check.TeamCheck.test_repo_team_md_
 test_template_is_rejected (test_team_check.TeamCheck.test_template_is_rejected) ... ok
 test_too_few_members (test_team_check.TeamCheck.test_too_few_members) ... ok
 test_wrong_size_duplicate_and_outsider (test_team_check.TeamCheck.test_wrong_size_duplicate_and_outsider) ... ok
+test_accepts_consistent_quan_states_and_optional_defaults (test_validation.Validation.test_accepts_consistent_quan_states_and_optional_defaults) ... ok
+test_accepts_zero_oxy_ticks_at_upper_bound_underwater (test_validation.Validation.test_accepts_zero_oxy_ticks_at_upper_bound_underwater) ... ok
+test_rejects_invalid_contract_before_writing_either_output (test_validation.Validation.test_rejects_invalid_contract_before_writing_either_output) ... ok
+test_rejects_invalid_quan_scenarios (test_validation.Validation.test_rejects_invalid_quan_scenarios) ... ok
+test_rejects_invalid_zero_oxy_ticks (test_validation.Validation.test_rejects_invalid_zero_oxy_ticks) ... ok
+test_reservations_are_totalled_across_customers (test_validation.Validation.test_reservations_are_totalled_across_customers) ... ok
+test_stock_validation_uses_inventory_file (test_validation.Validation.test_stock_validation_uses_inventory_file) ... ok
 
 ----------------------------------------------------------------------
-Ran 96 tests in 11.623s
+Ran 103 tests in 21.858s
 
 OK

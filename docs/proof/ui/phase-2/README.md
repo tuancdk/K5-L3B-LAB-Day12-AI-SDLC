@@ -83,7 +83,7 @@ Kịch bản trình duyệt cần Chrome và gói Python `websockets`. Có thể
 
 Chạy Chrome ở 1280×720 với runner và contract v1.1 tại `f394510` từ [PR #24](https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC/pull/24), kết hợp các file giao diện và `live.py` của issue #16 trong bản xuất tạm. [Scenario smoke](day-live-scenario.json) cho Út Sen mang sẵn ba nguyên liệu, mở ca tối ngắn và bắt đầu với 200 nghìn để thử hai mức giá Shop.
 
-> Bốn ảnh `live-day-*.png` dưới đây chụp **trước** giao diện v2. Nhánh này vẫn dùng contract v1.0, nên `--day-live` báo "Chế độ day đang chờ runner và contract v1.1 (#12)". Cần chụp lại sau khi gộp `main` (đã lên contract v1.2). Ảnh fixture ở phần đầu đã là giao diện v2.
+> Bốn ảnh `live-day-*.png` chụp lại trên `main` 32f53d6 (contract v1.2, gồm sửa nối ngày → quán #41) với giao diện v2 + lớp Phaser. Lượt chạy này cũng phát hiện giỏ v1.2 là mảng cá thể `{id, kind, fresh}`; HUD giờ đọc được cả dạng cũ (tên kind) và dạng mới.
 
 - [Buổi sáng](live-day-gather.png) → E cập bến → [nhập kho đúng ba nguyên liệu](live-day-evening.png).
 - Sau ca tối, thử mua áo phao khi thiếu tiền. Esc/P đóng băng `sim_tick`, `phase_tick` và thời gian Shop, trong khi `tick` vẫn tăng theo contract v1.1. Tiếp tục và [mua bình oxy được cấp 1](live-day-shop.png).

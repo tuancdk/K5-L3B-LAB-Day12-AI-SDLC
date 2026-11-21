@@ -943,7 +943,9 @@ function updateHud() {
     cards.push(meter("Độ sâu",point(player.pos) ? player.pos[1].toLocaleString("vi-VN",{maximumFractionDigits:1})+" m" : "—"));
     layer("giỏ", () => {
       const hasHold = Array.isArray(data.hold);
-      const hold = hasHold ? data.hold.filter(string) : [];
+      // v1.0/v1.1: mảng tên kind; v1.2: mảng cá thể {id, kind, fresh}.
+      const hold = hasHold ? data.hold.map(item => string(item) ? item : object(item) && string(item.kind) ? item.kind : null)
+        .filter(Boolean) : [];
       const count = number(data.hold_count) ? data.hold_count : hasHold ? hold.length : null;
       const capacity = number(data.hold_capacity) ? data.hold_capacity : meta.hold_capacity;
       const counts = new Map();

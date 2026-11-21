@@ -390,6 +390,15 @@ def main():
                 # v1.2: reserved là mảng id cá thể; id lạ/sai kiểu bị bỏ qua, id thật hiện "Đã giữ chỗ".
                 modify("s.customers[0].reserved = [s.stock.find(i => i.kind === 'ca_linh').id, 'khong-co', 7];")
                 until(lambda: js("document.querySelector('#journal').innerText.includes('Đã giữ chỗ cho khách')"))
+                # Đơn unfulfillable (phần giữ ươn, không có hàng thay): phiếu có nhãn chữ, gợi ý nói không nấu được.
+                modify("""s.hand = null; s.stoves.forEach(st => { st.state = 'idle'; });
+                    s.customers.forEach(c => { c.state = 'waiting'; c.order_status = 'unfulfillable'; c.reserved = []; });""")
+                until(lambda: js("[...document.querySelectorAll('#orders .ticket.blocked')].length > 0 && "
+                                 "[...document.querySelectorAll('#orders .ticket')].every(t => t.classList.contains('blocked') && "
+                                 "t.textContent.includes('Hết hàng') && "
+                                 "t.querySelector('.blocked-badge').getBoundingClientRect().right <= t.getBoundingClientRect().right + 1)"))
+                until(lambda: js("document.querySelector('#action-tip').innerText.includes('không nấu được')"))
+                photo("quan-unfulfillable")
                 modify("s.customers[0].patience_ticks_left = 60;")
                 until(lambda: js("document.querySelector('#orders .ticket.urgent')?.textContent.includes('1 giây')"))
                 modify("s.time_left_ticks = 840;")

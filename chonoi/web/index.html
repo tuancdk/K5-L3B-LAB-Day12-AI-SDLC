@@ -350,6 +350,9 @@
   }
   .warn-badge::before { content: "⚠"; }
   .ticket .warn-badge { grid-column: 1 / -1; justify-self: start; margin-top: 2px; }
+  .ticket.blocked { background: #ece4d6; border-style: dashed; }
+  .ticket.blocked canvas { filter: grayscale(1); opacity: .55; }
+  .ticket.blocked strong { text-decoration: line-through; text-decoration-thickness: 2px; }
   .meter .warn-badge { margin-top: 3px; }
   .toast {
     position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 10; padding: 8px 18px;
@@ -411,6 +414,7 @@
   body[data-contrast="high"] :is(.fill,.ticket .fill,.meter .fill) { background: #fff !important; }
   body[data-contrast="high"] :is(.fill.warn,.ticket.urgent .fill) { background: repeating-linear-gradient(45deg,#ffd400 0 6px,#000 6px 10px) !important; }
   body[data-contrast="high"] .ticket.urgent { border: 4px dashed #ffd400 !important; }
+  body[data-contrast="high"] .ticket.blocked { border: 4px dotted #fff !important; }
   body[data-contrast="high"] .ticket::before { background: #fff; border-color: #000; }
   body[data-contrast="high"] .ticket canvas { background: #fff; border-color: #fff; }
   body[data-contrast="high"] .chip { background: #000 !important; color: #fff !important; border-color: #fff !important; }
@@ -981,8 +985,10 @@ function ordersHud(data, meta, hz) {
     if (!dish && !table && !id && !number(patience) && !eating) continue;
     const fraction = number(patience) && number(meta.patience_s) && meta.patience_s > 0
       ? patience / (hz * meta.patience_s) : null;
-    const state = eating ? " eating" : number(fraction) && fraction <= .25 ? " urgent"
-      : number(fraction) && fraction <= .5 ? " warn" : "";
+    // Đơn không còn nguyên liệu tươi (phần giữ bị ươn, không có hàng thay): không nấu được, khách chờ tới khi bỏ về.
+    const blocked = !eating && customer.order_status === "unfulfillable";
+    const urgency = number(fraction) && fraction <= .25 ? " urgent" : number(fraction) && fraction <= .5 ? " warn" : "";
+    const state = eating ? " eating" : (blocked ? " blocked" : "") + urgency;
     const item = node("li", undefined, "ticket" + state);
     item.dataset.key = JSON.stringify([id, table, dish]);
     const icon = node("canvas");
@@ -997,7 +1003,8 @@ function ordersHud(data, meta, hz) {
     else if (number(patience)) detail.append(node("span", "Kiên nhẫn " + seconds(patience, hz) + " giây"));
     info.append(detail);
     if (!eating && number(fraction)) info.append(track(fraction));
-    if (state === " urgent") info.append(node("span", "Sắp giận!", "warn-badge"));
+    if (blocked) info.append(node("span", "Hết hàng", "warn-badge blocked-badge"));
+    if (urgency === " urgent" && !eating) info.append(node("span", "Sắp giận!", "warn-badge"));
     item.append(icon, info);
     list.append(item);
   }
@@ -1145,7 +1152,9 @@ function updateGuide(data, meta, player) {
     else if (nearStove?.state === "idle" && customers.some(customer => customer.order_status === "reserved")) {
       tip = "Bấm E hoặc nút Tương tác để nấu món khách đang chờ.";
     } else if (customers.some(customer => customer.state === "eating")) tip = "Khách đang ăn. Tiền sẽ vào quỹ khi khách trả.";
-    else tip = customers.length ? "Xem món khách gọi, rồi đến bếp để nấu." : "Chờ khách mới. Xem nguyên liệu còn lại trong kho.";
+    else if (customers.length && customers.every(customer => customer.order_status === "unfulfillable")) {
+      tip = "Kho không còn đủ nguyên liệu tươi cho món khách gọi, nên đơn này không nấu được. Khách sẽ bỏ về khi hết kiên nhẫn.";
+    } else tip = customers.length ? "Xem món khách gọi, rồi đến bếp để nấu." : "Chờ khách mới. Xem nguyên liệu còn lại trong kho.";
     const event = recentService(data, tickHz(meta));
     const amount = object(event?.data) && number(event.data.amount) ? event.data.amount : null;
     const feedback = event?.name === "served" ? "Đã giao món" : amount !== null ? "+" + amount + " nghìn" : "";

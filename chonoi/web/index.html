@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&display=swap">
 <title>Quán Ăn Chợ Nổi</title>
 <style>
   :root {
@@ -26,7 +29,7 @@
     color: var(--ink);
     font: 15px/1.45 system-ui, sans-serif;
   }
-  body[data-mode="quan"] {
+  body:is([data-mode="quan"],[data-mode="shop"]) {
     color-scheme: dark;
     --paper: #102433;
     --ink: #fff6df;
@@ -160,32 +163,269 @@
     body[data-mode="quan"] .journal section:first-child { grid-column: 1 / -1; }
     body[data-mode="quan"] .journal section:nth-child(2) { padding-left: 0; border: 0; }
   }
+  .header-actions { display: flex; flex-wrap: wrap; justify-content: end; gap: 6px; }
+  dialog {
+    width: min(calc(100% - 28px), 620px);
+    padding: clamp(16px, 4vw, 32px);
+    max-height: calc(100dvh - 28px);
+    border-radius: 16px;
+    border: 3px solid #d8a55c;
+    background: #fff1d3;
+    color: #263931;
+    box-shadow: 0 14px 42px #101f27aa;
+    color-scheme: light;
+    font: 18px/1.4 system-ui, sans-serif;
+  }
+  dialog::backdrop { background: #112b34aa; backdrop-filter: blur(4px); }
+  dialog h2 { margin: 0 0 10px; font: 850 1.7em/1.14 system-ui, sans-serif; }
+  dialog p { margin: 0 0 12px; }
+  dialog .eyebrow { color: #805530; }
+  .modal-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .modal-actions button, .shop-item button {
+    --panel: #f7dfaa; --line: #a77a4e; --ink: #392f23; --halo: #f4cf82;
+    white-space: normal; font-size: 1rem; min-height: 42px;
+  }
+  .modal-actions .primary { --panel: #317360; --line: #245c4b; --ink: #fff8e6; --halo: #296454; }
+  .modal-actions button:focus-visible, dialog input:focus-visible, .shop-item button:focus-visible { outline-color: #256c62; }
+  .modal-list { margin: 0; padding-inline-start: 1.3em; }
+  .modal-stats { margin: 0; display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 7px 12px; }
+  .modal-stats dd { margin: 0; font-weight: 750; text-align: right; }
+  .shop-grid { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit,minmax(min(100%,210px),1fr)); }
+  .shop-item { display: grid; align-content: start; gap: 5px; padding: 12px; border: 1px solid #c8a772; border-radius: 10px; }
+  .shop-item button { margin-top: 6px; }
+  .shop-feedback { margin: 10px 0 0; color: #8d2f34; font-weight: 760; }
+  .shop-feedback.success { color: #28634e; }
+  dialog button:disabled { opacity: .58; cursor: wait; }
+  .setting-row { display: grid; grid-template-columns: 1fr auto; gap: 3px 8px; margin-bottom: 12px; }
+  .setting-row input { grid-column: 1 / -1; width: 100%; accent-color: #317360; }
+  .stage.danger { outline: 4px solid #a54ebf; outline-offset: -4px; }
+  .notice { position: absolute; top: 10px; right: 10px; max-width: 90%; border-radius: 8px; padding: 5px 10px; background: #562861; color: #fff2d9; font-weight: 800; }
+  .notice.air { background: #8b3938; }
+  .meter--low-oxygen, .meter--urgent { background: #ffdeb2; border-color: #b75345; }
+  .meter--low-oxygen :is(.label,.value,.meter-icon) { color: #792c30; }
+  body[data-mode="gather"] .meters { grid-template-columns: repeat(4,minmax(0,1fr)); }
+  .need-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 8px; }
+  .need-row strong { color: var(--accent); white-space: nowrap; }
+  @media (prefers-reduced-motion:no-preference) {
+    .meter--low-oxygen .fill { animation: oxygen-warning 1.2s ease-in-out infinite alternate; }
+  }
+  @keyframes oxygen-warning { to { opacity: .45; } }
+  body[data-mode="shop"] .layout { display: block; }
+  body[data-mode="shop"] :is(aside,.controls,.touch-controls,.scene-key,.scene-action) { display: none; }
+  @media (min-width: 1000px) {
+    body[data-run="day"] :is(h1,h2) { font-family: system-ui, sans-serif; }
+    body[data-run="day"] :is(.label,.value,.journal h2,.detail,.chip,.controls,.ticket strong,.ticket-meta,
+      .scene-action p,.scene-action strong,.notice,.guide-sub,.scene-key,.order-board h2,.need-row) { font-size: 18px; }
+    body[data-run="day"] .orders { grid-template-columns: repeat(auto-fill,minmax(min(100%,260px),1fr)); }
+    body[data-run="day"] #scene { aspect-ratio: 2.65 / 1; }
+    body[data-run="day"][data-mode="quan"] .layout { grid-template-columns: minmax(0,1fr) minmax(238px,23%); }
+    body[data-run="day"][data-mode="quan"] aside { display: block; }
+    body[data-run="day"][data-mode="quan"] .guide { display: none; }
+    body[data-run="day"][data-mode="quan"] .journal { display: block; }
+    body[data-run="day"][data-mode="quan"] .journal section + section {
+      border: 0; border-top: 1px solid var(--line); margin-top: 8px; padding: 8px 0 0;
+    }
+  }
+
+  /* ===== Lớp "bếp hỗn loạn": viền mực dày, bóng cứng, HUD nổi trên sân chơi ===== */
+  :root {
+    --ink-line: #2b1b14;      /* viền mực nâu đen như tranh hoạt hình */
+    --wood: #e4a65e;
+    --cream: #fff3d6;
+    --leaf: #3f8f5a;
+    --chili: #d9483b;
+    --lantern: #ffc847;
+    --chunk: 3px solid var(--ink-line);
+    --drop: 0 4px 0 var(--ink-line);
+    --display: "Baloo 2", system-ui, sans-serif;
+  }
+  body { font-family: var(--display); }
+  h1, h2, dialog h2, .journal h2, .order-board h2, button, kbd, .label, .value { font-family: var(--display); }
+  main { display: flex; flex-direction: column; min-height: 100dvh; }
+  header { margin-bottom: 10px; }
+  h1 { letter-spacing: -.01em; font-weight: 800; }
+  .header-actions button {
+    border: var(--chunk); box-shadow: var(--drop); border-radius: 12px; padding: 6px 13px;
+    background: var(--cream); color: #2b1b14; font-weight: 800; transition: transform .08s;
+  }
+  .header-actions button:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink-line); }
+  body[data-mode="quan"] #restart, body[data-mode="quan"] #restart:hover { border: var(--chunk); box-shadow: var(--drop); background: var(--lantern); }
+  .play { display: flex; flex-direction: column; gap: 10px; }
+  .hud-right { display: contents; }
+  .hud-right .meters { order: -2; }
+  .order-board { order: -1; }
+  .stage { border: var(--chunk) !important; box-shadow: 0 6px 0 var(--ink-line) !important; border-radius: 18px; }
+  .scene-action strong { background: var(--lantern); color: #2b1b14; border: 2px solid var(--ink-line); border-radius: 9px; font-weight: 800; }
+
+  /* Chỉ số: nhãn dán dày, đồng hồ to như Overcooked */
+  .meter { border: var(--chunk) !important; box-shadow: var(--drop) !important; border-radius: 14px; background: var(--cream); }
+  .meter :is(.label,.value,.meter-icon) { color: #2b1b14; }
+  .meter .track { height: 8px; border: 2px solid var(--ink-line); background: #f1dcae; border-radius: 6px; }
+  .meter .fill { background: var(--leaf); }
+  .meter .fill.warn { background: var(--chili); }
+  .meter--time { background: var(--lantern) !important; }
+  .meter--urgent, .meter--low-oxygen { background: #ffb59c !important; }
+  @media (prefers-reduced-motion: no-preference) {
+    .meter--urgent { animation: tick-pulse .5s ease-in-out infinite alternate; }
+  }
+  @keyframes tick-pulse { to { transform: scale(1.06); } }
+
+  /* Phiếu món: giấy kẹp trên sợi dây đèn lồng */
+  .order-board h2 { display: none; }
+  .orders { display: flex; flex-wrap: wrap; gap: 10px 12px; padding-top: 10px; position: relative; }
+  .ticket {
+    position: relative; grid-template-columns: 46px minmax(0,1fr); gap: 8px; min-width: 210px; max-width: 260px; flex: 0 1 230px;
+    padding: 10px 10px 8px; background: #fffaf0; color: #2b1b14;
+    border: var(--chunk); border-radius: 6px 6px 14px 14px; box-shadow: var(--drop);
+    transform: rotate(-1.2deg); transform-origin: 50% -10px;
+  }
+  .ticket:nth-child(even) { transform: rotate(1.3deg); }
+  .ticket::before {  /* cái kẹp gỗ */
+    content: ""; position: absolute; top: -12px; left: 50%; width: 12px; height: 20px; margin-left: -6px;
+    background: var(--wood); border: 2px solid var(--ink-line); border-radius: 4px;
+  }
+  .ticket canvas { width: 46px; height: 46px; background: #ffe7b0; border: 2px solid var(--ink-line); }
+  .ticket strong { font-weight: 800; line-height: 1.15; }
+  .ticket-meta { color: #6a5040; }
+  .ticket .track { height: 10px; border: 2px solid var(--ink-line); background: #f1e4c4; border-radius: 6px; margin-top: 3px; }
+  .ticket .fill { background: var(--leaf); transition: width .3s linear, background-color .3s; }
+  .ticket.warn .fill { background: #eaa22a; }
+  .ticket.urgent { background: #ffe2d8; border-color: #8f1f17; }
+  .ticket.urgent .fill { background: var(--chili); }
+  .ticket.eating { background: #eaf6d5; }
+  @media (prefers-reduced-motion: no-preference) {
+    .ticket { animation: ticket-in .35s cubic-bezier(.3,1.6,.5,1) both; }
+    .ticket.urgent { animation: ticket-shake .45s ease-in-out infinite; }
+  }
+  @keyframes ticket-in { from { transform: translateY(-40px) rotate(-8deg); opacity: 0; } }
+  @keyframes ticket-shake {
+    0%,100% { transform: rotate(-1.5deg); } 25% { transform: rotate(2.5deg) translateX(1px); }
+    75% { transform: rotate(-3deg) translateX(-1px); }
+  }
+
+  /* Bảng phụ bên phải: tấm biển gỗ */
+  .journal { border: var(--chunk) !important; box-shadow: var(--drop) !important; border-radius: 14px; background: var(--cream); color: #2b1b14; }
+  .journal h2 { color: #8a4a1c; font-weight: 800; }
+  .journal .detail, .journal p { color: #4c3a2f; }
+  .chip { background: #ffe2a6; border: 2px solid var(--ink-line); font-weight: 700; color: #2b1b14; }
+  .need-row strong { color: var(--leaf); }
+  .journal .track { height: 8px; border: 2px solid var(--ink-line); background: #f1dcae; }
+  .journal .fill { background: #eaa22a; }
+
+  /* Rung màn hình khi bị cắn */
+  @media (prefers-reduced-motion: no-preference) {
+    .stage.hit { animation: stage-shake .35s linear; }
+  }
+  @keyframes stage-shake {
+    20% { transform: translate(-6px,2px); } 40% { transform: translate(5px,-3px); }
+    60% { transform: translate(-4px,1px); } 80% { transform: translate(3px,-1px); }
+  }
+
+  /* Hộp thoại: biển hiệu quán */
+  dialog { border: 4px solid var(--ink-line); box-shadow: 0 8px 0 var(--ink-line), 0 24px 60px #0b1a22aa; border-radius: 22px; font-family: var(--display); }
+  dialog h2 { font-weight: 800; font-size: 2em; }
+  @media (prefers-reduced-motion: no-preference) {
+    dialog[open] { animation: sign-drop .38s cubic-bezier(.3,1.5,.5,1); }
+  }
+  @keyframes sign-drop { from { transform: translateY(-30px) scale(.92); opacity: 0; } }
+  .modal-actions button, .shop-item button { border: var(--chunk); box-shadow: var(--drop); border-radius: 12px; font-weight: 800; }
+  .modal-actions button:active:not(:disabled), .shop-item button:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink-line); }
+  .shop-item { border: var(--chunk); border-radius: 14px; background: #fff8e6; box-shadow: var(--drop); }
+  .shop-item .shortfall { color: #8d2f34; font-weight: 700; }
+  /* Tiêu chí #16: chữ không chân ≥ 18 px ở 1280×720 — cả nhãn phím, nút và dòng tiêu đề pha */
+  @media (min-width: 1000px) {
+    body[data-run="day"] :is(.eyebrow,kbd,.header-actions button,.modal-actions button,.shop-item button,.ticket-meta span,.journal :is(p,li,strong)) { font-size: 18px; }
+  }
+  .shop-item button.poor { --panel: #e9dcc0; --halo: #e9dcc0; --ink: #7a6a58; box-shadow: 0 2px 0 var(--ink-line); }
+  dialog button:disabled { cursor: not-allowed; }
+  .stars { display: flex; gap: 6px; margin: 4px 0 14px; font-size: 2.3rem; line-height: 1; }
+  .stars span { color: #d9c7a3; -webkit-text-stroke: 2px var(--ink-line); }
+  .stars span.on { color: var(--lantern); }
+  @media (prefers-reduced-motion: no-preference) {
+    .stars span.on { animation: star-pop .45s cubic-bezier(.3,1.8,.5,1) both; }
+    .stars span:nth-child(2) { animation-delay: .15s; } .stars span:nth-child(3) { animation-delay: .3s; }
+    .stars span:nth-child(4) { animation-delay: .45s; } .stars span:nth-child(5) { animation-delay: .6s; }
+  }
+  @keyframes star-pop { from { transform: scale(0) rotate(-40deg); } }
+  .title-card { text-align: center; }
+  .title-card h2 { font-size: 2.6em; color: #8a3b1c; }
+  .title-card .modal-actions { justify-content: center; }
+
+  /* Màn rộng: sân chơi chiếm toàn bộ, HUD nổi ở các góc */
+  @media (min-width: 900px) {
+    main { max-width: none !important; padding: 12px 18px 10px !important; }
+    header { margin-bottom: 10px !important; }
+    header > div:first-child { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+    header .eyebrow { order: 2; margin: 0; }
+    h1 { font-size: 1.9rem !important; text-shadow: 0 3px 0 #0000001f; }
+    .play { display: grid; grid-template: minmax(0,1fr) / minmax(0,1fr); flex: 1; }
+    .play > * { grid-area: 1 / 1; }
+    .hud-right { display: flex; flex-direction: column; gap: 10px; justify-self: end; align-self: start;
+      width: clamp(250px, 22vw, 300px); margin: 14px 14px 0 0; z-index: 2; max-height: calc(100% - 80px); overflow: auto; }
+    .hud-right .meters { display: grid !important; grid-template-columns: repeat(2, minmax(0,1fr)) !important; gap: 8px !important; }
+    .hud-right { scrollbar-width: thin; }
+    .hud-right .meter { padding: 5px 11px !important; gap: 1px; }
+    .hud-right .meter--time { grid-column: 1 / -1; padding: 6px 14px !important; }
+    .hud-right .meter--time .value { font-size: 2.1rem !important; line-height: 1; }
+    body[data-mode="gather"] .hud-right .meter:last-child:nth-child(even) { grid-column: 1 / -1; }
+    h1 { font-family: var(--display) !important; }
+    .hud-right aside { display: block !important; }
+    .hud-right .guide { display: none !important; }
+    .hud-right .journal { display: block !important; padding: 10px 12px; }
+    .hud-right .journal section + section { border: 0 !important; border-top: 2px dashed #c9a46b !important; margin-top: 8px !important; padding: 8px 0 0 !important; }
+    .order-board { justify-self: start; align-self: start; z-index: 2; margin: 10px 0 0 16px; max-width: calc(100% - clamp(250px,22vw,300px) - 50px); }
+    .stage { display: flex; flex-direction: column; }
+    #scene, body[data-run="day"] #scene, body[data-mode="quan"] #scene {
+      aspect-ratio: auto !important; flex: 1 1 0; height: auto; min-height: 0;
+    }
+    main { height: 100dvh; min-height: 520px; }
+    .play { flex: 1 1 0; min-height: 0; }
+    .stage { min-height: 0; }
+    .below .controls { margin-top: 8px; }
+    .message { top: auto; bottom: 64px; font-size: 1.1rem; border: var(--chunk); box-shadow: var(--drop); background: var(--cream); color: #2b1b14; border-radius: 12px; }
+    .notice { top: auto; bottom: 64px; right: 50%; transform: translateX(50%); font-size: 1.3rem; padding: 6px 16px; border: var(--chunk); box-shadow: var(--drop); border-radius: 12px; }
+  }
 </style>
 </head>
 <body>
 <main>
   <header>
     <div><p class="eyebrow" id="phase">Chợ nổi miền Tây</p><h1>Quán Ăn Chợ Nổi</h1></div>
-    <button type="button" id="restart" aria-keyshortcuts="R">↻ Chơi lại <kbd>R</kbd></button>
+    <div class="header-actions">
+      <button type="button" id="pause-game" aria-keyshortcuts="P Escape">Tạm dừng</button>
+      <button type="button" id="restart" aria-keyshortcuts="R">↻ Chơi lại <kbd>R</kbd></button>
+    </div>
   </header>
-  <div class="dashboard">
+  <div class="play" id="play">
     <section class="order-board" id="order-board" aria-labelledby="order-heading" hidden>
       <h2 id="order-heading">Đơn trên bàn</h2>
       <div id="orders"></div>
     </section>
-    <div class="meters" id="meters" aria-label="Chỉ số của lượt chơi"></div>
-  </div>
-  <div class="layout">
-    <div>
-      <div class="stage">
-        <canvas id="scene" aria-label="Cảnh chơi của Út Sen"></canvas>
-        <div class="message" id="message" role="status">Đang kết nối…</div>
-        <div class="scene-key" id="legend"></div>
-        <div class="scene-action" id="scene-action" hidden>
-          <strong id="action-tag" aria-live="polite">Gợi ý</strong>
-          <p id="action-tip"></p>
-        </div>
+    <div class="stage" id="game-stage">
+      <canvas id="scene" aria-label="Cảnh chơi của Út Sen"></canvas>
+      <div class="message" id="message" role="status">Đang kết nối…</div>
+      <div class="notice" id="gather-alert" role="status" hidden></div>
+      <div class="scene-key" id="legend"></div>
+      <div class="scene-action" id="scene-action" hidden>
+        <strong id="action-tag" aria-live="polite">Gợi ý</strong>
+        <p id="action-tip"></p>
       </div>
+    </div>
+    <div class="hud-right" id="hud-right">
+      <div class="meters" id="meters" aria-label="Chỉ số của lượt chơi"></div>
+      <aside aria-label="Hướng dẫn và vật phẩm">
+        <div class="guide">
+          <div class="guide-top">
+            <canvas id="portrait" width="128" height="128" aria-hidden="true"></canvas>
+            <div><p class="eyebrow">Bạn đang chơi</p><h2>Út Sen</h2></div>
+          </div>
+          <p class="guide-sub" id="tip">Đang tải hướng dẫn…</p>
+        </div>
+        <div class="journal" id="journal" aria-label="Giỏ và tình trạng quán"></div>
+      </aside>
+    </div>
+  </div>
+  <div class="below">
       <div class="controls" aria-label="Phím điều khiển">
         <span><kbd>WASD</kbd> / <kbd>↑ ↓ ← →</kbd> Di chuyển</span>
         <span><kbd>E</kbd> <span id="interact-label">Tương tác</span></span>
@@ -203,19 +443,9 @@
           <button type="button" id="touch-catch" data-input=" ">Bắt cá</button>
         </div>
       </div>
-    </div>
-    <aside aria-label="Hướng dẫn và vật phẩm">
-      <div class="guide">
-        <div class="guide-top">
-          <canvas id="portrait" width="128" height="128" aria-hidden="true"></canvas>
-          <div><p class="eyebrow">Bạn đang chơi</p><h2>Út Sen</h2></div>
-        </div>
-        <p class="guide-sub" id="tip">Đang tải hướng dẫn…</p>
-      </div>
-      <div class="journal" id="journal" aria-label="Giỏ và tình trạng quán"></div>
-    </aside>
   </div>
 </main>
+<dialog id="game-dialog" aria-labelledby="dialog-title"></dialog>
 <script>
 "use strict";
 
@@ -224,7 +454,7 @@ const ctx = canvas.getContext("2d");
 const elements = Object.fromEntries(
   ["phase", "restart", "meters", "message", "legend", "interact-label", "catch-key", "journal",
     "tip", "touch-interact", "touch-catch", "portrait", "order-board", "orders", "scene-action",
-    "action-tag", "action-tip"]
+    "action-tag", "action-tip", "game-stage", "gather-alert", "game-dialog", "pause-game"]
     .map(id => [id, document.getElementById(id)])
 );
 const object = value => value !== null && typeof value === "object" && !Array.isArray(value);
@@ -235,7 +465,7 @@ const range = value => point(value) && value[0] < value[1] && number(value[1] - 
 const records = value => Array.isArray(value) ? value.filter(object) : [];
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const validMode = mode => mode === "gather" || mode === "quan";
-// live.py chạy 60 Hz. meta hiện chỉ chứa tuning[mode], không có tuning.tick_hz.
+// v1.0 có thể không gửi tick_hz trong meta.
 const tickHz = meta => number(meta.tick_hz) && meta.tick_hz > 0 ? meta.tick_hz : 60;
 const seconds = (ticks, hz) => Math.ceil(Math.max(0, ticks) / hz);
 const time = (ticks, hz) => {
@@ -249,7 +479,9 @@ const ingredients = new Map([
 ]);
 const dishes = new Map([
   ["ca_loc_nuong_trui", "Cá lóc nướng trui"], ["goi_bong_sung", "Gỏi bông súng"],
-  ["lau_ca_linh_dien_dien", "Lẩu cá linh điên điển"]
+  ["lau_ca_linh_dien_dien", "Lẩu cá linh điên điển"],
+  ["canh_chua_ca_loc", "Canh chua cá lóc bông điên điển"],
+  ["ca_keo_nuong", "Cá kèo nướng muối ớt"], ["lau_mam", "Lẩu mắm miền Tây"]
 ]);
 function dishId(value) {
   if (string(value)) return value;
@@ -271,12 +503,14 @@ const moves = new Map([
 ]);
 let snapshot = null;
 let mode = null;
+let runMode = null;
+let pollGeneration = 0;
 let offline = false;
 let pending = [];
 let sending = false;
 let sent = "";
 function input() {
-  const held = new Set([...keys, ...touches.values()]);
+  const held = elements["game-dialog"].open ? new Set() : new Set([...keys, ...touches.values()]);
   const directions = new Set([...held].map(key => moves.get(key)));
   const x = Number(directions.has("right")) - Number(directions.has("left"));
   const y = Number(directions.has("down")) - Number(directions.has("up"));
@@ -290,6 +524,14 @@ function sendKeys() {
   pending.push({ path: "/input", body });
   void send();
 }
+function command(data) {
+  pending.push({ path: "/input", body: JSON.stringify(data) });
+  void send();
+}
+function pulse(button) {
+  command({ [button]: true });
+  command({ [button]: false });
+}
 async function send() {
   if (sending) return;
   sending = true;
@@ -301,10 +543,16 @@ async function send() {
         signal: AbortSignal.timeout(2000)
       });
       if (!response.ok) throw new Error("HTTP " + response.status);
+      if (path === "/restart") {
+        pollGeneration++;
+        campaign.starting = false;
+      }
     }
   } catch {
     pending = [];
     sent = ""; // poll gửi lại trạng thái đang giữ khi kết nối hồi phục.
+    campaign.starting = false;
+    campaign.pauseRequest = null;
     offline = true;
   } finally {
     sending = false;
@@ -312,6 +560,8 @@ async function send() {
 }
 function restart() {
   clearInput();
+  resetCampaign();
+  campaign.starting = true;
   pending = [{ path: "/restart" }];
   sent = "";
   void send();
@@ -331,6 +581,21 @@ function gameKey(event) {
 }
 addEventListener("keydown", event => {
   if (event.ctrlKey || event.metaKey || event.altKey) return;
+  if (!event.repeat) startAudio();
+  if (event.key === "Escape" || event.key.toLowerCase() === "p") {
+    event.preventDefault();
+    if (!event.repeat) togglePause();
+    return;
+  }
+  if (elements["game-dialog"].open) {
+    const nativeClick = event.target.closest?.("button") && (event.key === "Enter" || event.key === " ");
+    if (campaign.panel === "day-intro" && !event.repeat && event.key !== "Tab" && !nativeClick) {
+      event.preventDefault();
+      campaign.intro = null;
+      refreshCampaign();
+    }
+    return;
+  }
   const key = gameKey(event);
   if (!key) return;
   event.preventDefault();
@@ -346,6 +611,7 @@ document.addEventListener("visibilitychange", () => {
   if (document.hidden) releaseKeys();
 });
 elements.restart.addEventListener("click", restart);
+elements["pause-game"].addEventListener("click", togglePause);
 for (const button of touchButtons) {
   const key = button.dataset.input;
   button.addEventListener("pointerdown", event => {
@@ -388,19 +654,32 @@ function layer(name, draw, onCanvas = false) {
   }
 }
 async function poll() {
+  const generation = pollGeneration;
   try {
     const response = await fetch("/state", { cache: "no-store", signal: AbortSignal.timeout(2000) });
     if (!response.ok) throw new Error("HTTP " + response.status);
     const next = await response.json();
     if (!object(next)) throw new Error("Snapshot phải là object");
+    if (generation !== pollGeneration) return;
     snapshot = next;
-    if (validMode(next.mode)) mode = next.mode;
+    const previousMode = mode;
+    if (next.mode === "day") {
+      if (runMode !== "day") campaign.menu = true;
+      runMode = "day";
+      if (validMode(next.phase) || next.phase === "shop") mode = next.phase;
+    } else if (validMode(next.mode)) {
+      runMode = mode = next.mode;
+    }
     offline = false;
+    if (previousMode && previousMode !== mode) releaseKeys();
+    layer("luồng Ngày", refreshCampaign);
+    layer("âm thanh", () => playSfx(next));
     if (!sent) sendKeys();
   } catch {
     offline = true;
   } finally {
     layer("HUD", updateHud);
+    layer("chỗ HUD che", measureInsets);
     layer("thông báo", updateMessage);
     setTimeout(poll, 33);
   }
@@ -430,7 +709,8 @@ function meter(label, value, fraction, modifier = "") {
   if (number(fraction)) card.append(track(fraction));
   return card;
 }
-const meterIcons = new Map([["Thời gian", "◷"], ["Oxy", "◌"], ["Máu", "♥"], ["Tiền", "◉"], ["Uy tín", "★"]]);
+const meterIcons = new Map([["Thời gian", "◷"], ["Oxy", "◌"], ["Máu", "♥"], ["Tiền", "◉"],
+  ["Tiền ca","◉"], ["Uy tín", "★"], ["Độ sâu","↓"]]);
 function track(fraction) {
   const bar = node("div", undefined, "track");
   bar.setAttribute("aria-hidden", "true");
@@ -464,7 +744,7 @@ function availableStock(data) {
   }
   return stock;
 }
-function stoveHud(stoves, hz) {
+function stoveHud(stoves, hz, meta) {
   const list = node("ul");
   for (const stove of stoves) {
     const item = node("li");
@@ -475,6 +755,10 @@ function stoveHud(stoves, hz) {
       ? " · " + seconds(stove.cook_ticks_left, hz) + " giây" : "";
     item.append(node("strong", id + status));
     if (dish || timer) item.append(node("div", (dish ? dishName(dish) : "Còn") + timer, "detail"));
+    const cookTime = dish && object(meta.menu) ? meta.menu[dish]?.cook_s : null;
+    if (stove.state === "cooking" && number(cookTime) && cookTime > 0 && number(stove.cook_ticks_left)) {
+      item.append(track(1-stove.cook_ticks_left/(cookTime*hz)));
+    }
     list.append(item);
   }
   return list.childElementCount ? list : node("p", "Chưa có dữ liệu bếp.", "detail");
@@ -490,8 +774,10 @@ function ordersHud(data, meta, hz) {
     if (!dish && !table && !id && !number(patience) && !eating) continue;
     const fraction = number(patience) && number(meta.patience_s) && meta.patience_s > 0
       ? patience / (hz * meta.patience_s) : null;
-    const state = eating ? " eating" : number(fraction) && fraction <= .25 ? " urgent" : "";
+    const state = eating ? " eating" : number(fraction) && fraction <= .25 ? " urgent"
+      : number(fraction) && fraction <= .5 ? " warn" : "";
     const item = node("li", undefined, "ticket" + state);
+    item.dataset.key = JSON.stringify([id, table, dish]);
     const icon = node("canvas");
     icon.width = icon.height = 76;
     icon.dataset.dish = dish ?? "";
@@ -499,7 +785,7 @@ function ordersHud(data, meta, hz) {
     const info = node("div", undefined, "ticket-info");
     info.append(node("strong", dish ? dishName(dish) : "Chưa có món"));
     const detail = node("div", undefined, "ticket-meta");
-    detail.append(node("span", [table, id].filter(Boolean).join(" · ") || "Khách"));
+    detail.append(node("span", [table && "Bàn " + table, id].filter(Boolean).join(" · ") || "Khách"));
     if (eating) detail.append(node("span", "Đang ăn"));
     else if (number(patience)) detail.append(node("span", "Kiên nhẫn " + seconds(patience, hz) + " giây"));
     info.append(detail);
@@ -511,7 +797,20 @@ function ordersHud(data, meta, hz) {
   return list.childElementCount ? list : node("p", empty, "orders-empty");
 }
 function updateOrders(data, meta, hz) {
-  if (!updateContent(elements.orders, [ordersHud(data, meta, hz)])) return;
+  // Thanh kiên nhẫn đổi mỗi poll: vá phiếu tại chỗ để hiệu ứng (trượt vào, rung) không bị chạy lại liên tục.
+  const fresh = ordersHud(data, meta, hz);
+  const current = elements.orders.firstElementChild;
+  if (current?.tagName === "UL" && fresh.tagName === "UL" && current.children.length === fresh.children.length &&
+      [...current.children].every((item, i) => item.dataset.key === fresh.children[i].dataset.key)) {
+    [...current.children].forEach((item, i) => {
+      const next = fresh.children[i];
+      if (item.className !== next.className) item.className = next.className;
+      const info = item.querySelector(".ticket-info"), nextInfo = next.querySelector(".ticket-info");
+      if (info.innerHTML !== nextInfo.innerHTML) info.replaceWith(nextInfo);
+    });
+    return;
+  }
+  if (!updateContent(elements.orders, [fresh])) return;
   for (const icon of elements.orders.querySelectorAll("canvas")) {
     const brush = icon.getContext("2d");
     if (brush) dishArt(brush, icon.dataset.dish, 38, 37, 2.25);
@@ -531,12 +830,27 @@ function inRange(from, to, radius) {
   return point(from) && point(to) && number(radius) && radius > 0 &&
     Math.hypot(from[0] - to[0], from[1] - to[1]) <= radius;
 }
+function updateGatherAlerts(data,meta,player) {
+  const threat = records(data.monsters).some(monster => {
+    if (!point(player.pos) || !point(monster.pos)) return false;
+    const species = meta.monsters?.species?.[monster.kind ?? "ca_sau"];
+    return monster.state === "chase" || inRange(player.pos,monster.pos,species?.detect_radius);
+  });
+  const air = number(player.oxygen_ticks) && player.oxygen_ticks <= 0 && isUnderwater(player,meta);
+  const alert = elements["gather-alert"];
+  const message = [threat ? "Thủy quái!" : "",air ? "Hết hơi!" : ""].filter(Boolean).join(" · ");
+  if (alert.textContent !== message) alert.textContent = message;
+  alert.hidden = !message;
+  alert.classList.toggle("air",air && !threat);
+  elements["game-stage"].classList.toggle("danger",threat);
+}
 function recentService(data, hz) {
   if (!number(data.tick)) return null;
   const events = records(data.events);
   for (let i = events.length-1; i >= 0; i--) {
     const event = events[i];
     if (!number(event.tick) || event.tick > data.tick || data.tick-event.tick > hz*2) continue;
+    if (number(data.day) && number(event.day) && event.day !== data.day) continue;
     if (event.name === "served" || event.name === "paid") return event;
   }
   return null;
@@ -550,9 +864,9 @@ function updateGuide(data, meta, player) {
         ? "Oxy sắp cạn. Bơi lên mặt nước!"
         : "Bơi ngang tới đàn cá và bấm Space hoặc nút Bắt cá khi ở gần.";
     } else if (inRange(player.pos, meta.dock_pos, meta.dock_radius)) {
-      tip = Array.isArray(data.hold) && data.hold.length
-        ? "Đã về tới bến. Bấm E hoặc nút Hái / Cập bến để kết thúc lượt."
-        : "Bơi ra khỏi bến để hái bông hoặc lặn tìm đàn cá.";
+      tip = "Bấm E hoặc Hái / Cập bến để kết thúc buổi, hoặc bơi ra sông để thu thêm nguyên liệu.";
+    } else if (records(data.nodes).some(item => item.ready === true && inRange(player.pos,item.pos,meta.interact_radius))) {
+      tip = "Bông đã sẵn sàng. Bấm E hoặc Hái / Cập bến để hái.";
     } else {
       tip = "Hái bông trên mặt nước. Bơi xuống để tìm cá.";
     }
@@ -585,33 +899,39 @@ function updateHud() {
   if (!mode) return;
   const { data, meta, player, hz } = fields();
   const morning = mode === "gather";
+  const evening = mode === "quan";
   if (displayedMode !== mode) {
     displayedMode = mode;
     document.body.dataset.mode = mode;
-    elements.phase.textContent = morning ? "Buổi sáng · Lặn và hái" : "Buổi tối · Mở quán";
     elements["interact-label"].textContent = morning ? "Hái rau / cập bến" : "Tương tác với bếp / bàn";
     elements["touch-interact"].textContent = morning ? "Hái / Cập bến" : "Tương tác";
     elements["touch-catch"].hidden = elements["catch-key"].hidden = !morning;
-    elements["order-board"].hidden = morning;
-    elements["scene-action"].hidden = morning;
+    elements["order-board"].hidden = !evening;
+    elements["scene-action"].hidden = !evening;
     elements.legend.hidden = !morning;
     updateContent(elements.legend, (morning
       ? ["Mặt cắt dòng sông", "Bông mờ đang mọc lại"]
       : ["Sàn quán nhìn từ trên · Bắc ↑", "Vòng nét đứt là tầm tương tác"]).map(text => node("span", text)));
     layer("chân dung Út Sen", paintPortrait);
   }
-  layer("hướng dẫn", () => updateGuide(data, meta, player));
-  const clockStyle = morning ? "" : " meter--clock" + (number(data.time_left_ticks) &&
-    seconds(data.time_left_ticks,hz) <= 15 ? " meter--urgent" : "");
+  const heading = morning ? "Buổi sáng · Lặn và hái" : evening ? "Buổi tối · Mở quán" : "Cửa hàng";
+  const dayTitle = runMode === "day" && number(data.day) ? "Ngày "+data.day+" · "+heading : heading;
+  if (elements.phase.textContent !== dayTitle) elements.phase.textContent = dayTitle;
+  if (validMode(mode)) layer("hướng dẫn", () => updateGuide(data, meta, player));
+  layer("cảnh báo buổi sáng", () => updateGatherAlerts(morning ? data : {},meta,morning ? player : {}));
+  const timeWarn = number(data.time_left_ticks) && seconds(data.time_left_ticks,hz) <= (morning ? 30 : 15);
+  const clockStyle = " meter--time" + (morning ? "" : " meter--clock") + (timeWarn ? " meter--urgent" : "");
   const cards = [meter("Thời gian", time(data.time_left_ticks, hz), null, clockStyle)];
   const panels = [];
   if (morning) {
     const oxyMax = number(player.oxygen_max_ticks) && player.oxygen_max_ticks > 0 ? player.oxygen_max_ticks : null;
     const hpMax = number(player.hp_max) && player.hp_max > 0 ? player.hp_max : meta.hp_max;
+    const oxyRatio = oxyMax && number(player.oxygen_ticks) ? player.oxygen_ticks/oxyMax : null;
     cards.push(meter("Oxy", number(player.oxygen_ticks) ? seconds(player.oxygen_ticks, hz) + " giây" : "—",
-      oxyMax && number(player.oxygen_ticks) ? player.oxygen_ticks / oxyMax : null));
+      oxyRatio, number(oxyRatio) && oxyRatio < .25 ? " meter--low-oxygen" : ""));
     cards.push(meter("Máu", number(player.hp) ? player.hp + (number(hpMax) ? " / " + hpMax : "") : "—",
       number(player.hp) && number(hpMax) && hpMax > 0 ? player.hp / hpMax : null));
+    cards.push(meter("Độ sâu",point(player.pos) ? player.pos[1].toLocaleString("vi-VN",{maximumFractionDigits:1})+" m" : "—"));
     layer("giỏ", () => {
       const hasHold = Array.isArray(data.hold);
       const hold = hasHold ? data.hold.filter(string) : [];
@@ -621,21 +941,39 @@ function updateHud() {
       for (const kind of hold) counts.set(kind, (counts.get(kind) ?? 0) + 1);
       const summary = (count ?? "—") + (number(capacity) ? " / " + capacity : "");
       panels.push(section("Giỏ · " + summary, chips(counts, hasHold && !data.hold.length ? "Giỏ đang trống." : "Chưa có dữ liệu nguyên liệu.")));
+      const needs = plannedNeeds(data);
+      if (needs.length) {
+        const list = node("ul");
+        for (const [kind,needed] of needs) {
+          const item = node("li",undefined,"need-row");
+          item.append(node("span",ingredients.get(kind) ?? kind), node("strong",(hasHold ? counts.get(kind) ?? 0 : "—")+" / "+needed));
+          list.append(item);
+        }
+        panels.push(section("Nguyên liệu cần lấy",list));
+      }
+      if (number(player.catch_cd_ticks)) {
+        const ready = player.catch_cd_ticks <= 0;
+        panels.push(section("Hồi bắt cá",node("p",ready ? "Sẵn sàng" :
+          (player.catch_cd_ticks/hz).toLocaleString("vi-VN",{maximumFractionDigits:2})+" giây","detail")));
+      }
     });
-  } else {
-    cards.push(meter("Tiền", number(data.money) ? data.money + " nghìn" : "—"));
+  } else if (evening) {
+    reputationMax();
+    const dayMoney = number(data.shift_earned) ? data.shift_earned : number(data.shift_money) ? data.shift_money
+      : runMode === "day" ? campaign.days.get(data.day)?.income : data.money;
+    cards.push(meter("Tiền ca", moneyLabel(dayMoney)));
     cards.push(meter("Uy tín", number(data.reputation) ? data.reputation.toLocaleString("vi-VN", { maximumFractionDigits: 2 }) +
       (number(meta.reputation_max) ? " / " + meta.reputation_max : "") : "—"));
     layer("kho", () => {
       panels.push(section("Kho khả dụng", chips(availableStock(data), object(data.stock) ? "Không còn nguyên liệu chưa giữ chỗ." : "Chưa có dữ liệu kho.")));
     });
     layer("món gọi", () => updateOrders(data, meta, hz));
-    layer("tình trạng bếp", () => panels.push(section("Bếp", stoveHud(records(data.stoves), hz))));
+    layer("tình trạng bếp", () => panels.push(section("Bếp", stoveHud(records(data.stoves), hz, meta))));
     layer("món trên tay", () => {
       const dish = dishId(data.hand);
       panels.push(section("Món trên tay", node("p", dish ? dishName(dish) : data.hand === null ? "Tay đang trống." : "Chưa có dữ liệu món.")));
     });
-  }
+  } else cards.push(meter("Tiền",moneyLabel(data.money)));
   updateContent(elements.meters, cards);
   updateContent(elements.journal, panels);
 }
@@ -653,6 +991,31 @@ function updateMessage() {
 }
 
 const TAU = Math.PI * 2;
+const canvasFont = '"Baloo 2", system-ui, sans-serif';
+// Thanh tiến độ viền mực, đặt ngay trên đồ vật (bếp nấu, kiên nhẫn của khách).
+function progressBar(x, y, width, fraction, color) {
+  const h = 11, left = x-width/2;
+  ctx.beginPath();
+  ctx.roundRect(left-2, y-h/2-2+3, width+4, h+4, 7);
+  ctx.fillStyle = "#2b1b14";
+  ctx.fill();
+  ctx.beginPath();
+  ctx.roundRect(left-2, y-h/2-2, width+4, h+4, 7);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.roundRect(left, y-h/2, width, h, 5);
+  ctx.fillStyle = "#f6e6c2";
+  ctx.fill();
+  const filled = clamp(fraction, 0, 1)*width;
+  if (filled > 1) {
+    ctx.beginPath();
+    ctx.roundRect(left, y-h/2, filled, h, 5);
+    ctx.fillStyle = color;
+    ctx.fill();
+    rect(left+3, y-h/2+2, Math.max(0, filled-6), 2.5, "#ffffff55");
+  }
+}
+const patienceColor = fraction => fraction > .5 ? "#3f8f5a" : fraction > .25 ? "#eaa22a" : "#d9483b";
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
 function rect(x, y, w, h, color) {
   ctx.fillStyle = color;
@@ -726,13 +1089,14 @@ function gradient(y1, y2, stops) {
   return fill;
 }
 function label(text, x, y, options = {}) {
-  const { align = "center", size = 12, color = "#fff1ce", outline = "#242922", maxWidth = 170 } = options;
-  ctx.font = "700 " + size + "px system-ui, sans-serif";
+  const { align = "center", size = 12, color = "#fff1ce", outline = "#2b1b14", maxWidth = 170 } = options;
+  const legible = runMode === "day" && innerWidth >= 1000 ? Math.max(18,size) : size;
+  ctx.font = "800 " + legible + "px " + canvasFont;
   ctx.textAlign = align;
   ctx.textBaseline = "middle";
   if (outline) {
     ctx.lineJoin = "round";
-    ctx.lineWidth = 4;
+    ctx.lineWidth = Math.max(4, legible*.3);
     ctx.strokeStyle = outline;
     ctx.strokeText(text, x, y, maxWidth);
   }
@@ -750,25 +1114,54 @@ function ring(x, y, radius, color) {
   ctx.setLineDash([]);
 }
 function pill(text,x,y,fill,ink = "#263430") {
-  ctx.font = "800 11px system-ui, sans-serif";
-  const half = ctx.measureText(text).width/2 + 7;
+  const size = runMode === "day" && innerWidth >= 1000 ? 18 : 11;
+  const height = size+9;
+  ctx.font = "800 "+size+"px "+canvasFont;
+  const half = ctx.measureText(text).width/2 + 9;
   ctx.beginPath();
-  ctx.roundRect(x-half,y-9,half*2,18,6);
+  ctx.roundRect(x-half,y-height/2+3,half*2,height,9);
+  ctx.fillStyle = "#2b1b14";
+  ctx.fill();
+  ctx.beginPath();
+  ctx.roundRect(x-half,y-height/2,half*2,height,9);
   ctx.fillStyle = fill;
   ctx.fill();
-  label(text,x,y,{ color:ink, outline:null, size:11 });
+  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = "#2b1b14";
+  ctx.stroke();
+  label(text,x,y,{ color:ink, outline:null, size });
 }
-function project(meta, w, h, morning) {
+// Phần canvas bị HUD nổi che (px CSS); sân chơi được chiếu vào phần còn lại.
+// Đo lại sau mỗi lần HUD cập nhật/đổi cỡ cửa sổ, không đo trong từng frame vẽ.
+let cachedInsets = { right: 0, top: 0 };
+function measureInsets() {
+  cachedInsets = hudInsets();
+}
+addEventListener("resize", measureInsets);
+function hudInsets() {
+  const none = { right: 0, top: 0 };
+  const play = document.getElementById("play");
+  if (!play || getComputedStyle(play).display !== "grid") return none;
+  const stage = elements["game-stage"].getBoundingClientRect();
+  const side = document.getElementById("hud-right").getBoundingClientRect();
+  const board = elements["order-board"];
+  const right = side.width ? Math.max(0, stage.right - side.left + 6) : 0;
+  const top = !board.hidden && board.offsetHeight ? Math.max(0, board.getBoundingClientRect().bottom - stage.top) : 0;
+  return { right, top };
+}
+function project(meta, w, h, morning, inset = { right: 0, top: 0 }) {
   const bounds = meta.bounds;
   const vertical = object(bounds) ? bounds[morning ? "d" : "z"] : null;
   if (!object(bounds) || !range(bounds.x) || !range(vertical)) return null;
   const [xmin, xmax] = bounds.x, [ymin, ymax] = vertical;
-  const top = h * (morning ? .28 : .13), bottom = h * (morning ? .89 : .88);
-  const s = Math.min((w - (morning ? 84 : 80)) / (xmax - xmin), (bottom - top) / (ymax - ymin));
+  const room = Math.max(w*.55, w - inset.right);
+  const top = Math.max(h * (morning ? .28 : .1), morning ? 0 : inset.top + 34), bottom = h * (morning ? .89 : .86);
+  const s = Math.min((room - (morning ? 84 : 80)) / (xmax - xmin), (bottom - top) / (ymax - ymin));
   if (!number(s) || s <= 0) return null;
-  const xScale = morning ? s : Math.min((w*.76)/(xmax-xmin),s*1.65);
+  const xScale = morning ? s : Math.min((room*.8)/(xmax-xmin),s*1.65);
   const span = (xmax - xmin) * xScale;
-  const left = (w - span) / 2;
+  const left = (room - span) / 2;
+  const cx = room / 2;
   const oy = top + (bottom - top - (ymax - ymin) * s) / 2;
   const map = {
     s, xScale, left, right: left + span, top: oy, bottom: oy + (ymax - ymin) * s,
@@ -778,7 +1171,7 @@ function project(meta, w, h, morning) {
   map.edge = y => {
     const depth = clamp((y-map.top)/(map.bottom-map.top),0,1);
     const half = span/2*(morning ? 1 : .85+.15*depth);
-    return [w/2-half,w/2+half];
+    return [cx-half,cx+half];
   };
   map.xy = pos => {
     if (!point(pos)) return null;
@@ -951,7 +1344,7 @@ function plants(nodes, map, hz) {
     const [x,y] = pos;
     const regrowing = item.ready === false || (item.ready !== true && number(item.regrow_ticks) && item.regrow_ticks > 0);
     const lotus = item.kind === "bong_sung";
-    const flower = lotus ? "#ef9cad" : item.kind === "bong_dien_dien" ? "#f8c952" : "#e4dfaa";
+    const flower = lotus ? "#ef9cad" : item.kind === "bong_dien_dien" ? "#f8c952" : "#b7d078";
     ctx.globalAlpha = regrowing ? .48 : 1;
     oval(x,y,13,3.8,"#375840",-.15);
     oval(x-7,y+1,7,2.6,"#7d9652",.24);
@@ -978,13 +1371,46 @@ function fishSchool(fish, map, t) {
     try {
       ctx.translate(x,y); ctx.rotate(heading); ctx.scale(size,size);
       const large = item.kind === "ca_loc";
+      const color = item.kind === "ca_keo" ? "#e6b486" : large ? "#b7b47f" : "#cde0c6";
       for (const [dx,dy,k] of [[0,0,1],[-14,-8,.55],[-17,7,.48]]) {
         const wiggle = Math.sin(t*8 + dx)*1.5;
         polygon([[dx-5*k,dy],[dx-13*k,dy-4*k+wiggle],[dx-12*k,dy+4*k+wiggle]], large ? "#a5a16a" : "#a9c6b4");
-        oval(dx,dy,8*k,3.8*k,large ? "#b7b47f" : "#cde0c6");
+        oval(dx,dy,(item.kind === "ca_keo" ? 9.4 : 8)*k,(item.kind === "ca_keo" ? 2.7 : 3.8)*k,color);
         oval(dx+4*k,dy-.8*k,1*k,1*k,"#233b33");
       }
     } finally { ctx.restore(); }
+  }
+}
+const gatorStates = new Map([["patrol","Tuần tra"],["chase","Đang đuổi"],["recoil","Lùi lại"],["stunned","Choáng"]]);
+function gators(list,player,map,t) {
+  for (const item of list) {
+    const at = map.xy(item.pos);
+    if (!at || (string(item.kind) && item.kind !== "ca_sau")) continue;
+    const [x,y] = at;
+    const scale = clamp(map.s/6,.7,1.42);
+    const target = item.state === "chase" ? player.pos :
+      Array.isArray(item.waypoints) && number(item.target_idx) ? item.waypoints[item.target_idx] : null;
+    const facing = number(item.heading_deg) ? (Math.cos((item.heading_deg%360)*TAU/360) < 0 ? -1 : 1)
+      : point(target) && target[0] < item.pos[0] ? -1 : 1;
+    const chase = item.state === "chase";
+    ctx.save();
+    try {
+      ctx.translate(x,y);
+      ctx.scale(scale*facing,scale);
+      const tail = Math.sin(t*(chase ? 7 : 4))*3;
+      polygon([[-10,-7],[-25,-3],[-37,tail-2],[-27,tail+3],[-9,6]],"#4e5047");
+      oval(0,1,19,9,"#273830");
+      oval(0,-2,17,7,item.state === "recoil" ? "#777559" : "#57704e");
+      oval(16,-1,15,5,"#647954");
+      oval(15,4,14,2.8,"#bab086");
+      for (const dx of [-15,-9,-3,3]) polygon([[dx-3,-7],[dx,-12],[dx+4,-7]],"#b1ae72");
+      oval(12,-5,3.1,3.1,chase ? "#ffe18a" : "#e4c385");
+      oval(13,-5,1,1.7,"#34252e");
+      for (const dx of [20,24,27]) polygon([[dx-1,2],[dx+1,2],[dx,4.5]],"#f7ecc7");
+    } finally { ctx.restore(); }
+    const state = gatorStates.get(item.state);
+    label(state ? "Cá Sấu · "+state : "Cá Sấu",x,y-19*scale,
+      { color:chase ? "#ffe0a2" : "#e7f1c3",size:11,maxWidth:200 });
   }
 }
 function senFace(brush, diving, facing = 1) {
@@ -1149,7 +1575,7 @@ function quay(w,h,map,t) {
   marketBoat(w*.92,h*.63,farScale*.92,true);
   if (!map) return;
   const {top,bottom} = map;
-  const mid = w/2;
+  const mid = (map.left+map.right)/2;
   const [a,b] = map.edge(top);
   const [c,d] = map.edge(bottom);
   const step = Math.min(27,h*.087);
@@ -1279,11 +1705,18 @@ function stoveSprites(stoves,map,t,player,meta,hz) {
         oval(x-6*size+i*6*size+Math.sin(t*4+i)*3,y-9*size-rise,2.8,4,"#f7e3bf72");
       }
     }
-    if (string(stove.id)) label("Bếp "+stove.id,x,y+33*size);
-    if (ready) pill(near ? "E · Lấy món" : "Đã chín",x,y-32*size,"#d9ed9f");
-    else if (cooking && number(stove.cook_ticks_left)) {
-      pill("Đang nấu · "+seconds(stove.cook_ticks_left,hz)+"s",x,y-33*size,"#ffe1a2");
-    }
+    if (string(stove.id)) label("Bếp "+stove.id,x,y+33*size,{ size:12 });
+    const cookTime = dish && object(meta.menu) ? meta.menu[dish]?.cook_s : null;
+    if (ready) {
+      // Món chín: biển nhảy lên xuống để mắt bắt ngay.
+      const hop = reduceMotion.matches ? 0 : Math.abs(Math.sin(t*5))*6;
+      pill(near ? "E · Lấy món" : "✓ Đã chín",x,y-36*size-hop,"#c9f08a");
+    } else if (cooking && number(stove.cook_ticks_left)) {
+      if (number(cookTime) && cookTime > 0) {
+        progressBar(x,y-34*size,56*size,1-stove.cook_ticks_left/(cookTime*hz),"#3f8f5a");
+        label(seconds(stove.cook_ticks_left,hz)+"s",x+28*size+16,y-34*size,{ size:12 });
+      } else pill("Đang nấu · "+seconds(stove.cook_ticks_left,hz)+"s",x,y-33*size,"#ffe1a2");
+    } else if (stove.state === "burnt") pill("Khét!",x,y-33*size,"#ff9c86");
   }
 }
 function tablesSprites(tables,map,data,player,meta) {
@@ -1317,7 +1750,7 @@ function tablesSprites(tables,map,data,player,meta) {
     }
   }
 }
-function customerSprites(customers,tables,map) {
+function customerSprites(customers,tables,map,meta,hz,t) {
   const stand = clamp(map.s*.58,20,35);
   for (const customer of customers) {
     const table = tables.find(candidate =>
@@ -1326,16 +1759,32 @@ function customerSprites(customers,tables,map) {
     const seat = table ? map.xy(table.pos) : null;
     const pos = map.xy(customer.pos) ?? (seat ? [seat[0],seat[1]-stand] : null);
     if (!pos) continue;
-    const [x,y] = pos;
-    oval(x,y+5,12,9,"#62433f");
+    const fraction = number(customer.patience_ticks_left) && number(meta.patience_s) && meta.patience_s > 0
+      ? clamp(customer.patience_ticks_left/(meta.patience_s*hz),0,1) : null;
+    const waiting = customer.state !== "eating";
+    // Khách sắp hết kiên nhẫn thì run lên.
+    const jitter = waiting && number(fraction) && fraction <= .25 && !reduceMotion.matches ? Math.sin(t*40)*2 : 0;
+    const [x0,y] = pos;
+    const x = x0+jitter;
+    oval(x,y+5,13,10,"#2b1b14");
     oval(x,y+5,11,8,customer.state === "eating" ? "#839b66" : "#527a76");
+    oval(x,y-4,10,8,"#2b1b14");
     oval(x,y-4,9,7,"#eab37f");
     oval(x,y-7,9,5,"#634641");
     const dish = dishId(customer);
-    if (dish && customer.state !== "eating") {
-      oval(x,y-28,13.5,12.5,"#6c5940");
-      oval(x,y-29,12.1,11.3,"#fff1ca");
-      dishArt(ctx,dish,x,y-29,.72);
+    if (dish && waiting) {
+      // Bong bóng gọi món có vòng kiên nhẫn xanh → vàng → đỏ.
+      oval(x,y-30,17,16,"#2b1b14");
+      oval(x,y-30,15,14,"#fff7e2");
+      if (number(fraction)) {
+        ctx.beginPath();
+        ctx.arc(x,y-30,15.5,-Math.PI/2,-Math.PI/2+fraction*TAU);
+        ctx.strokeStyle = patienceColor(fraction);
+        ctx.lineWidth = 4;
+        ctx.lineCap = "round";
+        ctx.stroke();
+      }
+      dishArt(ctx,dish,x,y-30,.72);
     } else label(customer.state === "eating" ? "Đang ăn" : "Khách",x,y-19,{ size:11 });
   }
 }
@@ -1363,8 +1812,15 @@ function restaurantPlayer(player,data,meta,map,t) {
   oval(x,y+11*size,17*size,6*size,"#60415552");
   sen(x,y,size,0,false,stride,restaurantFacing);
   const dish = dishId(data.hand);
-  if (dish) dishArt(ctx,dish,x+17*size,y+3*size,size*.89);
-  label("Út Sen",x,y+27*size);
+  if (dish) {
+    // Bưng món giơ cao trên đầu, nhún theo bước chân, để cả bàn đều thấy.
+    const bob = reduceMotion.matches ? 0 : Math.abs(stride)*3;
+    const hy = y-34*size-bob;
+    oval(x,hy+4,20*size,8*size,"#2b1b14");
+    oval(x,hy+2,18*size,7*size,"#fff7e2");
+    dishArt(ctx,dish,x,hy-2*size,size*1.05);
+  }
+  label("Út Sen",x,y+27*size,{ size:12 });
 }
 function serviceEffect(data,tables,map,hz) {
   const event = recentService(data,hz);
@@ -1377,13 +1833,25 @@ function serviceEffect(data,tables,map,hz) {
   const lift = reduceMotion.matches ? 0 : age*15;
   ctx.globalAlpha = 1-Math.max(0,age-.65);
   if (event.name === "paid" && !number(event.data.amount)) return;
-  pill(event.name === "served" ? "✓ Đã giao" : "+"+event.data.amount+" nghìn",x,y-42-lift,"#e6f4ac");
+  const pop = reduceMotion.matches ? 1 : 1+.35*Math.max(0,1-age*6);
+  ctx.save();
+  ctx.translate(x,y-50-lift);
+  ctx.scale(pop,pop);
+  if (event.name === "paid") {
+    // Đồng xu vàng bật lên kèm số tiền.
+    oval(-46,2,13,13,"#2b1b14");
+    oval(-46,0,12,12,"#ffc847");
+    oval(-46,0,7,7,"#f0a01e");
+    pill("+"+event.data.amount+" nghìn",8,0,"#ffe9a6");
+  } else pill("✓ Đã giao",0,0,"#c9f08a");
+  ctx.restore();
   if (!reduceMotion.matches) {
     for (const [dx,dy] of [[-23,-26],[22,-29],[30,-13],[-28,-13]]) {
       oval(x+dx*(1+age*.2),y+dy-lift,2.4*(1-age)+.7,2.1,"#fff3ba");
     }
   }
 }
+let animationTime = 0;
 function frame(now) {
   requestAnimationFrame(frame);
   if (!ctx || !canvas.clientWidth || !canvas.clientHeight) return;
@@ -1400,14 +1868,20 @@ function frame(now) {
   if (!mode) return;
   const {data,meta,player,hz} = fields();
   const morning = mode === "gather";
-  const map = project(meta,w,h,morning);
-  const t = reduceMotion.matches ? 0 : now/1000;
+  if (!reduceMotion.matches && data.state !== "paused") animationTime = now/1000;
+  const t = reduceMotion.matches ? 0 : animationTime;
+  if (mode === "shop") {
+    layer("nền Shop", () => quay(w,h,null,t),true);
+    return;
+  }
+  const map = project(meta,w,h,morning,cachedInsets);
   if (morning) {
     layer("nền sông", () => river(w,h,map,meta,t),true);
     if (!map) return;
     layer("bến", () => dock(map,meta),true);
     layer("nút hái", () => plants(records(data.nodes),map,hz),true);
     layer("đàn cá", () => fishSchool(records(data.fish),map,t),true);
+    layer("Cá Sấu", () => gators(records(data.monsters),player,map,t),true);
     layer("Út Sen dưới sông", () => gatherPlayer(player,data,meta,map,t),true);
   } else {
     layer("nền quán", () => quay(w,h,map,t),true);
@@ -1415,11 +1889,499 @@ function frame(now) {
     const tables = records(data.tables);
     layer("bếp trên sàn", () => stoveSprites(records(data.stoves),map,t,player,meta,hz),true);
     layer("bàn trên sàn", () => tablesSprites(tables,map,data,player,meta),true);
-    layer("khách", () => customerSprites(records(data.customers),tables,map),true);
+    layer("khách", () => customerSprites(records(data.customers),tables,map,meta,hz,t),true);
     layer("Út Sen trong quán", () => restaurantPlayer(player,data,meta,map,t),true);
     layer("phản hồi giao món", () => serviceEffect(data,tables,map,hz),true);
   }
+  layer("biển báo nhịp chơi", () => phaseBanner(data,hz,w,h,map),true);
 }
+// "Bắt đầu!" đầu buổi, đếm ngược 5 giây cuối và "Hết giờ!" — chỉ là hiển thị, không đổi luật.
+function bigWord(text,x,y,scale,fill) {
+  ctx.save();
+  ctx.translate(x,y);
+  ctx.scale(scale,scale);
+  ctx.rotate(-.04);
+  ctx.font = "800 64px "+canvasFont;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.lineJoin = "round";
+  ctx.lineWidth = 14;
+  ctx.strokeStyle = "#2b1b14";
+  ctx.strokeText(text,0,5);
+  ctx.strokeText(text,0,0);
+  ctx.fillStyle = fill;
+  ctx.fillText(text,0,0);
+  ctx.restore();
+}
+function phaseBanner(data,hz,w,h,map) {
+  if (data.state === "paused" || elements["game-dialog"].open) return;
+  const cx = map ? (map.left+map.right)/2 : w/2, cy = h*.46;
+  const sinceStart = number(data.phase_tick) ? data.phase_tick : number(data.tick) ? data.tick : null;
+  const done = (number(data.time_left_ticks) && data.time_left_ticks <= 0) ||
+    ((data.finished === true || data.state === "finished") && data.reason === "time");
+  const pop = age => reduceMotion.matches ? 1 : clamp(.4+age*5,0,1.1)-Math.max(0,age-.25)*.08;
+  if (done && mode !== "shop") {
+    bigWord("Hết giờ!",cx,cy,1,"#ff8a6b");
+  } else if (number(sinceStart) && sinceStart < hz*1.4 && mode !== "shop") {
+    const age = sinceStart/hz;
+    ctx.globalAlpha = clamp((1.4-age)*3,0,1);
+    bigWord("Bắt đầu!",cx,cy,pop(age),"#ffd54f");
+  } else if (number(data.time_left_ticks) && data.time_left_ticks > 0 && data.time_left_ticks <= hz*5 && mode !== "shop") {
+    const left = data.time_left_ticks/hz;
+    const within = 1-(left-Math.floor(left));
+    ctx.globalAlpha = .9;
+    bigWord(String(Math.ceil(left)),cx,cy,reduceMotion.matches ? 1 : 1.25-within*.3,"#fff3d6");
+  }
+}
+
+const campaign = {
+  menu: false, exited: false, userPause: false, settings: false, starting: false,
+  intro: null, lastPhase: null, pauseRequest: null, panel: null,
+  seen: new Set(), days: new Map(), sales: new Map()
+};
+function resetCampaign() {
+  Object.assign(campaign, { menu: false, exited: false, userPause: false, settings: false,
+    intro: null, lastPhase: null, pauseRequest: null });
+  campaign.seen.clear();
+  campaign.days.clear();
+  campaign.sales.clear();
+}
+function dayStats(day) {
+  if (!campaign.days.has(day)) {
+    campaign.days.set(day, { complete: false, startReputation: null, end: null,
+      served: 0, left: 0, tips: 0, income: 0, orders: new Map() });
+  }
+  return campaign.days.get(day);
+}
+function recordDay(data) {
+  if (!number(data.day)) return;
+  const current = dayStats(data.day);
+  if (data.phase === "quan" && number(data.phase_tick) && data.phase_tick <= tickHz(fields().meta)) {
+    if (!current.complete) current.startReputation = number(data.reputation) ? data.reputation : null;
+    current.complete = true;
+  }
+  for (const event of records(data.events)) {
+    const payload = event.data;
+    if (!number(event.day) || !number(event.tick) || !object(payload)) continue;
+    const key = JSON.stringify([event.day, event.tick, event.name, payload.order_id, payload.table_id]);
+    if (campaign.seen.has(key)) continue;
+    campaign.seen.add(key);
+    const stats = dayStats(event.day);
+    if (event.name === "served") {
+      stats.served++;
+      if (string(payload.order_id) && string(payload.dish_id)) stats.orders.set(payload.order_id,payload.dish_id);
+    } else if (event.name === "customer_left") stats.left++;
+    else if (event.name === "paid") {
+      if (number(payload.amount)) stats.income += payload.amount;
+      if (number(payload.tip)) stats.tips += payload.tip;
+      const dish = stats.orders.get(payload.order_id);
+      if (dish) campaign.sales.set(dish,(campaign.sales.get(dish) ?? 0)+1);
+    } else if (event.name === "quan_end") stats.end = payload;
+  }
+}
+function reconcilePause(data) {
+  if (campaign.starting || data.finished === true || data.state === "finished") return;
+  const paused = data.state === "paused";
+  const target = campaign.menu || campaign.userPause || campaign.settings || Boolean(campaign.intro);
+  const now = performance.now();
+  if (campaign.pauseRequest) {
+    if (paused === campaign.pauseRequest.target || now >= campaign.pauseRequest.expires) campaign.pauseRequest = null;
+    else return;
+  }
+  if (target === paused) return;
+  campaign.pauseRequest = { target, expires: now+2500 };
+  pulse("pause");
+}
+function togglePause() {
+  if (!snapshot || snapshot.finished === true || campaign.menu || campaign.starting) return;
+  startAudio();
+  if (campaign.settings) campaign.settings = false;
+  else if (campaign.intro) campaign.intro = null;
+  else campaign.userPause = !campaign.userPause;
+  refreshCampaign();
+}
+const moneyLabel = value => number(value) ? value.toLocaleString("vi-VN")+" nghìn" : "—";
+const levelOf = value => number(value) ? value : object(value) && number(value.level) ? value.level : 0;
+function planDishes(plan) {
+  if (!object(plan)) return [];
+  if (Array.isArray(plan.dishes)) {
+    return plan.dishes.flatMap(item => {
+      const id = dishId(item);
+      return id ? [[id,object(item) && number(item.count) ? item.count : null]] : [];
+    });
+  }
+  return object(plan.dishes) ? Object.entries(plan.dishes).map(([id,count]) => [id,number(count) ? count : null]) : [];
+}
+function plannedNeeds(data) {
+  return object(data.day_plan?.ingredients)
+    ? Object.entries(data.day_plan.ingredients).filter(([,count]) => number(count) && count > 0) : [];
+}
+function inventoryList(stock) {
+  return object(stock) ? Object.entries(stock).filter(([, count]) => number(count) && count > 0) : [];
+}
+function listOf(items, empty) {
+  if (!items.length) return node("p",empty);
+  const list = node("ul",undefined,"modal-list");
+  list.append(...items.map(text => node("li",text)));
+  return list;
+}
+function statList(entries) {
+  const list = node("dl",undefined,"modal-stats");
+  for (const [key,value] of entries) list.append(node("dt",key),node("dd",value ?? "—"));
+  return list;
+}
+function action(text,id,primary = false) {
+  const button = node("button",text,primary ? "primary" : null);
+  button.type = "button";
+  button.dataset.action = id;
+  return button;
+}
+function actions(...buttons) {
+  const row = node("div",undefined,"modal-actions");
+  row.append(...buttons);
+  return row;
+}
+function modalTitle(title) {
+  const heading = node("h2",title);
+  heading.id = "dialog-title";
+  return heading;
+}
+function dayIntro(data) {
+  const items = planDishes(data.day_plan).map(([id,count]) => dishName(id)+(number(count) ? " × "+count : ""));
+  return [modalTitle(number(data.day) ? "Ngày "+data.day : "Buổi sáng"),
+    node("p","Má Tư dặn Út Sen chuẩn bị:"),listOf(items,"Chưa có kế hoạch món cho Ngày này."),
+    actions(action("Bắt đầu lặn hái","continue",true))];
+}
+function eveningIntro(data,meta) {
+  const entries = inventoryList(data.stock);
+  const stock = new Map(entries);
+  const plan = planDishes(data.day_plan);
+  const menu = object(meta.menu) ? meta.menu : {};
+  const ids = plan.length ? plan.map(([id]) => id) : Object.keys(menu);
+  const cookable = ids.filter(id => object(menu[id]?.recipe) && Object.entries(menu[id].recipe)
+    .every(([kind,count]) => number(count) && (stock.get(kind) ?? 0) >= count));
+  return [modalTitle("Chuẩn bị mở quán"),
+    node("p",object(data.stock) ? "Đã nhập "+entries.reduce((sum,[,qty]) => sum+qty,0)+" nguyên liệu." : "Chưa có dữ liệu nhập kho."),
+    chips(entries,"Kho chưa có nguyên liệu."),
+    node("h3","Món có thể nấu"),listOf(cookable.map(dishName),"Chưa có món đủ nguyên liệu."),
+    actions(action("Mở cửa quán","continue",true))];
+}
+// meta của Shop có thể không gửi reputation_max: nhớ giá trị gần nhất máy chủ đã gửi.
+let knownReputationMax = null;
+function reputationMax() {
+  const max = fields().meta.reputation_max;
+  if (number(max)) knownReputationMax = max;
+  return knownReputationMax;
+}
+// Sao = uy tín thật của quán (làm tròn), tối đa reputation_max trong contract. Không tự đặt ngưỡng điểm.
+function stars(value,max) {
+  const row = node("div",undefined,"stars");
+  if (!number(value) || !number(max) || max <= 0 || max > 10) return node("span");
+  const lit = clamp(Math.round(value),0,max);
+  row.setAttribute("role","img");
+  row.setAttribute("aria-label","Uy tín "+lit+" trên "+max+" sao");
+  for (let i = 0; i < max; i++) {
+    const star = node("span","★",i < lit ? "on" : undefined);
+    star.setAttribute("aria-hidden","true");
+    row.append(star);
+  }
+  return row;
+}
+function dayResult(data) {
+  const stats = dayStats(data.day);
+  const end = object(data.day_result) ? data.day_result : stats.end ?? {};
+  const count = (key,fallback) => number(end[key]) ? end[key] : stats.complete ? fallback : null;
+  const income = number(end.shift_earned) ? end.shift_earned : stats.complete ? stats.income : null;
+  const delta = number(end.reputation_delta) ? end.reputation_delta :
+    number(stats.startReputation) && number(end.reputation) ? end.reputation-stats.startReputation : null;
+  const reputation = number(end.reputation) ? end.reputation : data.reputation;
+  return [modalTitle(number(data.day) ? "Kết quả Ngày "+data.day : "Kết quả buổi tối"),
+    stars(reputation,reputationMax()), statList([
+    ["Khách đã phục vụ",count("served",stats.served)],["Khách bỏ đi",count("left",stats.left)],
+    ["Tiền ca",moneyLabel(income)],["Tiền boa",moneyLabel(count("tips",stats.tips))],
+    ["Thay đổi uy tín",number(delta) ? (delta > 0 ? "+" : "")+delta.toLocaleString("vi-VN",{maximumFractionDigits:2}) : null]
+  ]),actions(action("Đến cửa hàng","continue",true))];
+}
+function summary(data) {
+  const best = [...campaign.sales].sort((a,b) => b[1]-a[1] || a[0].localeCompare(b[0]))[0];
+  const reportedBest = dishId(data.summary?.best_seller);
+  return [modalTitle(number(data.days_completed) ? "Đã xong "+data.days_completed+" Ngày" : "Tổng kết hành trình"),
+    stars(data.reputation,reputationMax()), statList([["Tổng tiền kiếm được",moneyLabel(data.earned)],["Tiền còn lại",moneyLabel(data.money)],["Tổng điểm",number(data.score) ? data.score : null],
+      ["Uy tín",number(data.reputation) ? data.reputation.toLocaleString("vi-VN",{maximumFractionDigits:2}) : null],
+      ["Món bán chạy",reportedBest ? dishName(reportedBest) : best ? dishName(best[0])+" × "+best[1] : null]]),
+    actions(action("Về menu","menu",true))];
+}
+const upgradeNames = new Map([["oxygen","Bình oxy"],["hp","Áo phao"]]);
+const buyErrors = new Map([["funds","Không đủ tiền."],["max_level","Đã đạt cấp cao nhất."],
+  ["unknown","Cửa hàng không có nâng cấp này."],["out_of_stock","Mặt hàng đã hết."]]);
+function shop(data,meta,hz) {
+  const grid = node("div",undefined,"shop-grid");
+  const upgrades = object(meta.shop?.upgrades) ? meta.shop.upgrades : {};
+  for (const [id,name] of upgradeNames) {
+    const level = levelOf(data.upgrades?.[id]);
+    const next = records(upgrades[id]).find(item => item.level === level+1 && number(item.price));
+    const card = node("div",undefined,"shop-item");
+    card.append(node("strong",name),node("span","Cấp hiện tại: "+level));
+    if (next) {
+      const effect = id === "oxygen" && number(next.oxygen_max_s) ? " · "+next.oxygen_max_s+" giây oxy"
+        : id === "hp" && number(next.hp_max) ? " · "+next.hp_max+" máu" : "";
+      const buy = action("Mua "+name,"buy:"+id);
+      buy.disabled = data.state === "paused";
+      card.append(node("span","Cấp "+next.level+" · "+moneyLabel(next.price)+effect));
+      if (number(data.money) && data.money < next.price) {
+        // Vẫn cho bấm để máy chủ trả lời "Không đủ tiền.", nhưng báo trước số còn thiếu.
+        buy.classList.add("poor");
+        card.append(node("span","Còn thiếu "+moneyLabel(next.price-data.money),"shortfall"));
+      }
+      card.append(buy);
+    } else {
+      card.append(node("span",Array.isArray(upgrades[id]) ? "Đã đạt cấp tối đa." : "Chưa có bảng giá."));
+    }
+    grid.append(card);
+  }
+  const elapsed = number(data.tick) && number(data.phase_tick) ? data.tick-data.phase_tick : -Infinity;
+  const receipt = records(data.events).findLast(event =>
+    (event.name === "buy_failed" || event.name === "bought") &&
+    (number(event.day) ? event.day === data.day : number(event.tick) && event.tick >= elapsed));
+  const feedback = receipt?.name === "buy_failed" ? buyErrors.get(receipt.data?.reason) ?? "Chưa mua được nâng cấp."
+    : receipt?.name === "bought" ? "Đã mua "+(upgradeNames.get(receipt.data?.upgrade) ?? "nâng cấp")+". Có hiệu lực từ Ngày sau." : "";
+  const notice = node("p",feedback,receipt?.name === "bought" ? "shop-feedback success" : "shop-feedback");
+  notice.hidden = !feedback;
+  notice.setAttribute("role","status");
+  const done = action("Xong","shop-done",true);
+  done.disabled = data.state === "paused";
+  return [modalTitle("Cửa hàng cuối Ngày"),
+    node("p","Còn "+time(data.time_left_ticks,hz)+" · Tiền: "+moneyLabel(data.money)),grid,notice,
+    actions(done,action("Tạm dừng","pause"))];
+}
+
+function panelContent(panel,data,meta,hz) {
+  switch (panel) {
+    case "exit":
+      return [modalTitle("Đã về màn hình chờ"),node("p","Bạn có thể đóng tab này hoặc quay lại menu."),
+        actions(action("Quay lại","menu",true))];
+    case "menu": {
+      const card = node("div",undefined,"title-card");
+      card.append(node("p","Quán Ăn Chợ Nổi","eyebrow"),modalTitle(runMode === "day" ? "Một ngày cùng Út Sen" : "Menu chính"),
+        node("p","Sáng lặn sông hái bông, bắt cá. Tối mở quán nấu cho kịp khách."),
+        actions(action("Chơi","play",true),action("Cài đặt","settings"),action("Thoát","exit")));
+      return [card];
+    }
+    case "pause":
+      return [modalTitle("Tạm dừng"),
+        actions(action("Tiếp tục","resume",true),action("Cài đặt","settings"),action("Về menu","menu"))];
+    case "settings": return audioSettings();
+    case "day-intro": return dayIntro(data);
+    case "evening-intro": return eveningIntro(data,meta);
+    case "day-result": return dayResult(data);
+    case "shop": return shop(data,meta,hz);
+    case "summary": return summary(data);
+    default: return [];
+  }
+}
+function renderDialog(panel,data,meta,hz) {
+  const dialog = elements["game-dialog"];
+  const previous = campaign.panel;
+  campaign.panel = panel;
+  if (!panel) {
+    if (dialog.open) dialog.close();
+    return;
+  }
+  const focused = dialog.contains(document.activeElement) ? document.activeElement.dataset.action : null;
+  if (panel !== "settings" || previous !== panel || !dialog.open) {
+    if (updateContent(dialog,panelContent(panel,data,meta,hz)) && focused && previous === panel) {
+      [...dialog.querySelectorAll("[data-action]")].find(button => button.dataset.action === focused)?.focus();
+    }
+  }
+  if (!dialog.open) {
+    dialog.showModal();
+    releaseKeys();
+  } else if (previous !== panel) {
+    dialog.querySelector("button")?.focus();
+  }
+}
+function refreshCampaign() {
+  if (!snapshot || campaign.starting) return;
+  const { data,meta,hz } = fields();
+  document.body.dataset.run = runMode ?? "";
+  const done = data.finished === true || data.state === "finished";
+  if (runMode === "day" && mode) {
+    recordDay(data);
+    const key = String(data.day)+":"+mode;
+    if (key !== campaign.lastPhase) {
+      const before = campaign.lastPhase;
+      campaign.lastPhase = key;
+      if (!campaign.menu && !done) {
+        if (mode === "gather") campaign.intro = { panel:"day-intro", until:performance.now()+4000 };
+        else if (mode === "quan") campaign.intro = { panel:"evening-intro" };
+        else if (mode === "shop" && before?.endsWith(":quan")) campaign.intro = { panel:"day-result" };
+      }
+    }
+  }
+  if (campaign.intro?.until && performance.now() >= campaign.intro.until) campaign.intro = null;
+  reconcilePause(data);
+  const panel = campaign.settings ? "settings" : campaign.menu ? campaign.exited ? "exit" : "menu"
+    : campaign.userPause ? "pause" : done && runMode === "day" ? "summary"
+    : campaign.intro?.panel ?? (mode === "shop" && !done ? "shop" : null);
+  renderDialog(panel,data,meta,hz);
+}
+elements["game-dialog"].addEventListener("cancel",event => {
+  event.preventDefault();
+  togglePause();
+});
+elements["game-dialog"].addEventListener("click",event => {
+  const id = event.target.closest("button")?.dataset.action;
+  if (!id) return;
+  startAudio();
+  if (id === "play") {
+    restart();
+    return;
+  } else if (id === "exit" || id === "menu") {
+    campaign.exited = id === "exit";
+    campaign.menu = true;
+    campaign.userPause = false;
+    campaign.intro = null;
+  } else if (id === "settings") campaign.settings = true;
+  else if (id === "settings-back") campaign.settings = false;
+  else if (id === "resume") campaign.userPause = false;
+  else if (id === "continue") campaign.intro = null;
+  else if (id === "pause") togglePause();
+  else if (id === "shop-done" && campaign.panel === "shop" && snapshot?.state !== "paused") pulse("shop_done");
+  else if (campaign.panel === "shop" && snapshot?.state !== "paused" && id.startsWith("buy:")) {
+    const upgrade = id.slice(4);
+    if (upgradeNames.has(upgrade)) command({ buy:upgrade });
+  }
+  refreshCampaign();
+});
+
+const soundKey = "chonoi.audio.v1";
+const soundChannels = new Map([["master","Âm lượng chung (Master)"],["music","Nhạc nền (Music)"],["sfx","Hiệu ứng (SFX)"]]);
+const sound = { master:.6, music:.24, sfx:.64 };
+try {
+  const saved = JSON.parse(localStorage.getItem(soundKey));
+  if (object(saved)) for (const key of soundChannels.keys()) {
+    if (number(saved[key])) sound[key] = clamp(saved[key],0,1);
+  }
+} catch { /* vắng bộ lưu trữ, giữ mức mặc định */ }
+let audio = null;
+let beat = 0;
+function applySound() {
+  if (audio) for (const key of soundChannels.keys()) {
+    audio[key].gain.setTargetAtTime(sound[key],audio.context.currentTime,.025);
+  }
+}
+function note(bus,hz,volume,length,type = "triangle",delay = 0,slideTo = null) {
+  const { context } = audio;
+  const oscillator = context.createOscillator();
+  const gain = context.createGain();
+  const now = context.currentTime+delay;
+  oscillator.type = type;
+  oscillator.frequency.setValueAtTime(hz,now);
+  if (slideTo) oscillator.frequency.exponentialRampToValueAtTime(slideTo,now+length);
+  gain.gain.setValueAtTime(0,now);
+  gain.gain.linearRampToValueAtTime(volume,now+.012);
+  gain.gain.exponentialRampToValueAtTime(.001,now+length);
+  oscillator.connect(gain).connect(audio[bus]);
+  oscillator.start(now);
+  oscillator.stop(now+length+.01);
+}
+function startAudio() {
+  if (!audio && typeof AudioContext === "function") {
+    try {
+      const context = new AudioContext();
+      audio = { context, master:context.createGain(), music:context.createGain(), sfx:context.createGain() };
+      audio.music.connect(audio.master);
+      audio.sfx.connect(audio.master);
+      audio.master.connect(context.destination);
+      applySound();
+    } catch { return; }
+  }
+  if (audio?.context.state === "suspended") void audio.context.resume().catch(() => {});
+}
+function audioSettings() {
+  const form = node("div");
+  for (const [key,title] of soundChannels) {
+    const row = node("label",undefined,"setting-row");
+    const slider = node("input");
+    slider.id = "volume-"+key;
+    slider.type = "range";
+    slider.min = "0";
+    slider.max = "100";
+    slider.value = String(Math.round(sound[key]*100));
+    slider.setAttribute("value",slider.value);
+    slider.dataset.volume = key;
+    const value = node("output",slider.value+"%");
+    value.id = "value-"+key;
+    value.htmlFor = slider.id;
+    row.append(node("span",title),value,slider);
+    form.append(row);
+  }
+  return [modalTitle("Âm thanh"),form,actions(action("Quay lại","settings-back",true))];
+}
+elements["game-dialog"].addEventListener("input",event => {
+  const key = event.target.dataset.volume;
+  if (!soundChannels.has(key)) return;
+  sound[key] = Number(event.target.value)/100;
+  try { localStorage.setItem(soundKey,JSON.stringify(sound)); } catch { /* chỉ lưu trong lượt */ }
+  document.getElementById("value-"+key).textContent = event.target.value+"%";
+  applySound();
+});
+// Mỗi sự kiện một tiếng riêng để người chơi "nghe" được bếp mà không cần nhìn.
+const sfxBank = {
+  gather: () => { note("sfx",660,.2,.12); note("sfx",990,.18,.16,"triangle",.07); },
+  fish_caught: () => { note("sfx",520,.22,.1,"square"); note("sfx",780,.2,.1,"square",.06); note("sfx",1040,.16,.18,"triangle",.12); },
+  hold_full: () => { note("sfx",220,.2,.12,"square"); note("sfx",220,.2,.12,"square",.16); },
+  dive: () => note("sfx",700,.16,.3,"sine",0,180),
+  surface: () => note("sfx",200,.16,.3,"sine",0,760),
+  monster_hit: () => { note("sfx",140,.32,.35,"sawtooth",0,60); },
+  choke: () => note("sfx",180,.26,.3,"sawtooth",0,90),
+  faint: () => { note("sfx",392,.24,.25,"triangle",0,196); note("sfx",294,.24,.4,"triangle",.22,130); },
+  customer_arrived: () => { note("sfx",880,.12,.08); note("sfx",1175,.12,.1,"triangle",.07); },
+  cook_started: () => note("sfx",320,.14,.18,"sawtooth",0,240),
+  dish_ready: () => { note("sfx",1568,.22,.5,"sine"); note("sfx",2093,.14,.6,"sine",.03); },
+  dish_picked: () => note("sfx",600,.16,.1,"triangle",0,900),
+  served: () => [523,659,784].forEach((hz,i) => note("sfx",hz,.18,.16,"triangle",i*.06)),
+  paid: () => { note("sfx",988,.18,.08,"square"); note("sfx",1319,.18,.28,"square",.08); },
+  customer_left: () => note("sfx",260,.24,.45,"sawtooth",0,110),
+  bought: () => [523,659,784,1047].forEach((hz,i) => note("sfx",hz,.18,.18,"triangle",i*.07)),
+  buy_failed: () => note("sfx",160,.22,.25,"square")
+};
+const shakeEvents = new Set(["monster_hit","choke","faint"]);
+const heardEvents = new Set();
+function playSfx(data) {
+  const hz = tickHz(fields().meta);
+  const fresh = records(data.events).filter(event => {
+    if (!number(event.tick) || !number(data.tick) || data.tick-event.tick > hz) return false;
+    const key = JSON.stringify([event.day,event.tick,event.name,event.data?.order_id ?? event.data?.fish_id ?? event.data?.node_id]);
+    if (heardEvents.has(key)) return false;
+    heardEvents.add(key);
+    if (heardEvents.size > 400) heardEvents.delete(heardEvents.values().next().value);
+    return true;
+  });
+  if (!fresh.length || data.state === "paused") return;
+  if (fresh.some(event => shakeEvents.has(event.name)) && !reduceMotion.matches) {
+    const stage = elements["game-stage"];
+    stage.classList.remove("hit");
+    void stage.offsetWidth; // chạy lại hiệu ứng rung
+    stage.classList.add("hit");
+  }
+  if (!audio || audio.context.state !== "running") return;
+  for (const name of new Set(fresh.map(event => event.name))) sfxBank[name]?.();
+}
+// Nhạc nền ngũ cung (cung Bắc) — tăng gấp đôi nhịp khi gần hết giờ, như cảnh "chạy deadline" trong bếp.
+const melody = [523.25,587.33,698.46,783.99,880,783.99,698.46,587.33,523.25,698.46,783.99,1046.5,880,783.99,587.33,698.46];
+const bass = [130.81,174.61,196,130.81];
+setInterval(() => {
+  if (!audio || audio.context.state !== "running" || !snapshot || snapshot.state === "paused" ||
+      snapshot.finished || document.hidden || elements["game-dialog"].open) return;
+  const { data, hz } = fields();
+  const rush = number(data.time_left_ticks) && seconds(data.time_left_ticks,hz) <= (mode === "gather" ? 30 : 20);
+  const step = beat++;
+  if (!rush && step % 2) return;
+  const i = rush ? step : step/2;
+  note("music",melody[i % melody.length],.09,.22);
+  if (i % 4 === 0) note("music",bass[(i/4) % bass.length],.12,.4,"sine");
+},180);
 void poll();
 requestAnimationFrame(frame);
 </script>

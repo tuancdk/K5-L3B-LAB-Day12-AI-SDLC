@@ -137,6 +137,8 @@ class LiveGame:
                 "tick_hz": self.tuning.get("tick_hz", 60),
                 "menu": self.tuning.get("menu", {}),
                 "shop": self.tuning.get("shop", {}),
+                # v1.2: ngưỡng ươn/hao tươi cho HUD độ tươi (#22) — đọc từ contract, client không tự đặt số.
+                "freshness": self.tuning.get("freshness", {}),
             }
             if self._legacy_paused and not self.session.done:
                 snap["state"] = "paused"

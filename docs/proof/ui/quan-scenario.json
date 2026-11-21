@@ -1,14 +1,70 @@
 {
   "quan": {
-    "player": {"pos": [3, 5]},
-    "stock": {"ca_loc": 1, "ca_linh": 3, "bong_sung": 2, "bong_dien_dien": 1},
-    "stoves": [{
-      "id": "B1", "state": "cooking", "cook_ticks_left": 264,
-      "dish": {"order_id": "K1", "dish_id": "lau_ca_linh_dien_dien", "base_price": 120}
-    }],
-    "customers": [{
-      "id": "K1", "table_id": "T1", "state": "waiting", "order_status": "assigned",
-      "dish_id": "lau_ca_linh_dien_dien", "patience_ticks_left": 2490, "base_price": 120
-    }]
+    "player": {
+      "pos": [
+        3,
+        5
+      ]
+    },
+    "stock": [
+      {
+        "id": "it1",
+        "kind": "ca_loc",
+        "fresh": 96
+      },
+      {
+        "id": "it2",
+        "kind": "ca_linh",
+        "fresh": 91
+      },
+      {
+        "id": "it3",
+        "kind": "ca_linh",
+        "fresh": 84
+      },
+      {
+        "id": "it4",
+        "kind": "ca_linh",
+        "fresh": 77
+      },
+      {
+        "id": "it5",
+        "kind": "bong_sung",
+        "fresh": 88
+      },
+      {
+        "id": "it6",
+        "kind": "bong_sung",
+        "fresh": 65
+      },
+      {
+        "id": "it7",
+        "kind": "bong_dien_dien",
+        "fresh": 72
+      }
+    ],
+    "stoves": [
+      {
+        "id": "B1",
+        "state": "cooking",
+        "cook_ticks_left": 264,
+        "dish": {
+          "order_id": "K1",
+          "dish_id": "lau_ca_linh_dien_dien",
+          "base_price": 120
+        }
+      }
+    ],
+    "customers": [
+      {
+        "id": "K1",
+        "table_id": "T1",
+        "state": "waiting",
+        "order_status": "assigned",
+        "dish_id": "lau_ca_linh_dien_dien",
+        "patience_ticks_left": 2490,
+        "base_price": 120
+      }
+    ]
   }
 }

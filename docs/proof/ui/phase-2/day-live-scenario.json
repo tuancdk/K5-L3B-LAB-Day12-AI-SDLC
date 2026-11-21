@@ -1,5 +1,9 @@
 {
   "day": {"money": 200, "earned": 200},
-  "gather": {"hold": ["ca_loc", "bong_sung", "bong_sung"]},
+  "gather": {"hold": [
+    {"id": "it1", "kind": "ca_loc", "fresh": 100},
+    {"id": "it2", "kind": "bong_sung", "fresh": 64},
+    {"id": "it3", "kind": "bong_sung", "fresh": 31}
+  ]},
   "quan": {"time_left_ticks": 120, "random_customers": false}
 }

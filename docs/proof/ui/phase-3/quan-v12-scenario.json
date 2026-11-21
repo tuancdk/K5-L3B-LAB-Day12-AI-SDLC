@@ -1,0 +1,23 @@
+{
+  "quan": {
+    "player": {"pos": [3, 5]},
+    "stock": [
+      {"id": "it1", "kind": "ca_loc", "fresh": 92},
+      {"id": "it2", "kind": "bong_sung", "fresh": 74},
+      {"id": "it3", "kind": "bong_sung", "fresh": 58},
+      {"id": "it4", "kind": "ca_linh", "fresh": 31},
+      {"id": "it5", "kind": "bong_dien_dien", "fresh": 18}
+    ],
+    "stoves": [{
+      "id": "B1", "state": "cooking", "cook_ticks_left": 600,
+      "dish": {"order_id": "K1", "dish_id": "ca_loc_nuong_trui", "base_price": 52}
+    }],
+    "customers": [
+      {"id": "K1", "table_id": "T1", "state": "waiting", "order_status": "assigned",
+       "dish_id": "ca_loc_nuong_trui", "patience_ticks_left": 3000, "base_price": 52, "reserved": []},
+      {"id": "K2", "table_id": "T2", "state": "waiting", "order_status": "reserved",
+       "dish_id": "goi_bong_sung", "patience_ticks_left": 3200, "reserved": ["it2", "it3"]}
+    ],
+    "random_customers": false
+  }
+}

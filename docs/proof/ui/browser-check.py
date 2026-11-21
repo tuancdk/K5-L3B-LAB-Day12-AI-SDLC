@@ -196,7 +196,11 @@ def check_day_live(state, js, tap, photo):
     photo("live-day-gather")
     tap("e")
     panel("evening-intro")
-    assert state()["stock"] == {"bong_sung": 2, "ca_loc": 1}
+    stock = state()["stock"]
+    if isinstance(stock, list):  # contract v1.2: mảng cá thể {id, kind, fresh}, giữ nguyên id từ giỏ
+        assert sorted(item["id"] for item in stock) == ["it1", "it2", "it3"], stock
+        stock = {kind: sum(item["kind"] == kind for item in stock) for kind in {item["kind"] for item in stock}}
+    assert stock == {"bong_sung": 2, "ca_loc": 1}, stock
     assert js("document.querySelector('dialog').innerText.includes('Đã nhập 3 nguyên liệu')")
     photo("live-day-evening")
     choose("continue")
@@ -383,8 +387,9 @@ def main():
                 tap("e")
                 until(lambda: js("probe.posts.some(p => p.move[1] === 1) && probe.posts.some(p => p.interact)"))
                 until(lambda: state()["hand"] and state()["hand"]["dish_id"] == "lau_ca_linh_dien_dien")
-                modify("s.customers[0].reserved = {ca_linh: 2, ca_loc: 'bad'};")
-                until(lambda: js("document.querySelector('#journal').innerText.includes('Cá linh × 1')"))
+                # v1.2: reserved là mảng id cá thể; id lạ/sai kiểu bị bỏ qua, id thật hiện "Đã giữ chỗ".
+                modify("s.customers[0].reserved = [s.stock.find(i => i.kind === 'ca_linh').id, 'khong-co', 7];")
+                until(lambda: js("document.querySelector('#journal').innerText.includes('Đã giữ chỗ cho khách')"))
                 modify("s.customers[0].patience_ticks_left = 60;")
                 until(lambda: js("document.querySelector('#orders .ticket.urgent')?.textContent.includes('1 giây')"))
                 modify("s.time_left_ticks = 840;")
@@ -399,7 +404,7 @@ def main():
                     modify(mutation)
                     time.sleep(.18)
                     panel = js("document.querySelector('#journal').innerText + document.querySelector('#orders').innerText")
-                    assert expected in panel and "Kho khả dụng" in panel, panel
+                    assert expected in panel and ("Kho & độ tươi" in panel or "Kho khả dụng" in panel), panel
                 js("probe.modify = null")
                 until(lambda: js("document.querySelector('#action-tip').innerText.includes('đang bưng món')"))
                 viewport(390, 844)
@@ -412,7 +417,8 @@ def main():
                 until(lambda: state()["player"]["pos"][1] < 3.25)
                 key("s", "keyUp")
                 tap("e")
-                until(lambda: state()["customers"][0]["state"] == "eating")
+                # Từ P2 quán có khách ngẫu nhiên (vd. C1) xếp trước K1 theo id: tìm đúng khách đã gọi món.
+                until(lambda: any(c["id"] == "K1" and c["state"] == "eating" for c in state()["customers"]))
                 until(lambda: js("document.querySelector('#orders .ticket.eating')?.textContent.includes('Đang ăn')"))
                 until(lambda: js("document.querySelector('#action-tag').textContent === 'Đã giao món'"))
             assert js("probe.errors.length === 0"), js("probe.errors")

@@ -1,0 +1,7 @@
+{
+  "gather": {"hold": [
+    {"id": "it1", "kind": "ca_loc", "fresh": 88},
+    {"id": "it2", "kind": "bong_sung", "fresh": 57},
+    {"id": "it3", "kind": "bong_sung", "fresh": 32}
+  ]}
+}

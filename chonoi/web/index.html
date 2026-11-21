@@ -1851,6 +1851,46 @@ function serviceEffect(data,tables,map,hz) {
     }
   }
 }
+// Issue #32: đo chính cảnh render hiện tại; chỉ bật bằng ?bench=1.
+const benchMode = new URLSearchParams(location.search).get("bench") === "1";
+let benchConfig = null, benchFirst = null, benchLast = null, benchStart = null, benchSent = false;
+const benchFrames = [];
+if (benchMode) {
+  fetch("/bench-config").then(r => r.json()).then(config => {
+    benchConfig = config;
+    if (innerWidth !== config.width || innerHeight !== config.height) {
+      window.resizeTo(config.width + (outerWidth-innerWidth), config.height + (outerHeight-innerHeight));
+    }
+  });
+}
+function benchFrame(now, map, data) {
+  if (!benchConfig || benchSent || !map || !snapshot || mode !== "gather") return;
+  // Chỉ bắt đầu khi đúng viewport; không chấp nhận đổi kích thước giữa khoảng đo.
+  const sizeOK = innerWidth === benchConfig.width && innerHeight === benchConfig.height;
+  if (!sizeOK && benchFirst === null) return;
+  if (!sizeOK || document.visibilityState !== "visible" || data.error) {
+    benchSent = true;
+    fetch("/bench-result", {method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({error:"Cảnh đo bị ẩn, đổi viewport hoặc lỗi mô phỏng"})});
+    document.documentElement.dataset.bench = "failed";
+    return;
+  }
+  if (benchFirst === null) benchFirst = now;
+  if (now-benchFirst < benchConfig.warmup_s*1000) return;
+  if (benchStart === null) { benchStart = now; benchLast = now; return; }
+  const delta = now-benchLast;
+  if (delta > 0) benchFrames.push(delta);
+  benchLast = now;
+  if (now-benchStart < benchConfig.duration*1000) return;
+  benchSent = true;
+  fetch("/bench-result", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({
+    frame_ms:benchFrames, load_ms:performance.timeOrigin+benchFirst-benchConfig.started_epoch_ms,
+    width:innerWidth, height:innerHeight
+  })}).then(async r => {
+    document.documentElement.dataset.bench = r.ok ? "complete" : "failed";
+    if (!r.ok) console.error(await r.text());
+  }).catch(error => { document.documentElement.dataset.bench="failed"; console.error(error); });
+}
 let animationTime = 0;
 function frame(now) {
   requestAnimationFrame(frame);
@@ -1894,6 +1934,7 @@ function frame(now) {
     layer("phản hồi giao món", () => serviceEffect(data,tables,map,hz),true);
   }
   layer("biển báo nhịp chơi", () => phaseBanner(data,hz,w,h,map),true);
+  if (benchMode) benchFrame(now,map,data);
 }
 // "Bắt đầu!" đầu buổi, đếm ngược 5 giây cuối và "Hết giờ!" — chỉ là hiển thị, không đổi luật.
 function bigWord(text,x,y,scale,fill) {

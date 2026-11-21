@@ -13,7 +13,7 @@ from .contract import load_contract
 from .errors import BadInput
 from .inputs import load_frames
 from .inventory import is_item_schema, items_to_counts, read_inventory, read_inventory_for
-from .items import ItemLedger, scenario_items
+from .items import ItemLedger, restore_native_items, scenario_items
 from .runner import run
 from .scenario import load_scenario, read_scenario_json
 
@@ -84,16 +84,20 @@ def main(argv=None) -> int:
         tuning = contract["tuning"]
         ledger = None
         if is_item_schema(contract.get("contract_version", "1.0")):
-            # v1.2: kho cá thể; luật hiện còn dạng loại -> đổi ở biên, adapter dựng lại cá thể ở đầu ra
+            # Validator cũ nhận dạng đếm; sau kiểm tra khôi phục cá thể/id gốc cho sim v1.2.
             inv_items = read_inventory_for(a.inventory, contract["contract_version"]) if a.inventory else None
             inventory = items_to_counts(inv_items) if inv_items is not None else None
             raw = read_scenario_json(a.scenario) if a.scenario else None
-            raw, g_items, q_items = scenario_items(raw, a.mode)
+            native_raw = raw
+            raw, g_items, q_items = scenario_items(raw, a.mode, quan_items=inv_items)
             if inv_items is not None:
                 q_items = inv_items
             ledger = ItemLedger(a.mode, tuning["freshness"]["initial"], g_items, q_items)
             scenario = load_scenario(a.scenario, a.mode, tuning, inventory=inventory,
                                      extensions=contract.get("extensions", []), data=raw)
+            scenario = restore_native_items(scenario, native_raw, a.mode)
+            if a.mode == "quan":
+                inventory = inv_items if inv_items is not None else (None if "stock" in scenario else [])
         else:
             inventory = read_inventory(a.inventory) if a.inventory else None
             scenario = load_scenario(a.scenario, a.mode, tuning, inventory=inventory,

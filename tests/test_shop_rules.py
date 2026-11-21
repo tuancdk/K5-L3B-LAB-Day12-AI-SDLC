@@ -12,7 +12,7 @@ from chonoi.runner import Session
 from chonoi.sim.day import DaySim
 from chonoi.sim.shop import ShopSim
 
-from helpers import Workdir, events, frames, item_counts, items, read_jsonl, run_headless, snapshots, write_json
+from helpers import Workdir, events, frames, items, read_jsonl, run_headless, snapshots, write_json
 
 
 class ShopRules(unittest.TestCase):
@@ -153,7 +153,7 @@ class ShopRules(unittest.TestCase):
         self.assertIsInstance(session.sim.sim, ShopSim)
         self.assertEqual((session.sim.money, session.sim.earned, session.sim.reputation), (0, 300, 4))
         self.assertEqual(session.snapshot()["score"], 700)
-        self.assertEqual(session.snapshot()["stock"], {"ca_loc": 1})
+        self.assertAlmostEqual(session.snapshot()["stock"][0]["fresh"], 100 - 0.5/60 - 0.25/60)
         self.assertEqual(session.snapshot()["active_upgrades"]["oxygen"], 0)
 
 
@@ -206,12 +206,12 @@ class ShopHeadless(unittest.TestCase):
         s = {row["tick"]: row for row in snapshots(rows)}
         self.assertEqual(s[4]["upgrades"], {"oxygen": 1, "hp": 1})
         self.assertEqual(s[4]["active_upgrades"], {"oxygen": 0, "hp": 0})
-        self.assertEqual(item_counts(s[4]["stock"]), {"ca_loc": 1})  # v1.2: kho Shop là mảng cá thể
+        self.assertEqual([it["kind"] for it in s[4]["stock"]], ["ca_loc"])
         self.assertEqual((s[5]["day"], s[5]["phase"], s[5]["phase_tick"]), (2, "gather", 0))
         self.assertEqual(s[5]["active_upgrades"], {"oxygen": 1, "hp": 1})
         self.assertEqual((s[5]["player"]["oxygen_max_ticks"], s[5]["player"]["oxygen_ticks"],
                           s[5]["player"]["hp_max"], s[5]["player"]["hp"]), (2700, 2700, 4, 4))
-        self.assertEqual([it["kind"] for it in s[5]["hold"]], ["ca_loc"])  # mẫu gather; không cộng kho dư Shop
+        self.assertEqual([it["kind"] for it in s[5]["hold"]], ["ca_loc"])  # P3: mẫu cá thể, không cộng kho dư
         self.assertEqual((s[5]["money"], s[5]["earned"], s[5]["score"]), (0, 700, 1000))
 
     def test_last_day_counts_only_after_shop_timeout(self):

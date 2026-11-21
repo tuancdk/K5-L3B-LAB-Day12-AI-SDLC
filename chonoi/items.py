@@ -57,7 +57,7 @@ class ItemLedger:
         if phase == "gather":
             self._gather_sim = inner
             self._sync_hold(inner)
-        elif phase == "quan":
+        elif phase in ("quan", "shop"):
             self._sync_stock(inner)
 
     def _enter(self, phase, day, inner):
@@ -142,7 +142,7 @@ class ItemLedger:
         return row
 
 
-def scenario_items(data, mode):
+def scenario_items(data, mode, quan_items=None):
     """v1.2: tách `gather.hold` / `quan.stock` dạng cá thể khỏi scenario thô.
 
     Trả (data cho validator hiện có — hold là mảng kind, stock là object đếm, gather_items, quan_items).
@@ -152,7 +152,7 @@ def scenario_items(data, mode):
     if not isinstance(data, dict):
         return data, [], []
     data = deepcopy(data)
-    g_items, q_items = [], []
+    g_items, q_items = [], list(quan_items or [])
     g = data.get("gather")
     if isinstance(g, dict) and "hold" in g:
         g_items = validate_item_list(g["hold"], where="gather.hold")  # giữ nguyên cá thể cho GatherSim
@@ -161,12 +161,13 @@ def scenario_items(data, mode):
         q_items = validate_item_list(q["stock"], where="quan.stock")
         q["stock"] = items_to_counts(q_items)
     if isinstance(q, dict):  # customers[].reserved: mảng id cá thể trong kho, không dùng chung giữa các đơn
-        by_id, used = {it["id"]: it for it in q_items}, set()
+        source = g_items if mode == "day" else q_items
+        by_id, used = {it["id"]: it for it in source}, set()
         for c in q.get("customers", []) if isinstance(q.get("customers"), list) else []:
             if isinstance(c, dict) and isinstance(c.get("reserved"), list):
                 from .errors import BadInput
                 for ident in c["reserved"]:
-                    if ident not in by_id or ident in used:
+                    if not isinstance(ident, str) or ident not in by_id or ident in used:
                         raise BadInput(f"customers.{c.get('id')}.reserved: id {ident!r} không có trong kho hoặc bị giữ trùng")
                     used.add(ident)
                 c["reserved"] = items_to_counts([by_id[i] for i in c["reserved"]])
@@ -175,3 +176,23 @@ def scenario_items(data, mode):
         from .errors import BadInput
         raise BadInput("id cá thể trùng giữa gather.hold và quan.stock")
     return data, g_items, q_items
+
+
+def restore_native_items(scenario, original, mode):
+    """Sau validator dạng đếm, trả cá thể/id nguyên bản cho sim native (không hao thêm)."""
+    result = deepcopy(scenario)
+    original = original or {}
+    for phase, field in (("gather", "hold"), ("quan", "stock")):
+        source = original.get(phase, {})
+        target = result.setdefault(phase, {}) if mode == "day" else result
+        if mode != "day" and mode != phase:
+            continue
+        if field in source:
+            target[field] = deepcopy(source[field])
+        if phase == "quan":
+            by_id = {c["id"]: c for c in source.get("customers", [])}
+            for c in target.get("customers", []):
+                raw = by_id.get(c["id"], {})
+                if "reserved" in raw:
+                    c["reserved"] = deepcopy(raw["reserved"])
+    return result

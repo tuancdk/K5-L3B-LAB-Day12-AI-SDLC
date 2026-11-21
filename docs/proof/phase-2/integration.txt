@@ -3,4 +3,4 @@ PASS  tất định gather: jsonl caf628b55865e90a vs caf628b55865e90a; kho chư
 PASS  tất định quan: jsonl 38523e98f9084090 vs 38523e98f9084090
 PASS  smoke dock → quan: kho {"items":{"bong_sung":2,"ca_loc":1}} → stock tick 0 {'bong_sung': 2, 'ca_loc': 1}
 PASS  tất định day --days 2: jsonl 4cd05030cdc4d340 vs 4cd05030cdc4d340
-PASS  day --days 1 hoàn tất: end days_complete ticks 22200 days_completed 1 · 0.30s
+PASS  day --days 1 hoàn tất: end days_complete ticks 22200 days_completed 1 · 0.33s

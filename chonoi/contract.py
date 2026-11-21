@@ -5,6 +5,9 @@ import os
 from .errors import BadInput
 from .inventory import validate_items
 
+NODE_KINDS = ("bong_dien_dien", "bong_sung", "keo_neo")
+FISH_KINDS = ("ca_linh", "ca_loc", "ca_keo")
+
 DEFAULT_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "game.contract.json")
 
 
@@ -85,8 +88,8 @@ def _validate_gather(g, tick_hz):
     if not _num(g.get("start_heading_deg")):
         raise BadInput("tuning.gather.start_heading_deg phải là số")
     fy = g.get("fish_yield")
-    if not isinstance(fy, dict) or not {"ca_linh", "ca_loc"} <= set(fy):
-        raise BadInput("tuning.gather.fish_yield phải có ca_linh và ca_loc")
+    if not isinstance(fy, dict) or not set(FISH_KINDS) <= set(fy):
+        raise BadInput(f"tuning.gather.fish_yield phải có đủ {FISH_KINDS}")
     for k, v in fy.items():
         _int_between(f"gather.fish_yield.{k}", v, 1, g["hold_capacity"])
     nodes = g.get("nodes")
@@ -97,27 +100,28 @@ def _validate_gather(g, tick_hz):
         if not isinstance(n, dict) or not isinstance(n.get("id"), str) or n["id"] in seen:
             raise BadInput("tuning.gather.nodes: mỗi nút cần id duy nhất")
         seen.add(n["id"])
-        if n.get("kind") not in ("bong_dien_dien", "bong_sung"):
-            raise BadInput(f"tuning.gather.nodes.{n['id']}: kind phải là bong_dien_dien hoặc bong_sung")
+        if n.get("kind") not in NODE_KINDS:
+            raise BadInput(f"tuning.gather.nodes.{n['id']}: kind phải thuộc {NODE_KINDS}")
         kinds.add(n["kind"])
         _pos_in(f"gather.nodes.{n['id']}.pos", n.get("pos"), b, ("x", "d"))
         if n["pos"][1] != 0:
             raise BadInput(f"tuning.gather.nodes.{n['id']}: nút hái nằm ở mặt nước (d = 0)")
-    if kinds != {"bong_dien_dien", "bong_sung"}:
-        raise BadInput("tuning.gather.nodes phải có ít nhất một nút mỗi loại (bong_dien_dien, bong_sung)")
-    fish = g.get("fish_initial")
-    if not isinstance(fish, list) or len(fish) != 6:
-        raise BadInput("tuning.gather.fish_initial phải là danh sách đúng 6 đàn")
-    seen = set()
-    for f in fish:
-        if not isinstance(f, dict) or not isinstance(f.get("id"), str) or f["id"] in seen:
-            raise BadInput("tuning.gather.fish_initial: mỗi đàn cần id duy nhất")
-        seen.add(f["id"])
-        if f.get("kind") not in fy:
-            raise BadInput(f"tuning.gather.fish_initial.{f['id']}: kind phải thuộc fish_yield")
-        _pos_in(f"gather.fish_initial.{f['id']}.pos", f.get("pos"), b, ("x", "d"))
-        if f["pos"][1] <= g["surface_depth"]:
-            raise BadInput(f"tuning.gather.fish_initial.{f['id']}: đàn cá phải ở dưới nước")
+    if kinds != set(NODE_KINDS):
+        raise BadInput(f"tuning.gather.nodes phải có ít nhất một nút mỗi loại {NODE_KINDS}")
+    # v1.1: fish_initial là SỐ đàn đầu ca; cá sinh theo fish_spawn_x/fish_spawn_depths (TICKET-02 mục 1.1).
+    _int_between("gather.fish_max", g.get("fish_max"), 1, 100)
+    _int_between("gather.fish_initial", g.get("fish_initial"), 0, g["fish_max"])
+    _between("gather.fish_speed", g.get("fish_speed"), 0, 10)
+    _int_between("gather.fish_turn_ticks", g.get("fish_turn_ticks"), 1, 100_000)
+    _int_between("gather.fish_spawn_ticks", g.get("fish_spawn_ticks"), 1, 100_000)
+    _between("gather.fish_spawn_clearance", g.get("fish_spawn_clearance"), 0, 100)
+    for key in ("fish_depths", "fish_spawn_depths", "fish_weights"):
+        m = g.get(key)
+        if not isinstance(m, dict) or set(m) != set(FISH_KINDS):
+            raise BadInput(f"tuning.gather.{key} phải là map đủ {FISH_KINDS}")
+    xs = g.get("fish_spawn_x")
+    if not isinstance(xs, list) or not xs or not all(_num(x) for x in xs):
+        raise BadInput("tuning.gather.fish_spawn_x phải là mảng số không rỗng")
 
 
 def _validate_furniture(q, key):
@@ -153,7 +157,7 @@ def _validate_quan(q, tick_hz):
     if not (_num(q.get("tip_reputation")) and q["tip_reputation"] > 0):
         raise BadInput("quan.tip_reputation phải > 0")
     if q.get("burn_s") is not None:
-        raise BadInput("burn_s phải là null ở Phase 1")
+        raise BadInput("burn_s phải là null trong lõi (mở rộng burn chưa bật)")
     for key in ("stoves", "tables"):
         _validate_furniture(q, key)
     carry_limit = q.get("carry_limit")

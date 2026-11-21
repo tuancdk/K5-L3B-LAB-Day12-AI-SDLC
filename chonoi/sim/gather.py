@@ -41,23 +41,51 @@ class GatherSim:
         src_nodes = scenario["nodes"] if "nodes" in scenario else t["nodes"]
         self.nodes = [{"id": n["id"], "kind": n["kind"], "pos": [float(c) for c in n["pos"]],
                        "regrow_ticks": n.get("regrow_ticks", 0)} for n in src_nodes]
-        if "fish" in scenario:
-            src_fish = scenario["fish"]
-        elif scenario.get("random_fish", True):
-            src_fish = t["fish_initial"]
-        else:
-            src_fish = []
-        # Đàn cá đứng yên ở phase này. Cá bơi / sinh thêm là việc của phase sau.
+        src_fish = scenario["fish"] if "fish" in scenario else []
         self.fish = [{"id": f["id"], "kind": f["kind"], "pos": [float(c) for c in f["pos"]],
                       "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
         for coll in (self.nodes, self.fish):
             for e in coll:
                 ids.reserve(e["id"])
+        # v1.1: không khai `fish` và random_fish bật -> sinh fish_initial đàn ở các điểm khác nhau theo seed.
+        # TODO(#13): cá bơi, đổi hướng, sinh theo lịch fish_spawn_ticks dùng lại _spawn_fish.
+        if "fish" not in scenario and scenario.get("random_fish", True):
+            for _ in range(int(t["fish_initial"])):
+                if self._spawn_fish() is None:
+                    break
         self.money = 0
         self.earned = 0
         self.reputation = tuning["quan"]["reputation_initial"]
         self.done = False
         self.reason = None
+
+    def _spawn_candidates(self):
+        """Map loài -> các điểm sinh còn hợp lệ (cách mọi đàn đang sống > fish_spawn_clearance)."""
+        t, out = self.t, {}
+        clear = t["fish_spawn_clearance"]
+        for kind in sorted(t["fish_spawn_depths"]):
+            pts = [[float(x), float(d)] for x in t["fish_spawn_x"] for d in t["fish_spawn_depths"][kind]
+                   if all(math.dist((x, d), f["pos"]) > clear for f in self.fish)]
+            if pts:
+                out[kind] = pts
+        return out
+
+    def _spawn_fish(self):
+        """Sinh một đàn (TICKET-02 1.1): chọn loài theo fish_weights (chuẩn hóa trên loài còn điểm),
+        rồi chọn đều một điểm của loài và hướng ban đầu theo seed. Trả đàn mới hoặc None."""
+        if len(self.fish) >= int(self.t["fish_max"]):
+            return None
+        cands = self._spawn_candidates()
+        if not cands:
+            return None
+        rng = self.rng.get("fish_spawn")
+        kinds = sorted(cands)
+        kind = rng.choices(kinds, weights=[self.t["fish_weights"][k] for k in kinds])[0]
+        pos = rng.choice(cands[kind])
+        fish = {"id": self.ids.new("F"), "kind": kind, "pos": pos,
+                "heading_deg": round(rng.uniform(0, 360), 3)}
+        self.fish.append(fish)
+        return fish
 
     def _ticks(self, seconds) -> int:
         return int(round(seconds * self.tick_hz))

@@ -99,6 +99,7 @@ class QuanRules(unittest.TestCase):
         self.assertEqual([c["id"] for c in session.sim.customers], ["C1"])
 
     def test_occupied_table_skips_arrival_without_no_dish(self):
+        self.tuning["quan"]["tables"] = self.tuning["quan"]["tables"][:1]  # v1.1 có 4 bàn; ca này cần đúng 1 bàn
         session = self.session({"customers": [customer()], "stock": {"ca_loc": 1}, "random_customers": True})
         self.assertEqual(self.steps(session, 1020), [])
 
@@ -128,7 +129,8 @@ class QuanRules(unittest.TestCase):
             session = self.session({"stock": {"ca_loc": 1, "bong_sung": 2, "ca_linh": 3, "bong_dien_dien": 1},
                                     "random_customers": True}, seed=seed)
             choices.add(events(self.steps(session, 120), "customer_arrived")[0]["data"]["dish_id"])
-        self.assertEqual(choices, {FISH_DISH, SALAD, HOT_POT})
+        # v1.1: kho này còn đủ canh_chua_ca_loc (ca_loc 1 + bong_dien_dien 1) nên có 4 món hợp lệ.
+        self.assertEqual(choices, {FISH_DISH, SALAD, HOT_POT, "canh_chua_ca_loc"})
 
     def test_cook_consumes_reserved_once_and_interact_requires_rising_edge(self):
         session = self.session({"player": {"pos": [2, 8]}, "customers": [customer()], "stock": {"ca_loc": 2}})

@@ -3,7 +3,7 @@ import shutil
 import unittest
 from pathlib import Path
 
-from helpers import ROOT, Workdir, read_jsonl, run_headless, write_json
+from helpers import ROOT, Workdir, items, read_jsonl, run_headless, stock_items, write_json
 
 
 FIXTURES = Path(__file__).with_name("fixtures") / "validation"
@@ -73,9 +73,9 @@ class Validation(unittest.TestCase):
         fixture = FIXTURES / "quan" / "reserved_exceeds_stock.json"
         with Workdir() as workdir:
             inventory = workdir.path("stock.json")
-            write_json(inventory, {"items": {"ca_linh": 2, "bong_dien_dien": 1}})
+            write_json(inventory, {"items": stock_items({"ca_linh": 2, "bong_dien_dien": 1})})
             self.assert_rejected("quan", "--scenario", str(fixture), "--inventory", inventory)
-            stock = {"ca_linh": 3, "bong_dien_dien": 1}
+            stock = stock_items({"ca_linh": 3, "bong_dien_dien": 1})  # v1.2: kho cá thể
             write_json(inventory, {"items": stock})
             out = workdir.path("out.jsonl")
             code, error = run_headless("--mode", "quan", "--seed", "1", "--ticks", "10", "--out", out,
@@ -88,9 +88,9 @@ class Validation(unittest.TestCase):
         meal = {"order_id": "C1", "dish_id": DISH, "base_price": 60}
         assigned = dict(customer, order_status="assigned")
         cases = {
-            "implicit reservation": {"customers": [customer], "stock": {"ca_loc": 1}},
-            "same stock as reservation": {"customers": [dict(customer, reserved={"ca_loc": 1})],
-                                          "stock": {"ca_loc": 1}},
+            "implicit reservation": {"customers": [customer], "stock": items("ca_loc")},
+            "same stock as reservation": {"customers": [dict(customer, reserved=["I1"])],
+                                          "stock": items("ca_loc")},
             "ready": {"customers": [assigned], "stoves": [{"id": "B1", "state": "ready", "dish": meal}]},
             "cooking": {"customers": [assigned], "stoves": [{"id": "B1", "state": "cooking", "dish": meal,
                                                              "cook_ticks_left": 1}]},

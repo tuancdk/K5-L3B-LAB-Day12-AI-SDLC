@@ -65,3 +65,20 @@ class Workdir:
 
     def path(self, name):
         return os.path.join(self._d.name, name)
+
+
+def items(*kinds, start=1, fresh=100):
+    """Kho/giỏ cá thể v1.2 (TICKET-03): id I<start>, I<start+1>… theo thứ tự, fresh mặc định 100."""
+    return [{"id": f"I{start + i}", "kind": k, "fresh": fresh} for i, k in enumerate(kinds)]
+
+
+def stock_items(counts, start=1, fresh=100):
+    """Object đếm v1.0 -> mảng cá thể v1.2 (loại sắp theo tên)."""
+    return items(*[k for k in sorted(counts) for _ in range(counts[k])], start=start, fresh=fresh)
+
+
+def item_counts(arr):
+    out = {}
+    for it in arr:
+        out[it["kind"]] = out.get(it["kind"], 0) + 1
+    return out

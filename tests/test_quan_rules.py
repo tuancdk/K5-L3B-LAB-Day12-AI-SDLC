@@ -8,7 +8,7 @@ from chonoi.contract import load_contract
 from chonoi.inputs import InputPlayer
 from chonoi.runner import Session
 
-from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
+from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, stock_items, write_json
 
 
 FISH_DISH = "ca_loc_nuong_trui"
@@ -317,6 +317,9 @@ class QuanRules(unittest.TestCase):
 
 class QuanHeadless(unittest.TestCase):
     def run_game(self, workdir, scenario, ticks, inputs=(), stem="out", seed=7):
+        scenario = dict(scenario)
+        if isinstance(scenario.get("stock"), dict):  # v1.2: kho cá thể ở đầu vào headless
+            scenario["stock"] = stock_items(scenario["stock"])
         sc = write_json(workdir.path(stem + "-scenario.json"), {"quan": scenario})
         inp = write_json(workdir.path(stem + "-inputs.json"), frames(*inputs))
         out = workdir.path(stem + ".jsonl")
@@ -338,7 +341,7 @@ class QuanHeadless(unittest.TestCase):
             self.assertEqual(rows[-1]["money"], 72)
             self.assertEqual(rows[-1]["score"], 372)
             self.assertEqual(rows[-1]["reason"], "tick_limit")
-            self.assertEqual(snapshots(rows)[-1]["stock"], {})
+            self.assertEqual(snapshots(rows)[-1]["stock"], [])
             self.assertEqual(snapshots(rows)[-1]["customers"], [])
 
     def test_seeded_jsonl_is_byte_identical_with_reordered_input_maps(self):

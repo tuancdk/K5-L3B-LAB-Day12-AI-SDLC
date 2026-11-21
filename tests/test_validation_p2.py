@@ -3,7 +3,7 @@ import shutil
 import unittest
 from pathlib import Path
 
-from helpers import ROOT, Workdir, read_jsonl, run_headless, write_json
+from helpers import ROOT, Workdir, item_counts, read_jsonl, run_headless, stock_items, write_json
 
 
 FIXTURES = Path(__file__).with_name("fixtures") / "validation-p2"
@@ -91,7 +91,7 @@ class ValidationP2(unittest.TestCase):
             plan = next(row["data"] for row in rows if row.get("name") == "day_plan")
             self.assertEqual(plan["ingredients"], {"ca_keo": 2})
             snapshot = next(row for row in rows if row["type"] == "snapshot" and row["phase"] == "quan")
-            self.assertEqual(snapshot["stock"], {"ca_keo": 2})
+            self.assertEqual(item_counts(snapshot["stock"]), {"ca_keo": 2})  # v1.2: kho cá thể
             self.assertEqual(snapshot["customers"][0]["reserved"], {"ca_keo": 2})
 
     def test_transition_failure_preserves_existing_out(self):
@@ -109,7 +109,7 @@ class ValidationP2(unittest.TestCase):
 
     def test_file_inventory_accepts_both_new_ingredients(self):
         with Workdir() as workdir:
-            stock = {"ca_keo": 2, "keo_neo": 1}
+            stock = stock_items({"ca_keo": 2, "keo_neo": 1})  # v1.2: kho cá thể
             kho = write_json(workdir.path("in.json"), {"items": stock})
             code, error, out = self.run_case(workdir, "quan", "--inventory", kho)
             self.assertEqual(code, 0, error)

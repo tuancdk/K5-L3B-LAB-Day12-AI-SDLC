@@ -20,7 +20,7 @@ class ContractV11(unittest.TestCase):
         self.t = self.c["tuning"]
 
     def test_version_and_extensions(self):
-        self.assertEqual(self.c["contract_version"], "1.1")
+        self.assertIn(self.c["contract_version"], ("1.1", "1.2"))  # v1.2 (P3) giữ mọi số chuẩn v1.1
         self.assertIsInstance(self.c["extensions"], list)
 
     def test_quan_two_stoves_four_tables_six_dishes(self):

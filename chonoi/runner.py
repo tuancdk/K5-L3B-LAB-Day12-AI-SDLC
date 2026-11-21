@@ -11,7 +11,7 @@ import math
 
 from .ids import IdAllocator
 from .inputs import InputPlayer
-from .inventory import write_inventory
+from .inventory import write_inventory, write_inventory_items
 from .jsonl import JsonlWriter
 from .rng import Streams
 from .sim.day import DaySim
@@ -116,26 +116,38 @@ class Session:
 
 
 def run(mode, tuning, scenario, seed, frames, ticks, out_path, snapshot_every, inventory=None, inventory_out=None,
-        days=1, buttons=None):
+        days=1, buttons=None, ledger=None):
+    """`ledger` (chonoi.items.ItemLedger): bật khi contract v1.2 — đầu ra kho/giỏ dạng cá thể."""
     sess = Session(mode, tuning, scenario, seed, inventory, days)
     player = InputPlayer(frames, buttons) if buttons else InputPlayer(frames)
     w = JsonlWriter(out_path)
+    if ledger is not None:
+        ledger.sync(sess)
+    snap = (lambda: ledger.patch_snapshot(sess.snapshot())) if ledger is not None else sess.snapshot
     try:
         for row in sess.initial_rows():
             w.write(row)
-        w.write(sess.snapshot())  # tick 0: sau khi dựng scenario, trước mọi input
+        w.write(snap())  # tick 0: sau khi dựng scenario, trước mọi input
         last_snapped = 0
         while sess.tick < ticks and not sess.done:
             inp = player.advance(sess.tick)  # bước k đọc input có tick == k
-            for row in sess.step(inp):
+            rows = sess.step(inp)
+            if ledger is not None:
+                ledger.sync(sess)
+                rows = [ledger.patch_event(r) for r in rows]
+            for row in rows:
                 w.write(row)
             if sess.tick % snapshot_every == 0 or sess.done:
-                w.write(sess.snapshot())
+                w.write(snap())
                 last_snapped = sess.tick
         if last_snapped != sess.tick:
-            w.write(sess.snapshot())
+            w.write(snap())
         w.write(sess.end_row())
     finally:
         w.close()
-    sess.write_inventory_if_done(inventory_out)
+    if ledger is not None:
+        if sess.mode == "gather" and sess.done and inventory_out:
+            write_inventory_items(inventory_out, ledger.inventory()["items"])
+    else:
+        sess.write_inventory_if_done(inventory_out)
     return sess.sim

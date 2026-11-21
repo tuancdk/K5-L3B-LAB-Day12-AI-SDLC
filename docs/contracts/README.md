@@ -1,4 +1,4 @@
-# Hợp đồng tích hợp — Test Contract v1.1 (Phase 2)
+# Hợp đồng tích hợp — Test Contract v1.2 (Phase 3)
 
 > Mục 1–5 là v1.0 (Phase 1, vẫn hiệu lực). **Mục 6 là thay đổi v1.1** (TICKET-02, issue #12).
 
@@ -161,9 +161,41 @@ Snapshot: `state` thêm `"paused"`. Gather thêm `monsters[]`, `player.invuln_ti
 
 Dòng `end` của `day` thêm `days_completed`; đủ Ngày → `reason:"days_complete"`.
 
+## 7. Contract v1.2 (Phase 3) — kho cá thể (TICKET-03, #18)
+
+**Breaking change:** kho đếm theo loại → mảng cá thể. Bên đọc chọn schema theo `contract_version` (`chonoi/inventory.py: read_inventory_for`).
+
+```json
+{"items":[{"id":"I1","kind":"ca_linh","fresh":100},{"id":"I2","kind":"ca_loc","fresh":97.5}]}
+```
+
+| Quy tắc | Chi tiết |
+|---|---|
+| Khóa gốc | **chỉ** `items` = mảng `{id, kind, fresh}` (đúng 3 khóa); rỗng `{"items":[]}` |
+| `id` | chuỗi khác rỗng, duy nhất; cấp `I1, I2, …` theo thứ tự vào giỏ, tăng xuyên pha và Ngày (kể cả khi cá thể trước đã dùng/bỏ) |
+| `kind` / `fresh` | thuộc 6 loại; `fresh` hữu hạn trong `[0, 100]` (không nhận bool) |
+| Đọc (v1.2) | file đếm, sai schema, kind lạ, id trùng, fresh ngoài miền → **mã 2**. Quán nhận nguyên số lượng, id, fresh (kể cả hàng ươn); sức chứa giỏ không áp lên kho |
+| Ghi | `--inventory-out` đúng một lần khi `gather_end` (file tạm → `os.replace`); ngất ghi `{"items":[]}`; chạm `--ticks` trước → giữ nguyên đích. Sắp theo id; `fresh` ghi float ngắn nhất đọc lại đúng giá trị. `gather_end.data.inventory` cùng schema |
+
+**`tuning.freshness`** `{initial:100, gather_decay_per_s:0.5, quan_decay_per_s:0.25, spoiled_below:30}`. **Lưu nội bộ: 240 đơn vị/điểm** (`inventory.FRESH_UNITS`): giỏ −2 đơn vị/tick, kho quán −1 đơn vị/tick (kể cả hàng đang giữ chỗ), kẹp 0; xuất `fresh = units / 240`. So ngưỡng trên đơn vị nguyên (`units < 30*240`) → không sai số ở ngưỡng 30. Hàng mới `fresh=100`, hao từ bước sau. Pause, Shop, hàng chờ nhập, món chín: không hao.
+
+| Trường / event | v1.2 |
+|---|---|
+| snapshot `hold` (gather), `stock` (quán, Shop) | mảng cá thể; `hold` theo thứ tự vào giỏ, `stock` theo id |
+| `customers[].reserved` | mảng **id** cá thể (snapshot + scenario); cá thể chưa ươn, đủ công thức, không dùng chung giữa đơn |
+| `cook_started.data.items` | mảng cá thể đã dùng, sắp theo kind rồi id |
+| `monster_hit.lost`, `faint.lost` | mảng cá thể theo thứ tự bỏ (LIFO) |
+| `spoiled` (mới) | `{item_id, kind, location}` (`hold`/`stock`), đúng một lần khi đi từ ≥ 30 xuống < 30; nhiều cá thể cùng tick → theo id |
+| giá | `base_price = floor(giá niêm yết × trung bình fresh các cá thể dùng / 100)` chốt khi bắt đầu nấu; boa `floor(base_price × 0.2)` |
+
+Scenario v1.2: `gather.hold`, `quan.stock` là mảng cá thể; trong `day`, Ngày 1 giữ id của `gather.hold` mẫu, Ngày sau cấp id mới theo thứ tự mảng với kind/fresh ban đầu. Bàn giao trong `day` cùng tick chuyển pha, không hao thêm.
+
+**Adapter tạm (`chonoi/items.py`)**: khi sim còn giữ hàng dạng loại, adapter ở biên headless gán id/fresh cho đầu ra (giỏ khớp theo độ dài vì chỉ thêm/bỏ ở cuối; kho quán bỏ cá thể tươi nhất khi một loại giảm). **#19/#20:** khi sim có thuộc tính `items_hold` (gather, theo thứ tự vào giỏ) / `items_stock` (quán) là mảng cá thể thật, adapter dùng thẳng — không cần sửa runner.
+
 ## Lịch sử đổi
 
 | Ngày | Thay đổi | Lý do | Ai |
 |---|---|---|---|
 | 2026-11-21 | v1.0 chốt Phase 1 | Theo PRD-0 mục E/G | tuancdk |
 | 2026-11-21 | v1.1 số chuẩn Phase 2, mode `day`, `day_ctx` | TICKET-02 mục 1–4 (#12) | tuancdk |
+| 2026-11-21 | v1.2 kho cá thể `{id, kind, fresh}`, `freshness`, `spoiled`, adapter | TICKET-03 (#18) — breaking change | tuancdk |

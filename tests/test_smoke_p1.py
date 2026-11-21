@@ -8,7 +8,7 @@ import json
 import os
 import unittest
 
-from helpers import Workdir, close, events, frames, items, read_jsonl, run_headless, snapshots, write_json
+from helpers import Workdir, assert_items_close, close, decayed, events, frames, items, read_jsonl, run_headless, snapshots, write_json
 
 
 def last_pos(rows):
@@ -194,7 +194,7 @@ class Movement(unittest.TestCase):
             self.assertEqual(end_ev[0]["data"]["reason"], "time")
             self.assertEqual(rows[-1]["reason"], "time")
             with open(inv, encoding="utf-8") as f:
-                self.assertEqual(json.load(f), {"items": items("ca_loc")})
+                assert_items_close(self, json.load(f)["items"], items("ca_loc", fresh=decayed(3)))  # hao 3 bước
 
 
 class Integration(unittest.TestCase):
@@ -209,14 +209,14 @@ class Integration(unittest.TestCase):
             self.assertEqual(code, 0, err)
             with open(inv, encoding="utf-8") as f:
                 saved = json.load(f)
-            self.assertEqual(saved, {"items": items("ca_loc", "bong_sung", "bong_sung")})  # v1.2
+            assert_items_close(self, saved["items"], items("ca_loc", "bong_sung", "bong_sung", fresh=decayed(1)))  # v1.2: hao 1 bước
             end = events(read_jsonl(w.path("r.jsonl")), "gather_end")[0]["data"]
             self.assertEqual(end["reason"], "docked")
-            self.assertEqual(end["inventory"], saved)
+            assert_items_close(self, end["inventory"]["items"], saved["items"])  # JSONL làm tròn 3 số, file đủ chính xác
             code, err = run_headless("--mode", "quan", "--seed", "42", "--ticks", "0", "--inventory", inv,
                                      "--out", w.path("q.jsonl"))
             self.assertEqual(code, 0, err)
-            self.assertEqual(snapshots(read_jsonl(w.path("q.jsonl")))[0]["stock"], saved["items"])
+            assert_items_close(self, snapshots(read_jsonl(w.path("q.jsonl")))[0]["stock"], saved["items"])
 
     def test_inv_01_not_written_when_tick_limit_first(self):
         with Workdir() as w:

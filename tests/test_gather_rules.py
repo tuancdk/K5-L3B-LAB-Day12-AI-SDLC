@@ -8,11 +8,12 @@ from chonoi.contract import load_contract
 from chonoi.inputs import InputPlayer, load_frames
 from chonoi.runner import Session
 
-from helpers import Workdir, events, frames, items, read_jsonl, run_headless, snapshots, write_json
+from helpers import Workdir, assert_items_close, decayed, events, frames, items, read_jsonl, run_headless, snapshots, write_json
 
 
 def make_session(scenario=None, seed=1, tuning=None):
     t = deepcopy(load_contract()["tuning"]) if tuning is None else deepcopy(tuning)
+    t.pop("freshness", None)  # luật P1/P2 với giỏ dạng kind; giỏ cá thể v1.2 kiểm ở test_gather_p3
     return Session("gather", t, deepcopy(scenario or {}), seed)
 
 
@@ -294,7 +295,8 @@ class GatherHeadless(unittest.TestCase):
             self.assertEqual(code, 0, err)
             rows = read_jsonl(out)
             self.assertEqual([e["name"] for e in events(rows)], ["choke", "faint", "gather_end"])
-            self.assertEqual(events(rows, "faint")[0]["data"]["lost"], list(reversed(items("ca_loc", "bong_dien_dien"))))
+            assert_items_close(self, events(rows, "faint")[0]["data"]["lost"],
+                               list(reversed(items("ca_loc", "bong_dien_dien", fresh=decayed(1)))))  # hao 1 bước rồi ngất
             snaps = snapshots(rows)
             self.assertEqual([s["tick"] for s in snaps], [0, 1])
             self.assertEqual(snaps[-1]["state"], "finished")
@@ -330,12 +332,13 @@ class GatherHeadless(unittest.TestCase):
             self.assertEqual(rows[-1]["reason"], "docked")
             with open(inv, encoding="utf-8") as f:
                 saved = json.load(f)
-            self.assertEqual(saved, {"items": items("bong_dien_dien", "ca_linh", "ca_linh", "ca_linh")})
+            self.assertEqual([(it["id"], it["kind"]) for it in saved["items"]],
+                             [("I1", "bong_dien_dien"), ("I2", "ca_linh"), ("I3", "ca_linh"), ("I4", "ca_linh")])
             # Truyền file kho vào chế độ Quán
             code, err = run_headless("--mode", "quan", "--seed", "42", "--ticks", "0",
                                      "--inventory", inv, "--out", out_q)
             self.assertEqual(code, 0, err)
-            self.assertEqual(snapshots(read_jsonl(out_q))[0]["stock"], saved["items"])
+            assert_items_close(self, snapshots(read_jsonl(out_q))[0]["stock"], saved["items"])
 
     def test_headless_determinism_same_seed_byte_identical(self):
         with Workdir() as w:

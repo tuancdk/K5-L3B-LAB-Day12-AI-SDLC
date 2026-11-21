@@ -1,8 +1,5 @@
 # Ma trận truy vết Phase 4
 
-Tiêu chí lấy từ issue #30–#34 (tách từ TICKET-04). **Kết quả dưới đây chạy lại trên commit gắn tag `phase-4` = `v1.0.0` (`9cd42fc`)**, từ một clone sạch. Môi trường: Windows 11, Python 3.12. Chưa chạy CI Linux hoặc macOS.
-
-Bằng chứng này được viết **sau** khi gắn tag (ngày 21/11/2026). Tag `phase-4` được gắn lúc 13:56.
 
 Chạy lại:
 - `python3 .agents/skills/run-tests/run_tests.py --phase phase-4 --who <handle>`
@@ -33,3 +30,19 @@ Phần sửa nằm trên `main`, không nằm trong tag `phase-4` / `v1.0.0`.
 | **`docs/proof/ui/browser-check.py` timeout ở `quan`** (ghi trong [ui/README.md](../proof/phase-4/ui/README.md)). | **Không còn tái hiện:** chạy lại 1 lần trên tag `phase-4` và 3 lần trên nhánh PR #51, cả `gather` và `quan` đều đạt. |
 | **`team` trong `game.contract.json` là `ten-nhom`**; release notes ghi `TEAM.md` có 4 người. | **Đã sửa:** `team` = `"1111"`, bỏ dòng cũ trong release notes. |
 | README và release notes clone theo tên repo cũ (GitHub vẫn chuyển hướng). | **Đã sửa:** dùng tên `K5-L3B-LAB-Day12-AI-SDLC-1111`. |
+
+## Kiểm chứng bổ sung trên main — macOS
+
+QA sau phát hành cho [issue #33](https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC-1111/issues/33) trên `ad475a8`, macOS 15.7.4 arm64 và Python 3.12.0. Kết quả trên tag `phase-4` được ghi ở bảng đầu trang.
+
+| AC | Kết quả trên `ad475a8` | Bằng chứng |
+|---|---|---|
+| AC-P4-01, 09 | Contract v1.3 chạy được. Regression P1–P3 đạt 219/219 và headless-check đạt 5/5. | [Unittest](../proof/phase-4/thd050810/unittest.log), [Headless](../proof/phase-4/thd050810/headless-check.txt) |
+| AC-P4-02, 03, 04 | Hai lượt soak cùng seed hoàn tất 10/10 Ngày, 0 crash. Kết quả giống nhau sau khi bỏ `duration_s`. Headless `--days 6` trả mã 2 với thông báo sai phạm vi và không tạo JSONL. | [Soak và kiểm cờ CLI](../proof/phase-4/thd050810/soak-determinism.txt) |
+| AC-P4-05, 06 | Bench tạo đủ 5 trường. Avg **60.002 FPS**, 1% low **59.524 FPS**, load **0.680 s**, cả ba đạt mốc trong lần đo này. | [JSON bench macOS](../proof/phase-4/thd050810/bench.json) |
+| AC-P4-07, 08 | Chrome 1280×720 hiển thị đủ ba cảnh báo, cỡ chữ nhỏ nhất 18 px. Bật bằng H, lưu khi tải lại và tắt được trong Cài đặt. Kiểm tra headless tất định đạt. | [Log cảnh báo](../proof/phase-4/thd050810/warnings-check.txt), [Headless](../proof/phase-4/thd050810/headless-check.txt) |
+| AC-P4-10 | Clone sạch qua HTTPS. Cổng 8000 đang bận nên dùng `--port 0` trong lệnh thứ ba. Trang game và `/state` trả HTTP 200, bắt đầu ở Gather Ngày 1. | [Lệnh và log](../proof/phase-4/thd050810/clean-clone.txt) |
+| AC-P4-11, 12 | Đã đối chiếu tài liệu phát hành và xác nhận hai tag trên `origin` cùng trỏ tới `9cd42fc`. | [CHANGELOG](../../CHANGELOG.md), [Release notes](../release/v1.0.0.md), [Release v1.0.0](https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC-1111/releases/tag/v1.0.0) |
+| AC-P4-13 | Đã bổ sung QA, nhật ký AI, retro và phản tư của thd050810 sau tag. Một số mục phản tư của nhóm vẫn chờ chính chủ. | [Retro](../retro.md), [Phản tư](../members/ĐỗMinhThanh.md), [Nhật ký AI](../ai-usage-log.md) |
+
+Bench chạy bằng `python3 -m chonoi.bench --seed 42 --duration 30 --out bench.json --no-open`. Chrome 157.0.8103.79 headless đã mở sẵn khi nhận URL, với viewport 1280×720. Số đo trên Windows ở bảng đầu trang bao gồm thời gian công cụ mở trình duyệt.

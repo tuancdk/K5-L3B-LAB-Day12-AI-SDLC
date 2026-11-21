@@ -16,8 +16,8 @@ Cách làm việc kỹ thuật là **tự do** (push thẳng, nhánh + PR, pair,
 ## Chạy game (từ clone sạch, 3 lệnh — macOS/Linux)
 
 ```bash
-git clone https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC.git
-cd K5-L3B-LAB-Day12-AI-SDLC
+git clone https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC-1111.git
+cd K5-L3B-LAB-Day12-AI-SDLC-1111
 python3 -m chonoi.live --mode day      # mở địa chỉ in ra (mặc định http://127.0.0.1:8000/)
 ```
 

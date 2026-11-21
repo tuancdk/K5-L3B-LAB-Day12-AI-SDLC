@@ -55,3 +55,4 @@ Script cần Chrome và gói `websockets`. Nó:
 - `browser-check.py --day-fixture` và `--day-live` (một Ngày thật, từ menu tới tổng kết): đạt.
 - `phaser-check.py`: đạt.
 - `browser-check.py` với server thật: buổi sáng đạt. Chạy riêng `--mode quan` vẫn timeout ở dòng 415 (giao món xong khách không sang `eating`), giống hệt trước thay đổi này. Lỗi đã có từ khi gộp sim quán mới, chưa điều tra.
+  - *Cập nhật sau tag `phase-4`:* chạy lại `browser-check.py` trên tag `phase-4` (1 lần) và trên `main` sau PR #51 (3 lần): cả `gather` và `quan` đều đạt (`quan input, HUD and snapshots OK`). Lỗi timeout không còn tái hiện, nhiều khả năng đã được sửa khi gộp PR #44 (kho quán cá thể).

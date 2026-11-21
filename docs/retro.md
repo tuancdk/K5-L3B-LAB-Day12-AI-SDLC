@@ -8,7 +8,7 @@
 ## Phase 4 (cuối) — bản nháp của Integrator (tuancdk), viết sau tag `phase-4`; cả nhóm bổ sung
 - **Rà lại hành động Phase 2:**
   - *Chạy `run-tests` ngay trước mỗi push* — làm một phần. Mỗi PR đều xanh khi đứng riêng, nhưng #37, #38 và #39 vào `main` gần như cùng lúc làm `main` đỏ 34 test. Phải sửa bằng PR #41. Nguyên nhân: không chạy lại test trên `main` sau mỗi lần merge.
-  - *Gắn tag ở phút 50* — chưa làm được. Theo release notes, `phase-2` và `phase-3` được gắn sau hạn. `phase-4` và `v1.0.0` được gắn lúc 13:56, cũng sau hạn, vì chờ gộp UI (#45, #48) và release notes (#49).
+  - *Gắn tag ở phút 50* — chưa làm được. `phase-4` và `v1.0.0` được gắn lúc 13:56, muộn hơn mốc gợi ý, vì chờ gộp UI (#45, #48) và release notes (#49).
 - **Điều tốt:**
   - Lõi và mở rộng đều chạy được. 218/218 test xanh trên tag `phase-4`.
   - Soak 10 Ngày cho cùng kết quả khi chạy lại, `crashes = 0`.
@@ -17,7 +17,7 @@
 - **Điều tệ:**
   - Integrator tự làm cả UI và tự merge cả 21 PR. Không có review chính thức trên GitHub nào (0 review).
   - Issue #33 (QA Phase 4: clone sạch, `verification/phase-4.md`, retro) không xong trước tag. Phần này được bổ sung sau.
-  - Hai lỗi đã biết chưa sửa: uy tín cộng dồn float (từ review PR #6) và `browser-check --mode quan` timeout.
+  - Lỗi uy tín cộng dồn float được ghi khi review PR #6 nhưng để tới sau tag `phase-4` mới sửa (PR #51). Lỗi này có thể làm mất 100 điểm. Nhận xét review cần được mở thành issue có người nhận.
   - Minhduc7904 được thêm vào `TEAM.md` sau tag `phase-4` và chưa có commit.
 - **Số liệu** (commit trên `main` theo tài khoản GitHub, không tính starter):
 

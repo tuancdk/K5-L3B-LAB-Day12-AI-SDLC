@@ -81,6 +81,8 @@ def main():
             ("tất định quan", lambda: check_same(tmp, "quan", a.seed, max(a.ticks, 1200),
                                                  ["--inputs", qin, "--inventory", qinv])),
             ("smoke dock → quan", lambda: smoke(tmp)),
+            ("tất định day --days 2", lambda: check_same(tmp, "day", a.seed, 50000, ["--days", 2, "--snapshot-every", 600])),
+            ("day --days 1 hoàn tất", lambda: day_smoke(tmp)),
         ]
         for name, fn in checks:
             try:
@@ -95,6 +97,18 @@ def main():
         Path(ROOT / a.out).parent.mkdir(parents=True, exist_ok=True)
         (ROOT / a.out).write_text(text + "\n", encoding="utf-8")
     return 0 if ok else 1
+
+
+def day_smoke(tmp):
+    """Một Ngày không pause: 22.200 tick, end.reason days_complete, chạy <= 20 s."""
+    import time
+    out = tmp / "day1.jsonl"
+    t0 = time.monotonic()
+    run("--mode", "day", "--days", 1, "--seed", 1, "--ticks", 30000, "--snapshot-every", 600, "--out", out)
+    dt = time.monotonic() - t0
+    end = json.loads(out.read_text(encoding="utf-8").splitlines()[-1])
+    ok = end.get("reason") == "days_complete" and end.get("days_completed") == 1 and dt <= 20
+    return ok, f"end {end.get('reason')} ticks {end.get('ticks')} days_completed {end.get('days_completed')} · {dt:.2f}s"
 
 
 def smoke(tmp):

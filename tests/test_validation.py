@@ -72,10 +72,14 @@ class Validation(unittest.TestCase):
     def test_stock_validation_uses_inventory_file(self):
         fixture = FIXTURES / "quan" / "reserved_exceeds_stock.json"
         with Workdir() as workdir:
+            stock = stock_items({"ca_linh": 3, "bong_dien_dien": 1})
+            # P3: cùng yêu cầu số lượng, nhưng reserved phải là ID cá thể.
+            native_fixture = json.loads(fixture.read_text(encoding="utf-8"))
+            native_fixture["quan"]["customers"][0]["reserved"] = [it["id"] for it in stock]
+            fixture = write_json(workdir.path("native-scenario.json"), native_fixture)
             inventory = workdir.path("stock.json")
             write_json(inventory, {"items": stock_items({"ca_linh": 2, "bong_dien_dien": 1})})
             self.assert_rejected("quan", "--scenario", str(fixture), "--inventory", inventory)
-            stock = stock_items({"ca_linh": 3, "bong_dien_dien": 1})  # v1.2: kho cá thể
             write_json(inventory, {"items": stock})
             out = workdir.path("out.jsonl")
             code, error = run_headless("--mode", "quan", "--seed", "1", "--ticks", "10", "--out", out,

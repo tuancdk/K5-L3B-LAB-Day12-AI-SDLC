@@ -6,6 +6,8 @@ Pause và áp cấp sang Ngày kế do runner/day xử lý; Shop không sửa ac
 
 from copy import deepcopy
 
+from ..ids import sort_by_id
+
 
 class ShopSim:
     mode = phase = "shop"
@@ -16,7 +18,7 @@ class ShopSim:
         self.day_ctx = deepcopy(day_ctx)
         self.money = money
         self.upgrades = dict(upgrades)
-        self.stock = {}
+        self.stock = [] if "freshness" in tuning else {}
         self.earned = 0
         self.reputation = tuning["quan"]["reputation_initial"]
         self.phase_tick = 0
@@ -25,9 +27,14 @@ class ShopSim:
         self.reason = None
 
     def snapshot(self):
-        return {"stock": {kind: self.stock[kind] for kind in sorted(self.stock) if self.stock[kind] > 0},
+        return {"stock": (deepcopy(sort_by_id(self.stock)) if isinstance(self.stock, list) else
+                          {kind: self.stock[kind] for kind in sorted(self.stock) if self.stock[kind] > 0}),
                 "upgrades": dict(sorted(self.upgrades.items())),
                 "time_left_ticks": self.time_left_ticks}
+
+    @property
+    def items_stock(self):
+        return deepcopy(sort_by_id(self.stock)) if isinstance(self.stock, list) else None
 
     def step(self, inp):
         if self.done:

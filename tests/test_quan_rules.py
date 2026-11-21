@@ -34,7 +34,7 @@ class QuanRules(unittest.TestCase):
         self.tuning = load_contract()["tuning"]
 
     def session(self, scenario=None, seed=7):
-        block = {"random_customers": False}
+        block = {"random_customers": False, "stock": {}}  # regression P1 nội bộ dạng đếm
         block.update(scenario or {})
         return Session("quan", self.tuning, block, seed)
 
@@ -320,9 +320,12 @@ class QuanRules(unittest.TestCase):
 
 class QuanHeadless(unittest.TestCase):
     def run_game(self, workdir, scenario, ticks, inputs=(), stem="out", seed=7):
-        scenario = dict(scenario)
+        scenario = copy.deepcopy(scenario)
         if isinstance(scenario.get("stock"), dict):  # v1.2: kho cá thể ở đầu vào headless
             scenario["stock"] = stock_items(scenario["stock"])
+        for c in scenario.get("customers", []):
+            if c.get("reserved") == {}:
+                c["reserved"] = []  # P3: phần giữ rỗng là mảng id
         sc = write_json(workdir.path(stem + "-scenario.json"), {"quan": scenario})
         inp = write_json(workdir.path(stem + "-inputs.json"), frames(*inputs))
         out = workdir.path(stem + ".jsonl")
@@ -341,8 +344,8 @@ class QuanHeadless(unittest.TestCase):
             self.assertEqual([(r["name"], r["tick"]) for r in events(rows)],
                              [("cook_started", 1), ("dish_ready", 361), ("dish_picked", 361),
                               ("served", 511), ("paid", 1111)])
-            self.assertEqual(rows[-1]["money"], 72)
-            self.assertEqual(rows[-1]["score"], 372)
+            self.assertEqual(rows[-1]["money"], 70)  # P3: floor(60×fresh/100)=59, boa 11
+            self.assertEqual(rows[-1]["score"], 370)
             self.assertEqual(rows[-1]["reason"], "tick_limit")
             self.assertEqual(snapshots(rows)[-1]["stock"], [])
             self.assertEqual(snapshots(rows)[-1]["customers"], [])
@@ -380,7 +383,7 @@ class QuanPhase2(unittest.TestCase):
         self.tuning = load_contract()["tuning"]
 
     def make_sim(self, scenario=None, day_ctx=None, seed=7):
-        block = {"random_customers": False}
+        block = {"random_customers": False, "stock": {}}  # regression P2 nội bộ dạng đếm
         block.update(scenario or {})
         return QuanSim(self.tuning, block, Streams(seed), IdAllocator(), day_ctx=day_ctx)
 

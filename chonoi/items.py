@@ -17,7 +17,7 @@ adapter dùng thẳng dữ liệu đó thay vì tự gán.
 from copy import deepcopy
 
 from .ids import IdAllocator, id_key
-from .inventory import is_item_schema, items_to_counts, read_inventory_for, sort_items
+from .inventory import is_item_schema, read_inventory_for, sort_items
 from .scenario import load_scenario
 
 
@@ -58,7 +58,7 @@ class ItemLedger:
         if phase == "gather":
             self._gather_sim = inner
             self._sync_hold(inner)
-        elif phase == "quan":
+        elif phase in ("quan", "shop"):
             self._sync_stock(inner)
 
     def _enter(self, phase, day, inner):
@@ -144,6 +144,7 @@ class ItemLedger:
 
 
 def load_game_inputs(mode, contract, scenario_path, inventory_path):
+    """Đọc + kiểm scenario/--inventory. v1.2: gather/quan đều nhận cá thể native (#19, #20)."""
     version = contract["contract_version"]
     tuning = contract["tuning"]
     inventory = read_inventory_for(inventory_path, version) if inventory_path else None
@@ -155,35 +156,5 @@ def load_game_inputs(mode, contract, scenario_path, inventory_path):
         stock = []
         if mode == "quan":
             stock = inventory if inventory is not None else scenario.get("stock", [])
-            scenario = quan_counts(scenario, stock, tuning)
-            if inventory is not None:
-                inventory = items_to_counts(inventory)
         ledger = ItemLedger(mode, tuning["freshness"]["initial"], gather.get("hold"), stock)
     return scenario, inventory, ledger
-
-
-def quan_counts(scenario, stock, tuning):
-    # Adapter tạm cho Quán trong lúc chờ #20 chuyển sang kho cá thể.
-    scenario = deepcopy(scenario)
-    if "stock" in scenario:
-        scenario["stock"] = items_to_counts(stock)
-    customers = scenario.get("customers", [])
-    by_id = {item["id"]: item for item in stock}
-    claimed = {item_id for customer in customers for item_id in customer.get("reserved", [])}
-    available = {}
-    for item in sorted(stock, key=lambda item: (-item["fresh"], id_key(item["id"]))):
-        if item["id"] not in claimed and item["fresh"] >= tuning["freshness"]["spoiled_below"]:
-            available.setdefault(item["kind"], []).append(item)
-
-    for customer in sorted(customers, key=lambda c: (c.get("order_tick", 0), id_key(c["table_id"]))):
-        if "reserved" in customer:
-            customer["reserved"] = items_to_counts([by_id[item_id] for item_id in customer["reserved"]])
-        elif customer.get("order_status", "reserved") == "reserved":
-            recipe = tuning["menu"][customer["dish_id"]]["recipe"]
-            if any(len(available.get(kind, [])) < amount for kind, amount in recipe.items()):
-                customer.update(order_status="unfulfillable", reserved={})
-                continue
-            customer["reserved"] = dict(recipe)
-            for kind, amount in recipe.items():
-                del available[kind][:amount]
-    return scenario

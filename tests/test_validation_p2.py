@@ -92,7 +92,7 @@ class ValidationP2(unittest.TestCase):
             self.assertEqual(plan["ingredients"], {"ca_keo": 2})
             snapshot = next(row for row in rows if row["type"] == "snapshot" and row["phase"] == "quan")
             self.assertEqual(item_counts(snapshot["stock"]), {"ca_keo": 2})  # v1.2: kho cá thể
-            self.assertEqual(snapshot["customers"][0]["reserved"], {"ca_keo": 2})
+            self.assertEqual(snapshot["customers"][0]["reserved"], [it["id"] for it in snapshot["stock"]])
 
     def test_transition_failure_preserves_existing_out(self):
         scenario = fixture_cases("later_day.json")

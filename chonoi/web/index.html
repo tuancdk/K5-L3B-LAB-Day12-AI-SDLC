@@ -1987,6 +1987,46 @@ function serviceEffect(data,tables,map,hz) {
     }
   }
 }
+// Issue #32: đo chính cảnh render hiện tại; chỉ bật bằng ?bench=1.
+const benchMode = new URLSearchParams(location.search).get("bench") === "1";
+let benchConfig = null, benchFirst = null, benchLast = null, benchStart = null, benchSent = false;
+const benchFrames = [];
+if (benchMode) {
+  fetch("/bench-config").then(r => r.json()).then(config => {
+    benchConfig = config;
+    if (innerWidth !== config.width || innerHeight !== config.height) {
+      window.resizeTo(config.width + (outerWidth-innerWidth), config.height + (outerHeight-innerHeight));
+    }
+  });
+}
+function benchFrame(now, map, data) {
+  if (!benchConfig || benchSent || !map || !snapshot || mode !== "gather") return;
+  // Chỉ bắt đầu khi đúng viewport; không chấp nhận đổi kích thước giữa khoảng đo.
+  const sizeOK = innerWidth === benchConfig.width && innerHeight === benchConfig.height;
+  if (!sizeOK && benchFirst === null) return;
+  if (!sizeOK || document.visibilityState !== "visible" || data.error) {
+    benchSent = true;
+    fetch("/bench-result", {method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({error:"Cảnh đo bị ẩn, đổi viewport hoặc lỗi mô phỏng"})});
+    document.documentElement.dataset.bench = "failed";
+    return;
+  }
+  if (benchFirst === null) benchFirst = now;
+  if (now-benchFirst < benchConfig.warmup_s*1000) return;
+  if (benchStart === null) { benchStart = now; benchLast = now; return; }
+  const delta = now-benchLast;
+  if (delta > 0) benchFrames.push(delta);
+  benchLast = now;
+  if (now-benchStart < benchConfig.duration*1000) return;
+  benchSent = true;
+  fetch("/bench-result", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({
+    frame_ms:benchFrames, load_ms:performance.timeOrigin+benchFirst-benchConfig.started_epoch_ms,
+    width:innerWidth, height:innerHeight
+  })}).then(async r => {
+    document.documentElement.dataset.bench = r.ok ? "complete" : "failed";
+    if (!r.ok) console.error(await r.text());
+  }).catch(error => { document.documentElement.dataset.bench="failed"; console.error(error); });
+}
 let animationTime = 0;
 let lastMap = null;   // phép chiếu của frame gần nhất, để hiệu ứng Phaser đặt đúng chỗ
 let phaserScene = null;
@@ -2029,6 +2069,7 @@ function drawWorld(target,w,h,dpr,now,withOverlay) {
     if (withOverlay) layer("phản hồi giao món", () => serviceEffect(data,tables,map,hz),true);
   }
   if (withOverlay) layer("biển báo nhịp chơi", () => phaseBanner(data,hz,w,h,map),true);
+  if (benchMode) benchFrame(now,map,data);
 }
 // Dự phòng khi không tải được Phaser: canvas thường + requestAnimationFrame như bản trước.
 function startCanvasFallback() {
@@ -2840,54 +2881,6 @@ function bootScene() {
     startCanvasFallback();
   }
 }
-// ===== #32/#34: chế độ đo hiệu năng `?bench=1&duration=30` =====
-// Làm nóng 3 s kể từ frame đầu tiên của cảnh đo, rồi ghi khoảng cách giữa các frame trong `duration` giây
-// bằng requestAnimationFrame. Kết quả: window.benchResult + POST /bench-result (server của bench ghi bench.json).
-// Chỉ chạy trên trình duyệt, không đụng mô phỏng; headless không bị ảnh hưởng.
-const benchParams = new URLSearchParams(location.search);
-const benchMode = benchParams.get("bench") === "1";
-function benchSummary(frameMs) {
-  const frames = frameMs.length;
-  const measured = frameMs.reduce((sum,ms) => sum+ms,0)/1000;
-  const worst = Math.max(1,Math.ceil(.01*frames));
-  const slowest = [...frameMs].sort((a,b) => b-a).slice(0,worst);
-  const slowMean = slowest.reduce((sum,ms) => sum+ms,0)/worst/1000;
-  return { avg_fps: measured > 0 ? frames/measured : 0, p1_low_fps: slowMean > 0 ? 1/slowMean : 0,
-    frames, measured_s: measured };
-}
-function startBench() {
-  const warmupMs = 3000;
-  const durationMs = Math.max(1,Number(benchParams.get("duration")) || 30)*1000;
-  let firstAt = null, startAt = null, previous = null;
-  const frameMs = [];
-  document.body.dataset.bench = "1";
-  (function tick(now) {
-    if (firstAt === null) {
-      // Frame đầu của cảnh đo: đã có phép chiếu buổi sáng (sông, cá, Cá Sấu đã vẽ).
-      if (mode === "gather" && lastMap) firstAt = now;
-      requestAnimationFrame(tick);
-      return;
-    }
-    if (startAt === null) {
-      if (now-firstAt >= warmupMs) { startAt = now; previous = now; }
-      requestAnimationFrame(tick);
-      return;
-    }
-    frameMs.push(now-previous);
-    previous = now;
-    if (now-startAt < durationMs) { requestAnimationFrame(tick); return; }
-    const result = Object.assign(benchSummary(frameMs), {
-      first_frame_epoch_ms: performance.timeOrigin+firstAt,   // để server tính load_ms từ lúc khởi chạy tiến trình
-      warmup_s: warmupMs/1000, renderer: phaserScene ? "phaser-canvas" : "canvas2d",
-      viewport: [innerWidth,innerHeight], frame_ms: frameMs.map(ms => Math.round(ms*1000)/1000)
-    });
-    window.benchResult = result;
-    document.title = "bench xong · " + result.avg_fps.toFixed(1) + " FPS";
-    fetch("/bench-result",{ method:"POST", body:JSON.stringify(result), headers:{ "Content-Type":"application/json" } })
-      .catch(() => {});   // live.py thường không có route này; kết quả vẫn ở window.benchResult
-  })(performance.now());
-}
-if (benchMode) startBench();
 void poll();
 // Chờ phông Baloo 2 (tối đa 1,5 s) để chữ Phaser đo đúng kích thước ngay lần đầu.
 Promise.race([document.fonts?.load?.('800 64px "Baloo 2"') ?? Promise.resolve(), new Promise(r => setTimeout(r,1500))])

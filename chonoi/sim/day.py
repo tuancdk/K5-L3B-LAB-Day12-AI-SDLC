@@ -18,8 +18,6 @@ from copy import deepcopy
 
 from ..contract import plan_ingredients
 from ..errors import BadInput
-from ..inventory import items_to_counts
-from ..items import quan_counts
 from ..scenario import validate_quan
 from .gather import GatherSim
 from .quan import QuanSim
@@ -217,10 +215,6 @@ class DaySim:
         quan_tpl = deepcopy(self.scenario.get("quan", {}))
         inventory = gather.inventory_items()
         validate_quan(quan_tpl, self.t_day, inventory)
-        if isinstance(inventory, list):  # v1.2: giỏ cá thể (#19); quán còn đếm theo loại tới #20
-            self.handover_items = [dict(it) for it in inventory]
-            quan_tpl = quan_counts(quan_tpl, inventory, self.t_day)
-            inventory = items_to_counts(inventory)
         self.sim = _build(QuanSim, self.t_day, quan_tpl, self.rng, self.ids,
                           inventory=inventory, day_ctx=self._ctx())
         self._push(self.sim)
@@ -232,7 +226,7 @@ class DaySim:
         if ShopSim is not None:
             self.sim = ShopSim(self.t_day, self.rng, self.ids, self.money, dict(self.upgrades), self._ctx())
             if hasattr(self.sim, "stock"):
-                self.sim.stock = dict(stock)
+                self.sim.stock = deepcopy(stock)
         else:
             self.sim = BasicShop(self.t_day, self.rng, self.ids, self.money, self.upgrades, self._ctx(), stock)
         self._push(self.sim)

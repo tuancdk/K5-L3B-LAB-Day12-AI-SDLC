@@ -1,4 +1,4 @@
-"""Buổi tối — luật Phase 1, theo thứ tự bước PRD-0 F.Quán.
+"""Buổi tối — PRD-0 F.Quán, số chuẩn/kế hoạch Ngày TICKET-02.
 
 stock là tồn vật lý, gồm phần reserved; chỉ trừ tồn khi bắt đầu nấu.
 Payload món và sự kiện giữ đúng Test Contract v1.0 D/E.
@@ -15,13 +15,18 @@ class QuanSim:
     mode = "quan"
     phase = "quan"
 
-    def __init__(self, tuning, scenario, streams, ids, inventory=None):
+    def __init__(self, tuning, scenario, streams, ids, inventory=None, day_ctx=None):
         t = tuning["quan"]
         self.t = t
         self.tick_hz = tuning["tick_hz"]
         self.phase_tick = 0
         self.random_customers = scenario.get("random_customers", True)
-        self.menu = tuning["menu"]
+        # day.py đã lọc tuning, nhưng sim cũng nhận được tuning đầy đủ qua day_ctx.
+        # Số suất chỉ là mục tiêu thu gom, không giới hạn số đơn được bán.
+        self.day_ctx = deepcopy(day_ctx)
+        planned = day_ctx["day_plan"]["dishes"] if day_ctx is not None else None
+        self.menu = {dish: tuning["menu"][dish] for dish in sorted(tuning["menu"])
+                     if planned is None or dish in planned}
         self.rng = streams
         self.ids = ids
         p = scenario.get("player", {})

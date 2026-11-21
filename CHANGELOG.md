@@ -7,7 +7,7 @@ Theo từng phase của lab. Tag: `phase-1` … `phase-4`; bản phát hành `v1
 - Contract **v1.3**: khai `bench_cmd` (`python3 -m chonoi.bench`) và `soak_cmd` (`python3 -m chonoi.soak`) ở gốc `game.contract.json`; `run_cmd` mở bản có giao diện ở mode `day`. Gameplay, tuning, kho, JSONL giữ như v1.2 (#30).
 - Benchmark render thật cảnh lặn 1280×720, xuất `bench.json` 5 trường (#32, Hie24).
 - Soak headless: bot tất định 10 Ngày trong một tiến trình, kế hoạch D1–D5 lặp ở Ngày 6–10, `soak.json` (#31, DoLyHoangNam).
-- Ba cảnh báo chữ/biểu tượng (thủy quái gần, oxy sắp hết, khách sắp giận) + chế độ tương phản cao (phím H) (#34).
+- Ba cảnh báo chữ/biểu tượng (thủy quái gần, oxy sắp hết, khách sắp giận) + chế độ tương phản cao (phím H hoặc Cài đặt, lưu `localStorage`); chữ ≥ 18 px ở mọi chế độ trên màn rộng (#34, PR #45).
 - `LICENSE` (MIT), release notes `docs/release/v1.0.0.md`, README chạy từ clone sạch trong 3 lệnh (#30).
 
 ## Phase 3 (TICKET-03 "Mùa Nước Nổi", contract v1.2) — tag `phase-3`
@@ -19,13 +19,17 @@ Theo từng phase của lab. Tag: `phase-1` … `phase-4`; bản phát hành `v1
 - Giỏ cá thể, hao tươi 0.5/s, `spoiled`, `lost` cá thể (#19); mở rộng dòng nước lũ (#23) — DoLyHoangNam.
 - Kho quán cá thể, hao 0.25/s, giữ chỗ theo id, giá theo độ tươi (#20, Hie24).
 - Kiểm kho/scenario cá thể v1.2 → mã 2 (#21, thd050810).
+- HUD độ tươi: giỏ/kho cá thể có thanh + số, nhãn "Ươn", hàng giữ chỗ, thông báo + hiệu ứng khi `spoiled`, giá chốt trên bếp và món trên tay; `live.py` gửi `meta.freshness` từ contract (#22, PR #48).
 ### Sửa
 - `main` đỏ 34 test khi #37/#38/#39 vào cùng lúc; file kho ghi `fresh` đủ chính xác (#41).
+- Kiểm tra trình duyệt chạy lại trên v1.2: scenario UI chuyển sang mảng cá thể; kiểm tra quán tìm khách theo id vì khách ngẫu nhiên đứng trước K1 (#22, PR #48).
 
 ## Phase 2 (TICKET-02, contract v1.1) — tag `phase-2`
 ### Thêm
 - Số chuẩn v1.1: 8 đàn cá bơi/sinh theo lịch, nút kèo nèo, Cá Sấu Năm Chèo (M1 từ Ngày 1, M2 từ Ngày 3), 2 bếp/4 bàn, 6 món, `day_plan` D1–D5, Shop nâng cấp oxy/Máu (#12, #13, #14, #7, #8).
-- Mode `day` (`--days 1..5`): gather → quan → shop, đổi pha cùng tick, `days_complete`; pause ở cả ba mode; giao diện luồng Ngày v2 (#12, #16).
+- Mode `day` (`--days 1..5`): gather → quan → shop, đổi pha cùng tick, `days_complete`; pause ở cả ba mode (#12).
+- Giao diện luồng Ngày: menu, DayIntro/EveningIntro, DayResult (sao uy tín), Shop, Summary, pause, Cài đặt âm thanh; giao diện v2 sân chơi toàn màn hình kiểu bếp hỗn loạn (#16, PR #40).
+- Lớp cảnh Phaser 3.80.1 (MIT, đóng gói trong `chonoi/web/vendor/`, `live.py` chỉ phục vụ danh sách cho phép), tự lùi về Canvas 2D khi thiếu thư viện (#16, PR #42).
 - Validation scenario/contract v1.1 → mã 2 (#15).
 
 ## Phase 1 (PRD-0, contract v1.0) — tag `phase-1`

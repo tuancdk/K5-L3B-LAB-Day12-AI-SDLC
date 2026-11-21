@@ -111,15 +111,52 @@ class GatherSim:
             if self._in_dock():
                 self._finish("docked", events)
                 return events
-            # TODO(nhóm, lát 2): chỉ khi ở mặt nước: hái nút `ready` gần nhất trong interact_radius
-            #   (id nhỏ khi bằng nhau): gather / hold_full; đặt regrow_ticks cho nút.
+            if now_at_surface:
+                self._gather_node(events)
         # 4. bắt cá
         if inp.pressed("catch"):
-            pass  # TODO(nhóm, lát 2): chỉ khi catch_cd_ticks == 0 và dưới nước: fish_caught / hold_full.
+            if self.catch_cd_ticks == 0 and not now_at_surface:
+                self._catch_fish(events)
         # 5. hết giờ
         if self.time_left_ticks <= 0:
             self._finish("time", events)
         return events
+
+    def _gather_node(self, events: list):
+        radius = self.t["interact_radius"]
+        candidates = [(math.dist(self.pos, n["pos"]), id_key(n["id"]), n)
+                      for n in self.nodes if n["regrow_ticks"] == 0]
+        candidates = [entry for entry in candidates if entry[0] <= radius]
+        if not candidates:
+            return
+        _, _, node = min(candidates, key=lambda entry: entry[:2])
+        required = int(self.t["node_yield"])
+        free = int(self.t["hold_capacity"]) - len(self.hold)
+        if free < required:
+            events.append(("hold_full", {"action": "gather", "node_id": node["id"],
+                                         "required": required, "free": free}))
+            return
+        self.hold.extend([node["kind"]] * required)
+        node["regrow_ticks"] = self._ticks(self.t["regrow_s"])
+        events.append(("gather", {"node_id": node["id"], "kind": node["kind"], "amount": required}))
+
+    def _catch_fish(self, events: list):
+        radius = self.t["catch_radius"]
+        candidates = [(math.dist(self.pos, f["pos"]), id_key(f["id"]), f) for f in self.fish]
+        candidates = [entry for entry in candidates if entry[0] <= radius]
+        if not candidates:
+            return
+        _, _, fish = min(candidates, key=lambda entry: entry[:2])
+        required = int(self.t["fish_yield"][fish["kind"]])
+        free = int(self.t["hold_capacity"]) - len(self.hold)
+        if free < required:
+            events.append(("hold_full", {"action": "catch", "fish_id": fish["id"],
+                                         "required": required, "free": free}))
+            return
+        self.hold.extend([fish["kind"]] * required)
+        self.fish.remove(fish)
+        self.catch_cd_ticks = self._ticks(self.t["catch_cooldown_s"])
+        events.append(("fish_caught", {"fish_id": fish["id"], "kind": fish["kind"], "yield": required}))
 
     def _update_oxygen(self, at_surface: bool, events: list) -> bool:
         """Cập nhật oxy, ngạt và ngất theo vị trí cuối bước. Trả True nếu người chơi ngất."""

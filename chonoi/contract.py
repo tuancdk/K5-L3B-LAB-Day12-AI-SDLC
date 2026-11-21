@@ -1,15 +1,15 @@
-"""Đọc game.contract.json và kiểm dải hợp lệ của tuning P1 (PRD mục 13.2, Test Contract)."""
-
 import json
+import math
 import os
 
 from .errors import BadInput
+from .inventory import validate_items
 
 DEFAULT_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "game.contract.json")
 
 
 def _num(v):
-    return isinstance(v, (int, float)) and not isinstance(v, bool)
+    return type(v) is int or (isinstance(v, float) and math.isfinite(v))
 
 
 def _between(name, v, lo, hi):
@@ -23,6 +23,8 @@ def load_contract(path=DEFAULT_PATH) -> dict:
             c = json.load(f)
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được {path}: {e}")
+    if not isinstance(c, dict):
+        raise BadInput("game.contract.json phải là object")
     validate_tuning(c.get("tuning"))
     return c
 
@@ -50,8 +52,15 @@ def _bounds(name, b, keys):
             raise BadInput(f"tuning.{name}.bounds.{k} phải là [0, số dương]")
 
 
-def _validate_gather(g):
-    """Dải hợp lệ P1 theo PRD mục 13.2."""
+def _positive_ticks(name, seconds, tick_hz):
+    if not _num(seconds):
+        raise BadInput(f"tuning.{name} phải là số hữu hạn")
+    ticks = seconds * tick_hz
+    if not _num(ticks) or round(ticks) <= 0:
+        raise BadInput(f"tuning.{name} phải quy đổi thành số tick dương")
+
+
+def _validate_gather(g, tick_hz):
     _between("gather.duration_s", g.get("duration_s"), 60, 600)
     _bounds("gather", g.get("bounds"), ("x", "d"))
     b = g["bounds"]
@@ -60,6 +69,8 @@ def _validate_gather(g):
     _between("gather.catch_radius", g.get("catch_radius"), 0.5, 5)
     _between("gather.swim_speed", g.get("swim_speed"), 1, 10)
     _between("gather.catch_cooldown_s", g.get("catch_cooldown_s"), 0, 10)
+    if g["catch_cooldown_s"]:
+        _positive_ticks("gather.catch_cooldown_s", g["catch_cooldown_s"], tick_hz)
     _between("gather.oxygen_max_s", g.get("oxygen_max_s"), 10, 120)
     _int_between("gather.ramp_max_ticks", g.get("ramp_max_ticks"), 0, 6)
     _int_between("gather.hold_capacity", g.get("hold_capacity"), 4, 30)
@@ -109,14 +120,20 @@ def _validate_gather(g):
             raise BadInput(f"tuning.gather.fish_initial.{f['id']}: đàn cá phải ở dưới nước")
 
 
-def validate_tuning(t):
-    if not isinstance(t, dict):
-        raise BadInput("thiếu khối tuning")
-    g, q, menu = t.get("gather"), t.get("quan"), t.get("menu")
-    if not isinstance(g, dict) or not isinstance(q, dict) or not isinstance(menu, dict):
-        raise BadInput("tuning phải có gather, quan, menu")
-    _validate_gather(g)
-    # Quán: dải hợp lệ P1 (PRD mục 13.2)
+def _validate_furniture(q, key):
+    furniture = q.get(key)
+    if not isinstance(furniture, list):
+        raise BadInput(f"tuning.quan.{key} phải là mảng")
+    seen = set()
+    for item in furniture:
+        item_id = item.get("id") if isinstance(item, dict) else None
+        if not isinstance(item_id, str) or not item_id or item_id in seen:
+            raise BadInput(f"tuning.quan.{key}: mỗi phần tử cần id khác rỗng và duy nhất")
+        seen.add(item_id)
+        _pos_in(f"quan.{key}.{item_id}.pos", item.get("pos"), q["bounds"], ("x", "z"))
+
+
+def _validate_quan(q, tick_hz):
     _between("quan.duration_s", q.get("duration_s"), 60, 600)
     _bounds("quan", q.get("bounds"), ("x", "z"))
     _between("quan.patience_s", q.get("patience_s"), 20, 180)
@@ -125,7 +142,8 @@ def validate_tuning(t):
     _int_between("quan.ramp_max_ticks", q.get("ramp_max_ticks", 6), 0, 6)
     _between("quan.eat_s", q.get("eat_s"), 0.1, 600)
     _between("quan.customer_interval_s", q.get("customer_interval_s"), 0.1, 600)
-    _int_between("quan.first_customer_tick", q.get("first_customer_tick"), 1, int(q["duration_s"] * 60) - 1)
+    duration_ticks = round(q["duration_s"] * tick_hz)
+    _int_between("quan.first_customer_tick", q.get("first_customer_tick"), 1, duration_ticks - 1)
     if not (_num(q.get("tip_rate")) and q["tip_rate"] > 0 and _num(q.get("left_reputation_delta"))
             and q["left_reputation_delta"] < 0):
         raise BadInput("tip_rate phải > 0 và left_reputation_delta phải < 0")
@@ -136,8 +154,39 @@ def validate_tuning(t):
         raise BadInput("quan.tip_reputation phải > 0")
     if q.get("burn_s") is not None:
         raise BadInput("burn_s phải là null ở Phase 1")
-    # TODO(nhóm): bổ sung kiểm các khóa còn lại nếu muốn chặt hơn (bếp/bàn, uy tín, ...).
+    for key in ("stoves", "tables"):
+        _validate_furniture(q, key)
+    carry_limit = q.get("carry_limit")
+    if type(carry_limit) is not int or carry_limit < 1:
+        raise BadInput("tuning.quan.carry_limit phải là số nguyên >= 1")
+    lower, upper = q.get("reputation_min"), q.get("reputation_max")
+    if not (_num(lower) and _num(upper) and lower <= upper):
+        raise BadInput("tuning.quan cần reputation_min <= reputation_max")
+    _between("quan.reputation_initial", q.get("reputation_initial"), lower, upper)
+
+
+def _validate_menu(menu, tick_hz):
     for dish_id, d in menu.items():
-        price, cook = d.get("price"), d.get("cook_s")
-        if isinstance(price, bool) or not isinstance(price, int) or price <= 0 or not _num(cook) or cook <= 0:
-            raise BadInput(f"menu.{dish_id}: price (nguyên) và cook_s phải > 0")
+        if not isinstance(d, dict):
+            raise BadInput(f"tuning.menu.{dish_id} phải là object")
+        price = d.get("price")
+        if type(price) is not int or price <= 0:
+            raise BadInput(f"tuning.menu.{dish_id}.price phải là số nguyên dương")
+        _positive_ticks(f"menu.{dish_id}.cook_s", d.get("cook_s"), tick_hz)
+        recipe = d.get("recipe")
+        items = validate_items(recipe)
+        if not items or len(items) != len(recipe):
+            raise BadInput(f"tuning.menu.{dish_id}.recipe cần nguyên liệu với số lượng dương")
+
+
+def validate_tuning(t):
+    if not isinstance(t, dict):
+        raise BadInput("thiếu khối tuning")
+    g, q, menu = t.get("gather"), t.get("quan"), t.get("menu")
+    if not isinstance(g, dict) or not isinstance(q, dict) or not isinstance(menu, dict):
+        raise BadInput("tuning phải có gather, quan, menu")
+    tick_hz = t.get("tick_hz")
+    _int_between("tick_hz", tick_hz, 60, 60)
+    _validate_gather(g, tick_hz)
+    _validate_quan(q, tick_hz)
+    _validate_menu(menu, tick_hz)

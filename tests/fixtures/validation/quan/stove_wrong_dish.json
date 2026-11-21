@@ -1,0 +1,6 @@
+{
+  "quan": {
+    "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "order_status": "assigned"}],
+    "stoves": [{"id": "B1", "state": "cooking", "cook_ticks_left": 1, "dish": {"order_id": "C1", "dish_id": "goi_bong_sung", "base_price": 60}}]
+  }
+}

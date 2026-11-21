@@ -229,10 +229,8 @@ def main(argv=None) -> int:
         if a.inventory_out and a.mode != "gather":
             raise BadInput("--inventory-out chỉ dùng với gather")
         tuning = load_contract()["tuning"]
-        scenario = load_scenario(a.scenario, a.mode, tuning)
         inventory = read_inventory(a.inventory) if a.inventory else None
-        if inventory is not None and "stock" in scenario:
-            raise BadInput("vừa có quan.stock vừa có --inventory")
+        scenario = load_scenario(a.scenario, a.mode, tuning, inventory=inventory)
         game = LiveGame(a.mode, tuning, scenario, a.seed, inventory, a.inventory_out)
         server = LiveServer(game, a.host, a.port)
     except BadInput as e:

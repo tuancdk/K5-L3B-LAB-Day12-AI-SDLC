@@ -1,0 +1,6 @@
+{
+  "quan": {
+    "tables": [{"id": "T9"}],
+    "customers": [{"id": "C1", "table_id": "T9", "dish_id": "ca_loc_nuong_trui", "order_status": "unfulfillable"}]
+  }
+}

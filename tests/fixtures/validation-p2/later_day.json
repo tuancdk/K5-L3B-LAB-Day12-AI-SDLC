@@ -1,0 +1,8 @@
+{
+  "day": {"day_plan": [{"day": 2, "dishes": {"goi_bong_sung": 1}}]},
+  "gather": {"time_left_ticks": 1, "hold": ["ca_loc"]},
+  "quan": {
+    "time_left_ticks": 1,
+    "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui"}]
+  }
+}

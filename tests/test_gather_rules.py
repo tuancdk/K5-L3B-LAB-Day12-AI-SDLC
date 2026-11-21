@@ -307,7 +307,7 @@ class GatherHeadless(unittest.TestCase):
             sc = write_json(w.path("sc.json"), {"gather": {
                 "player": {"pos": [10, 0]},
                 "nodes": [{"id": "N1", "kind": "bong_dien_dien", "pos": [10, 0]}],
-                "fish": [{"id": "F1", "kind": "ca_linh", "pos": [10, 2.0]}],
+                "fish": [{"id": "F1", "kind": "ca_linh", "pos": [10, 3.0]}],
                 "random_fish": False,
             }})
             inp = write_json(w.path("in.json"), frames(
@@ -342,7 +342,7 @@ class GatherHeadless(unittest.TestCase):
             sc = write_json(w.path("sc.json"), {"gather": {
                 "player": {"pos": [12, 0]},
                 "nodes": [{"id": "N1", "kind": "bong_dien_dien", "pos": [12, 0]}],
-                "fish": [{"id": "F1", "kind": "ca_linh", "pos": [12, 2.0]}],
+                "fish": [{"id": "F1", "kind": "ca_linh", "pos": [12, 3.0]}],
                 "random_fish": False,
             }})
             inp = write_json(w.path("in.json"), frames(

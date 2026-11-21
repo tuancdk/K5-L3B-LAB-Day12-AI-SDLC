@@ -387,6 +387,17 @@ class QuanPhase2(unittest.TestCase):
         block.update(scenario or {})
         return QuanSim(self.tuning, block, Streams(seed), IdAllocator(), day_ctx=day_ctx)
 
+    def test_reputation_sum_has_no_float_drift(self):
+        """Review PR #6: từ uy tín 0, 10 lần boa phải ra đúng 2.0 để floor không mất 100 điểm."""
+        sim = self.make_sim({"reputation": 0.0})
+        for _ in range(10):
+            sim._change_reputation(self.tuning["quan"]["tip_reputation"])
+        self.assertEqual(sim.reputation, 2.0)
+        sim = self.make_sim({"reputation": 3.0})
+        for delta in [self.tuning["quan"]["left_reputation_delta"]] * 4 + [self.tuning["quan"]["tip_reputation"]] * 10:
+            sim._change_reputation(delta)
+        self.assertEqual(sim.reputation, 3.0)
+
     def steps(self, sim, count=1, inputs=()):
         player = InputPlayer(list(inputs))
         rows = []

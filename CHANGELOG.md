@@ -2,6 +2,12 @@
 
 Theo từng phase của lab. Tag: `phase-1` … `phase-4`; bản phát hành `v1.0.0` = `phase-4`.
 
+## [Chưa phát hành] — sau tag `phase-4`
+### Sửa
+- Uy tín cộng dồn bằng float lệch `floor`: từ uy tín 0, 10 lần boa cho `1.9999999999999998`, nên điểm mất 100. `_change_reputation` giờ làm tròn 9 số; thêm test (review PR #6, Hie24 #3).
+- `game.contract.json`: `team` = `"1111"` (trước là bản mẫu `ten-nhom`).
+- README và release notes: link clone dùng tên repo `K5-L3B-LAB-Day12-AI-SDLC-1111`.
+
 ## [1.0.0] — Phase 4 (TICKET-04, contract v1.3) — tag `phase-4`
 ### Thêm
 - Contract **v1.3**: khai `bench_cmd` (`python3 -m chonoi.bench`) và `soak_cmd` (`python3 -m chonoi.soak`) ở gốc `game.contract.json`; `run_cmd` mở bản có giao diện ở mode `day`. Gameplay, tuning, kho, JSONL giữ như v1.2 (#30).

@@ -1,6 +1,6 @@
 {
   "contract_version": "1.3",
-  "team": "ten-nhom",
+  "team": "1111",
   "team_size": 5,
   "build_cmd": "true",
   "run_cmd": "python3 -m chonoi.live --mode day",

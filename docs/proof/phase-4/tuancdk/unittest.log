@@ -1,4 +1,4 @@
-# commit a5f8bfb · Python 3.12.3 · Windows
+# commit cbea47a · Python 3.12.3 · Windows
 # PYTHONPATH=tests:. python3 -m unittest discover -s tests -v
 test_bench_ignores_player_input_and_restart (test_bench.BenchHTTP.test_bench_ignores_player_input_and_restart) ... ok
 test_http_writes_only_complete_five_field_summary (test_bench.BenchHTTP.test_http_writes_only_complete_five_field_summary) ... ok
@@ -113,6 +113,8 @@ test_each_table_can_receive_its_matching_order (test_quan_rules.QuanPhase2.test_
 test_four_occupied_tables_skip_even_when_unreserved_stock_available (test_quan_rules.QuanPhase2.test_four_occupied_tables_skip_even_when_unreserved_stock_available) ... ok
 test_patience_stays_at_service_value_while_eating (test_quan_rules.QuanPhase2.test_patience_stays_at_service_value_while_eating) ... ok
 test_plan_serving_count_does_not_limit_more_orders_or_add_bonus (test_quan_rules.QuanPhase2.test_plan_serving_count_does_not_limit_more_orders_or_add_bonus) ... ok
+test_reputation_sum_has_no_float_drift (test_quan_rules.QuanPhase2.test_reputation_sum_has_no_float_drift)
+Review PR #6: từ uy tín 0, 10 lần boa phải ra đúng 2.0 để floor không mất 100 điểm. ... ok
 test_simultaneous_ready_events_follow_stove_id_then_pick_only_one (test_quan_rules.QuanPhase2.test_simultaneous_ready_events_follow_stove_id_then_pick_only_one) ... ok
 test_standalone_uses_two_stoves_four_tables_and_all_six_dishes (test_quan_rules.QuanPhase2.test_standalone_uses_two_stoves_four_tables_and_all_six_dishes) ... ok
 test_two_stoves_assign_different_oldest_orders_one_interact_per_tick (test_quan_rules.QuanPhase2.test_two_stoves_assign_different_oldest_orders_one_interact_per_tick) ... ok
@@ -225,6 +227,6 @@ test_valid_gather_fixture_at_tick_zero (test_validation_p3.ValidationP3.test_val
 test_valid_items_keep_ids_freshness_and_order (test_validation_p3.ValidationP3.test_valid_items_keep_ids_freshness_and_order) ... ok
 
 ----------------------------------------------------------------------
-Ran 218 tests in 66.535s
+Ran 219 tests in 54.080s
 
 OK

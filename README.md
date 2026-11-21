@@ -21,6 +21,26 @@ PYTHONPATH=tests:. python3 -m unittest discover -s tests -v        # smoke test
 python3 -m chonoi.live --mode gather                                # chơi thử trên trình duyệt (tùy chọn)
 ```
 
+Chỉ cần Python 3.10+ (thư viện chuẩn, không `pip install`). Lệnh test (1 lệnh): `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`. Windows không có `python3`: xem [`AGENTS.md`](AGENTS.md#windows-không-có-python3).
+
+**Chơi:** `python3 -m chonoi.live --mode gather` (hoặc `--mode quan`) rồi mở địa chỉ in ra. Nối hai buổi qua file kho:
+
+```bash
+python3 -m chonoi.live --mode gather --inventory-out kho.json   # sáng: lặn, hái, bắt cá rồi cập bến
+python3 -m chonoi.live --mode quan --inventory kho.json         # tối: mở quán bằng hàng vừa mang về
+```
+
+| Phím | Buổi sáng (`gather`) | Buổi tối (`quan`) |
+|---|---|---|
+| WASD / mũi tên | bơi (S/↓ lặn xuống) | đi lại trong quán |
+| E (`interact`) | hái nút ở mặt nước; trong vùng bến thì cập bến, kết thúc buổi | bếp trống: nấu đơn cũ nhất; bếp xong: bưng món; tại bàn: phục vụ |
+| Space (`catch`) | bắt đàn cá gần nhất khi ở dưới nước | — |
+| R | chơi lại | chơi lại |
+
+**Điểm** = `earned + 100 × floor(uy tín)`: `earned` là tổng tiền thu (giá món + tiền boa), uy tín 0–5 (bắt đầu 3; boa +0.2, khách bỏ về vì hết kiên nhẫn −0.5). Buổi sáng không có tiền; hàng mang về quyết định quán nấu được món gì. Ngất dưới nước (hết Máu do ngạt) thì mất cả giỏ.
+
+Hợp đồng giữa các module: [`docs/contracts/README.md`](docs/contracts/README.md) · Nhóm: [`TEAM.md`](TEAM.md) · Kế hoạch: [`docs/plan/phase-1.md`](docs/plan/phase-1.md).
+
 Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headless --mode gather|quan …`) để được chạy và chấm tự động. **Công nghệ không ràng buộc**: khung Python trong `chonoi/` chỉ là gợi ý, chi tiết ở [`docs/STARTER.md`](docs/STARTER.md).
 
 ## Tự do sáng tạo

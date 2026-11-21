@@ -18,7 +18,7 @@
   - Integrator tự làm cả UI và tự merge cả 21 PR. Không có review chính thức trên GitHub nào (0 review).
   - Issue #33 (QA Phase 4: clone sạch, `verification/phase-4.md`, retro) không xong trước tag. Phần này được bổ sung sau.
   - Lỗi uy tín cộng dồn float được ghi khi review PR #6 nhưng để tới sau tag `phase-4` mới sửa (PR #51). Lỗi này có thể làm mất 100 điểm. Nhận xét review cần được mở thành issue có người nhận.
-  - Minhduc7904 được thêm vào `TEAM.md` sau tag `phase-4` và chưa có commit.
+  - Minhduc7904 được thêm vào `TEAM.md` sau tag `phase-4`, nên chỉ kịp làm phần kiểm chứng sau tag: clone sạch trên Windows, kiểm lại UI quán, video chơi tay (PR #52, #55). Không có đóng góp nào vào code trong bản phát hành.
 - **Số liệu** (commit trên `main` theo tài khoản GitHub, không tính starter):
 
   | Người | Commit (không tính merge) | Commit merge |
@@ -27,7 +27,7 @@
   | DoLyHoangNam | 20 | 4 |
   | Hie24 | 8 | 1 |
   | thd050810 | 4 | 0 |
-  | Minhduc7904 | 0 | 0 |
+  | Minhduc7904 | 5 (sau tag, PR #52) | 0 |
 
   20 commit của DoLyHoangNam dùng email chưa gắn với tài khoản GitHub. Cách đọc code của nhau: Integrator đọc và chạy lại test trước khi merge, ghi nhận xét vào mô tả PR. Token: không ai đo.
 - **Một lần AI sai và cách nhóm phát hiện:** khi bật contract v1.2, 101 test đỏ. Nguyên nhân là `load_contract` (do AI viết ở #15) chỉ nhận đúng `"1.1"`. Chạy toàn bộ test trước khi push thì thấy ngay; sau đó sửa cho nhận cả `"1.2"`. Thêm một ví dụ: Codex cộng uy tín bằng float, phát hiện khi review PR #6 bằng một chuỗi sự kiện cụ thể.

@@ -6,7 +6,10 @@ from pathlib import Path
 
 from chonoi.contract import load_contract
 from chonoi.inputs import InputPlayer
+from chonoi.ids import IdAllocator
+from chonoi.rng import Streams
 from chonoi.runner import Session
+from chonoi.sim.quan import QuanSim
 
 from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
 
@@ -365,6 +368,140 @@ class QuanHeadless(unittest.TestCase):
             self.assertEqual(rows[-1]["reason"], "time")
             self.assertEqual(rows[-1]["state"], "finished")
             self.assertEqual(rows[-1]["money"], 72)
+
+
+class QuanPhase2(unittest.TestCase):
+    """Issue #7: kiểm trực tiếp day_ctx và tích hợp với day.py hiện có."""
+
+    def setUp(self):
+        self.tuning = load_contract()["tuning"]
+
+    def make_sim(self, scenario=None, day_ctx=None, seed=7):
+        block = {"random_customers": False}
+        block.update(scenario or {})
+        return QuanSim(self.tuning, block, Streams(seed), IdAllocator(), day_ctx=day_ctx)
+
+    def steps(self, sim, count=1, inputs=()):
+        player = InputPlayer(list(inputs))
+        rows = []
+        for _ in range(count):
+            if sim.done:
+                break
+            rows.extend(sim.step(player.advance(sim.phase_tick)))
+        return rows
+
+    def ctx(self, dishes=None):
+        plan = copy.deepcopy(self.tuning["day_plan"][0])
+        if dishes is not None:
+            plan["dishes"] = dishes
+        return {"day": 1, "day_plan": plan, "active_upgrades": {"oxygen": 0, "hp": 0}}
+
+    def test_standalone_uses_two_stoves_four_tables_and_all_six_dishes(self):
+        stock = {"ca_loc": 2, "bong_sung": 2, "ca_linh": 3, "ca_keo": 2,
+                 "bong_dien_dien": 2, "keo_neo": 1}
+        chosen = set()
+        for seed in range(40):
+            sim = self.make_sim({"stock": stock, "random_customers": True}, seed=seed)
+            self.assertEqual([s["id"] for s in sim.stoves], ["B1", "B2"])
+            self.assertEqual([t["id"] for t in sim.tables], ["T1", "T2", "T3", "T4"])
+            chosen.add(self.steps(sim, 120)[0][1]["dish_id"])
+        self.assertEqual(chosen, set(self.tuning["menu"]))
+        self.assertEqual(len(chosen), 6)
+
+    def test_day_context_excludes_dishes_outside_plan_before_stock_check(self):
+        # Cá kèo đủ nấu món ngoài D1, nhưng không có món D1 nấu được.
+        sim = self.make_sim({"stock": {"ca_keo": 2}, "random_customers": True}, self.ctx())
+        self.assertEqual(self.steps(sim, 120), [("no_dish", {})])
+        self.assertEqual(sim.customers, [])
+        self.assertEqual(sim.stock, {"ca_keo": 2})
+
+    def test_day_context_filters_full_tuning_without_mutating_inputs(self):
+        ctx = self.ctx({SALAD: 1})
+        before_ctx, before_tuning = copy.deepcopy(ctx), copy.deepcopy(self.tuning)
+        for seed in range(5):
+            sim = self.make_sim({"stock": {"ca_loc": 1, "bong_sung": 2, "ca_keo": 2},
+                                 "random_customers": True}, ctx, seed)
+            self.assertEqual(self.steps(sim, 120)[0][1]["dish_id"], SALAD)
+        self.assertEqual(ctx, before_ctx)
+        self.assertEqual(self.tuning, before_tuning)
+
+    def test_plan_serving_count_does_not_limit_more_orders_or_add_bonus(self):
+        sim = self.make_sim({"stock": {"ca_loc": 1}, "random_customers": True,
+                             "customers": [customer(state="eating", order_status="served", reserved={},
+                                                    eat_ticks_left=1, base_price=60, tip=0)]},
+                            self.ctx({FISH_DISH: 1}))
+        rows = self.steps(sim, 120)
+        self.assertEqual([name for name, _ in rows], ["paid", "customer_arrived"])
+        self.assertEqual(rows[1][1]["dish_id"], FISH_DISH)
+        self.assertEqual((sim.money, sim.earned, sim.shift_earned), (60, 60, 60))
+
+    def test_two_stoves_assign_different_oldest_orders_one_interact_per_tick(self):
+        sim = self.make_sim({"player": {"pos": [3.5, 8]}, "stock": {"ca_loc": 2},
+                             "customers": [customer("C2", "T2"), customer()]})
+        rows = self.steps(sim, 3, [{"tick": 0, "interact": True},
+                                   {"tick": 1, "interact": False, "move": [1, 0]},
+                                   {"tick": 2, "interact": True}])
+        self.assertEqual([(name, data["stove_id"], data["order_id"]) for name, data in rows],
+                         [("cook_started", "B1", "C1"), ("cook_started", "B2", "C2")])
+        self.assertEqual(sim.stock["ca_loc"], 0)
+        self.assertTrue(all(c["order_status"] == "assigned" and not c["reserved"] for c in sim.customers))
+
+    def test_simultaneous_ready_events_follow_stove_id_then_pick_only_one(self):
+        sim = self.make_sim({"player": {"pos": [3.5, 8]}, "customers": [
+            customer(order_status="assigned", reserved={}),
+            customer("C2", "T2", order_status="assigned", reserved={})], "stoves": [
+                {"id": "B2", "state": "cooking", "cook_ticks_left": 1, "dish": payload("C2")},
+                {"id": "B1", "state": "cooking", "cook_ticks_left": 1, "dish": payload()}]})
+        rows = self.steps(sim, inputs=[{"tick": 0, "interact": True}])
+        self.assertEqual([(name, data["stove_id"]) for name, data in rows],
+                         [("dish_ready", "B1"), ("dish_ready", "B2"), ("dish_picked", "B1")])
+        self.assertEqual(sim.hand["order_id"], "C1")
+        self.assertEqual((sim.stoves[1]["state"], sim.stoves[1]["ready_ticks"]), ("ready", 0))
+
+    def test_all_six_recipes_cook_at_second_stove_from_tuning(self):
+        for dish_id, dish in self.tuning["menu"].items():
+            with self.subTest(dish=dish_id):
+                sim = self.make_sim({"player": {"pos": [5, 8]}, "stock": dict(dish["recipe"]),
+                                     "customers": [customer(dish=dish_id)]})
+                rows = self.steps(sim, inputs=[{"tick": 0, "interact": True}])
+                self.assertEqual(rows[0][0], "cook_started")
+                self.assertEqual(rows[0][1]["stove_id"], "B2")
+                self.assertEqual(rows[0][1]["base_price"], dish["price"])
+                self.assertEqual(rows[0][1]["items"], [k for k in sorted(dish["recipe"])
+                                                       for _ in range(dish["recipe"][k])])
+                self.assertEqual(sim.stoves[1]["cook_ticks_left"], round(dish["cook_s"] * self.tuning["tick_hz"]))
+                self.assertTrue(all(n == 0 for n in sim.stock.values()))
+
+    def test_customers_use_all_tables_then_reuse_freed_smallest_id_on_schedule(self):
+        sim = self.make_sim({"stock": {"ca_loc": 10}, "random_customers": True})
+        rows = self.steps(sim, 3720)
+        arrived = [data for name, data in rows if name == "customer_arrived"]
+        self.assertEqual([c["table_id"] for c in arrived], ["T1", "T2", "T3", "T4", "T1"])
+        self.assertEqual([c["order_id"] for c in arrived], ["C1", "C2", "C3", "C4", "C5"])
+        self.assertEqual([c["order_tick"] for c in sim.customers], [1020, 1920, 2820, 3720])
+
+    def test_four_occupied_tables_skip_even_when_unreserved_stock_available(self):
+        sim = self.make_sim({"stock": {"ca_loc": 5}, "random_customers": True,
+                             "customers": [customer(f"C{n}", f"T{n}") for n in range(1, 5)]})
+        self.assertEqual(self.steps(sim, 120), [])
+        self.assertEqual(len(sim.customers), 4)
+
+    def test_each_table_can_receive_its_matching_order(self):
+        for n, table in enumerate(self.tuning["quan"]["tables"], 1):
+            with self.subTest(table=table["id"]):
+                sim = self.make_sim({"player": {"pos": table["pos"]}, "hand": payload(f"C{n}"),
+                                     "customers": [customer(f"C{n}", table["id"], order_status="assigned", reserved={})]})
+                rows = self.steps(sim, inputs=[{"tick": 0, "interact": True}])
+                self.assertEqual(rows[0][0], "served")
+                self.assertEqual(rows[0][1]["table_id"], table["id"])
+
+    def test_patience_stays_at_service_value_while_eating(self):
+        sim = self.make_sim({"player": {"pos": [9, 2]}, "hand": payload(),
+                             "customers": [customer(order_status="assigned", reserved={}, patience_ticks_left=1801)]})
+        self.steps(sim, inputs=[{"tick": 0, "interact": True}])
+        self.steps(sim, 20)
+        self.assertEqual(sim.customers[0]["patience_ticks_left"], 1800)
+        self.assertEqual(sim.customers[0]["eat_ticks_left"], 580)
 
 
 if __name__ == "__main__":

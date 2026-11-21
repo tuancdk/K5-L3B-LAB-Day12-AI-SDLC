@@ -1,5 +1,5 @@
 {
   "quan": {
-    "customers": [{"id": "C1", "table_id": "T1", "dish_id": "lau_ca_linh_dien_dien", "reserved": {"ca_linh": 3, "bong_dien_dien": 1}}]
+    "customers": [{"id": "C1", "table_id": "T1", "dish_id": "lau_ca_linh_dien_dien", "reserved": ["I1", "I2", "I3", "I4"]}]
   }
 }

@@ -1,0 +1,11 @@
+{
+  "missing_freshness": null,
+  "missing_key": {"initial": 100, "gather_decay_per_s": 0.5, "spoiled_below": 30},
+  "extra_key": {"initial": 100, "gather_decay_per_s": 0.5, "quan_decay_per_s": 0.25, "spoiled_below": 30, "extra": 0},
+  "gather_decay_zero": {"initial": 100, "gather_decay_per_s": 0, "quan_decay_per_s": 0.25, "spoiled_below": 30},
+  "quan_decay_negative": {"initial": 100, "gather_decay_per_s": 0.5, "quan_decay_per_s": -0.25, "spoiled_below": 30},
+  "decay_nonfinite": {"initial": 100, "gather_decay_per_s": 1e999, "quan_decay_per_s": 0.25, "spoiled_below": 30},
+  "threshold_zero": {"initial": 100, "gather_decay_per_s": 0.5, "quan_decay_per_s": 0.25, "spoiled_below": 0},
+  "threshold_above_initial": {"initial": 40, "gather_decay_per_s": 0.5, "quan_decay_per_s": 0.25, "spoiled_below": 41},
+  "initial_above_100": {"initial": 101, "gather_decay_per_s": 0.5, "quan_decay_per_s": 0.25, "spoiled_below": 30}
+}

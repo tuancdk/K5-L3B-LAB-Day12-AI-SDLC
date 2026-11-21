@@ -1,0 +1,18 @@
+{
+  "legacy_counts": {"items": {"ca_loc": 1}},
+  "wrong_root": {"stock": []},
+  "extra_root_key": {"items": [], "version": "1.2"},
+  "non_array_items": {"items": "invalid"},
+  "non_object_item": {"items": ["ca_linh"]},
+  "empty_id": {"items": [{"id": "", "kind": "ca_loc", "fresh": 100}]},
+  "numeric_id": {"items": [{"id": 1, "kind": "ca_loc", "fresh": 100}]},
+  "duplicate_id": {"items": [{"id": "I1", "kind": "ca_loc", "fresh": 100}, {"id": "I1", "kind": "ca_keo", "fresh": 100}]},
+  "unknown_kind": {"items": [{"id": "I1", "kind": "unknown", "fresh": 100}]},
+  "non_string_kind": {"items": [{"id": "I1", "kind": [], "fresh": 100}]},
+  "missing_fresh": {"items": [{"id": "I1", "kind": "ca_loc"}]},
+  "extra_item_key": {"items": [{"id": "I1", "kind": "ca_loc", "fresh": 100, "extra": true}]},
+  "infinite_fresh": {"items": [{"id": "I1", "kind": "ca_loc", "fresh": 1e999}]},
+  "boolean_fresh": {"items": [{"id": "I1", "kind": "ca_loc", "fresh": true}]},
+  "negative_fresh": {"items": [{"id": "I1", "kind": "ca_loc", "fresh": -0.001}]},
+  "fresh_above_100": {"items": [{"id": "I1", "kind": "ca_loc", "fresh": 100.001}]}
+}

@@ -363,7 +363,7 @@ class QuanHeadless(unittest.TestCase):
     def test_closing_tick_fixture_and_single_final_snapshot(self):
         with Workdir() as w:
             _, rows = self.run_game(w, {"player": {"pos": [9, 2]}, "time_left_ticks": 1,
-                                       "customers": [customer(order_status="assigned", reserved={})],
+                                       "customers": [customer(order_status="assigned", reserved=[])],
                                        "hand": payload(), "random_customers": False}, 1,
                                     [{"tick": 0, "interact": True}])
             self.assertEqual([r["name"] for r in events(rows)], ["served", "paid", "quan_end"])

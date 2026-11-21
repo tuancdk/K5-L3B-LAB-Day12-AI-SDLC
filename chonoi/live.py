@@ -27,9 +27,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from .contract import load_contract
 from .errors import BadInput
 from .inputs import LiveInputs
-from .inventory import read_inventory
+from .inventory import write_inventory_items
+from .items import load_game_inputs
 from .runner import Session
-from .scenario import load_scenario
 
 WEB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
 MAX_BODY = 4096
@@ -118,7 +118,10 @@ class LiveGame:
             self._saved = True
             if self.inventory_out:
                 try:
-                    s.write_inventory_if_done(self.inventory_out)
+                    if s.mode == "gather" and getattr(s.sim, "use_items", False):
+                        write_inventory_items(self.inventory_out, s.sim.inventory_items())
+                    else:
+                        s.write_inventory_if_done(self.inventory_out)
                 except OSError as e:
                     sys.stderr.write(f"lỗi ghi kho: {e}\n")
 
@@ -277,9 +280,7 @@ def main(argv=None) -> int:
         tuning = contract["tuning"]
         if a.mode == "day" and (contract["contract_version"] == "1.0" or "days" not in signature(Session).parameters):
             raise BadInput("Chế độ day đang chờ runner và contract v1.1 (#12)")
-        inventory = read_inventory(a.inventory) if a.inventory else None
-        scenario = load_scenario(a.scenario, a.mode, tuning, inventory=inventory,
-                                 extensions=contract.get("extensions", []))
+        scenario, inventory, _ = load_game_inputs(a.mode, contract, a.scenario, a.inventory)
         game = LiveGame(a.mode, tuning, scenario, a.seed, inventory, a.inventory_out,
                         days=a.days, contract_version=contract["contract_version"])
         server = LiveServer(game, a.host, a.port)

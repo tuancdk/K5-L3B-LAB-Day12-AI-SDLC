@@ -19,6 +19,7 @@ from copy import deepcopy
 from ..contract import plan_ingredients
 from ..errors import BadInput
 from ..inventory import items_to_counts
+from ..items import quan_counts
 from ..scenario import validate_quan
 from .gather import GatherSim
 from .quan import QuanSim
@@ -215,10 +216,11 @@ class DaySim:
     def _to_quan(self, gather, out):
         quan_tpl = deepcopy(self.scenario.get("quan", {}))
         inventory = gather.inventory_items()
+        validate_quan(quan_tpl, self.t_day, inventory)
         if isinstance(inventory, list):  # v1.2: giỏ cá thể (#19); quán còn đếm theo loại tới #20
             self.handover_items = [dict(it) for it in inventory]
+            quan_tpl = quan_counts(quan_tpl, inventory, self.t_day)
             inventory = items_to_counts(inventory)
-        validate_quan(quan_tpl, self.t_day, inventory)
         self.sim = _build(QuanSim, self.t_day, quan_tpl, self.rng, self.ids,
                           inventory=inventory, day_ctx=self._ctx())
         self._push(self.sim)

@@ -1,0 +1,72 @@
+test_state_input_and_clean_stop (test_live.LiveServerTest.test_state_input_and_clean_stop) ... ok
+test_bad_frames_raise (test_python_starter_units.Units.test_bad_frames_raise) ... ok
+test_catch_is_a_v10_button_and_attack_is_not (test_python_starter_units.Units.test_catch_is_a_v10_button_and_attack_is_not) ... ok
+test_id_allocator_continues_after_max (test_python_starter_units.Units.test_id_allocator_continues_after_max) ... ok
+test_id_sorting (test_python_starter_units.Units.test_id_sorting) ... ok
+test_input_edges_and_inherit (test_python_starter_units.Units.test_input_edges_and_inherit) ... ok
+test_live_inputs_keep_fast_tap_edge (test_python_starter_units.Units.test_live_inputs_keep_fast_tap_edge) ... ok
+test_session_steps_gather_and_dock (test_python_starter_units.Units.test_session_steps_gather_and_dock) ... ok
+test_closing_tick_fixture_and_single_final_snapshot (test_quan_rules.QuanHeadless.test_closing_tick_fixture_and_single_final_snapshot) ... ok
+test_full_cook_walk_serve_eat_pay_through_real_cli (test_quan_rules.QuanHeadless.test_full_cook_walk_serve_eat_pay_through_real_cli) ... ok
+test_seeded_jsonl_is_byte_identical_with_reordered_input_maps (test_quan_rules.QuanHeadless.test_seeded_jsonl_is_byte_identical_with_reordered_input_maps) ... ok
+test_arrival_exact_schedule_then_full_patience_and_reserved_stock (test_quan_rules.QuanRules.test_arrival_exact_schedule_then_full_patience_and_reserved_stock) ... ok
+test_available_stock_excludes_other_orders_reservations (test_quan_rules.QuanRules.test_available_stock_excludes_other_orders_reservations) ... ok
+test_closing_can_serve_pay_then_end_on_same_tick (test_quan_rules.QuanRules.test_closing_can_serve_pay_then_end_on_same_tick) ... ok
+test_closing_waiting_customer_never_penalizes_even_at_zero_patience (test_quan_rules.QuanRules.test_closing_waiting_customer_never_penalizes_even_at_zero_patience) ... ok
+test_cook_consumes_reserved_once_and_interact_requires_rising_edge (test_quan_rules.QuanRules.test_cook_consumes_reserved_once_and_interact_requires_rising_edge) ... ok
+test_cook_items_sorted_and_price_and_time_come_from_tuning (test_quan_rules.QuanRules.test_cook_items_sorted_and_price_and_time_come_from_tuning) ... ok
+test_cook_ready_exact_tick_and_pick_same_tick (test_quan_rules.QuanRules.test_cook_ready_exact_tick_and_pick_same_tick) ... ok
+test_departure_before_arrival_reuses_table_and_continues_ids (test_quan_rules.QuanRules.test_departure_before_arrival_reuses_table_and_continues_ids) ... ok
+test_eating_finish_has_priority_over_closing_and_does_not_spawn (test_quan_rules.QuanRules.test_eating_finish_has_priority_over_closing_and_does_not_spawn) ... ok
+test_equal_distance_stove_wins_over_table (test_quan_rules.QuanRules.test_equal_distance_stove_wins_over_table) ... ok
+test_interact_radius_inclusive_and_outside_is_rejected (test_quan_rules.QuanRules.test_interact_radius_inclusive_and_outside_is_rejected) ... ok
+test_nearest_unusable_target_does_not_fall_back (test_quan_rules.QuanRules.test_nearest_unusable_target_does_not_fall_back) ... ok
+test_no_dish_empty_event_repeats_only_at_scheduled_ticks (test_quan_rules.QuanRules.test_no_dish_empty_event_repeats_only_at_scheduled_ticks) ... ok
+test_occupied_table_skips_arrival_without_no_dish (test_quan_rules.QuanRules.test_occupied_table_skips_arrival_without_no_dish) ... ok
+test_oldest_order_then_numeric_table_id_and_snapshot_id_sort (test_quan_rules.QuanRules.test_oldest_order_then_numeric_table_id_and_snapshot_id_sort) ... ok
+test_patience_leaving_releases_raw_but_never_refunds_cooked_items (test_quan_rules.QuanRules.test_patience_leaving_releases_raw_but_never_refunds_cooked_items) ... ok
+test_pick_requires_empty_hand_and_does_not_serve_in_same_interact (test_quan_rules.QuanRules.test_pick_requires_empty_hand_and_does_not_serve_in_same_interact) ... ok
+test_random_customers_false_disables_arrival_but_keeps_fixtures (test_quan_rules.QuanRules.test_random_customers_false_disables_arrival_but_keeps_fixtures) ... ok
+test_ready_age_and_no_burn (test_quan_rules.QuanRules.test_ready_age_and_no_burn) ... ok
+test_reputation_is_clamped_at_both_limits (test_quan_rules.QuanRules.test_reputation_is_clamped_at_both_limits) ... ok
+test_schedule_uses_phase_tick_not_shortened_duration (test_quan_rules.QuanRules.test_schedule_uses_phase_tick_not_shortened_duration) ... ok
+test_seeded_selection_covers_three_dishes (test_quan_rules.QuanRules.test_seeded_selection_covers_three_dishes) ... ok
+test_service_on_patience_zero_tick_is_accepted (test_quan_rules.QuanRules.test_service_on_patience_zero_tick_is_accepted) ... ok
+test_snapshot_defaults_reservations_physical_stock_and_no_fixture_mutation (test_quan_rules.QuanRules.test_snapshot_defaults_reservations_physical_stock_and_no_fixture_mutation) ... ok
+test_tip_boundary_after_decrement_and_awarded_only_on_payment (test_quan_rules.QuanRules.test_tip_boundary_after_decrement_and_awarded_only_on_payment) ... ok
+test_tip_is_floored_and_base_price_is_payload_price (test_quan_rules.QuanRules.test_tip_is_floored_and_base_price_is_payload_price) ... ok
+test_unfulfillable_order_waits_and_cannot_cook (test_quan_rules.QuanRules.test_unfulfillable_order_waits_and_cannot_cook) ... ok
+test_wrong_order_cannot_be_served (test_quan_rules.QuanRules.test_wrong_order_cannot_be_served) ... ok
+test_con_01_ticks_zero_and_end_line (test_smoke_p1.Contract.test_con_01_ticks_zero_and_end_line) ... ok
+test_con_02_deterministic_bytes (test_smoke_p1.Contract.test_con_02_deterministic_bytes) ... ok
+test_con_03_bad_input_exit_2 (test_smoke_p1.Contract.test_con_03_bad_input_exit_2) ... ok
+test_con_03_old_and_future_modes_rejected (test_smoke_p1.Contract.test_con_03_old_and_future_modes_rejected) ... ok
+test_gather_snapshot_has_gather_fields (test_smoke_p1.Contract.test_gather_snapshot_has_gather_fields) ... ok
+test_scenario_out_of_domain_exit_2 (test_smoke_p1.Contract.test_scenario_out_of_domain_exit_2) ... ok
+test_inv_01_gather_writes_inventory_quan_reads_it (test_smoke_p1.Integration.test_inv_01_gather_writes_inventory_quan_reads_it)
+Ví dụ smoke test trong PRD-0 mục G: cập bến ở tick 0, quán đọc kho đúng nội dung. ... ok
+test_inv_01_not_written_when_tick_limit_first (test_smoke_p1.Integration.test_inv_01_not_written_when_tick_limit_first) ... ok
+test_inv_bad_schema_exit_2 (test_smoke_p1.Integration.test_inv_bad_schema_exit_2) ... ok
+test_inventory_and_scenario_stock_conflict (test_smoke_p1.Integration.test_inventory_and_scenario_stock_conflict) ... ok
+test_inventory_flags_mode_mismatch_exit_2 (test_smoke_p1.Integration.test_inventory_flags_mode_mismatch_exit_2) ... ok
+test_move_01_swim_speed_after_ramp (test_smoke_p1.Movement.test_move_01_swim_speed_after_ramp)
+Bỏ 6 tick tăng tốc rồi đo 60 tick: quãng ≈ swim_speed × 1 s (±0.1). Ngang, xuống, chéo (không nhanh hơn). ... ok
+test_move_02_heading_positive_is_down (test_smoke_p1.Movement.test_move_02_heading_positive_is_down) ... ok
+test_move_03_edge_clamp (test_smoke_p1.Movement.test_move_03_edge_clamp)
+Chặn từng mép của vùng nước, kể cả d không âm (không bay lên khỏi mặt nước) và đáy d = 30. ... ok
+test_move_mep_vel_ve_0 (test_smoke_p1.Movement.test_move_mep_vel_ve_0) ... ok
+test_move_ramp_doi_huong_trong_tran (test_smoke_p1.Movement.test_move_ramp_doi_huong_trong_tran)
+Đảo từ +speed sang -speed: vận tốc chạm mục tiêu sau tối đa ramp_max_ticks tick kể từ lúc đổi input. ... ok
+test_time_ends_gather_and_keeps_hold (test_smoke_p1.Movement.test_time_ends_gather_and_keeps_hold) ... ok
+test_khoi_sai_mode_exit_2 (test_smoke_p1.ScenarioModes.test_khoi_sai_mode_exit_2) ... ok
+test_quan_fixture_khong_hop_le_exit_2 (test_smoke_p1.ScenarioModes.test_quan_fixture_khong_hop_le_exit_2) ... ok
+test_quan_player_vel_hop_le (test_smoke_p1.ScenarioModes.test_quan_player_vel_hop_le) ... ok
+test_good (test_team_check.TeamCheck.test_good) ... ok
+test_template_is_rejected (test_team_check.TeamCheck.test_template_is_rejected) ... ok
+test_too_few_members (test_team_check.TeamCheck.test_too_few_members) ... ok
+test_wrong_size_duplicate_and_outsider (test_team_check.TeamCheck.test_wrong_size_duplicate_and_outsider) ... ok
+
+----------------------------------------------------------------------
+Ran 63 tests in 8.620s
+
+OK

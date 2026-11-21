@@ -1,0 +1,4 @@
+headless_cmd: python3 -m chonoi.headless · seed 1 · ticks 600
+PASS  tất định gather: jsonl cdcfe229bcc1b5d5 vs cdcfe229bcc1b5d5; kho chưa ghi (buổi sáng chưa kết thúc)
+PASS  tất định quan: jsonl 47d9427eeb66f944 vs 47d9427eeb66f944
+PASS  smoke dock → quan: kho {"items":{"bong_sung":2,"ca_loc":1}} → stock tick 0 {'bong_sung': 2, 'ca_loc': 1}

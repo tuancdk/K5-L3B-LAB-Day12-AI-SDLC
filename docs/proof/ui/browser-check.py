@@ -1,4 +1,5 @@
-"""Browser evidence for issue #5. Run from the repository root with Python, Chrome and websockets."""
+"""Browser evidence for issues #5 and #16. Requires Python, Chrome and websockets."""
+import argparse
 import base64
 from contextlib import ExitStack
 import json
@@ -11,8 +12,7 @@ import time
 from urllib.request import urlopen
 from websockets.sync.client import connect
 
-PROOF = Path("docs/proof/ui")
-CHROME = sys.argv[1] if len(sys.argv) > 1 else r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+PROOF = Path(__file__).resolve().parent
 HOOK = """
 globalThis.probe = {posts: [], modify: null, errors: [], frames: 0};
 const realFetch = fetch.bind(globalThis), realWarn = console.warn.bind(console);
@@ -61,10 +61,188 @@ def start(stack, argv, *, capture=False):
     return process
 
 
+def check_day_fixture(cdp, js, tap, photo):
+    fixture = (PROOF / "phase-2/day-fixture.js").read_text(encoding="utf-8")
+    js(fixture)
+
+    def panel(name):
+        return until(lambda: js(f"campaign.panel === {json.dumps(name)} && document.querySelector('dialog').open"))
+
+    def choose(name):
+        selector = json.dumps(f'[data-action="{name}"]')
+        until(lambda: js(f"Boolean(document.querySelector({selector}) && !document.querySelector({selector}).disabled)"))
+        js(f"document.querySelector({selector}).click()")
+
+    def frozen():
+        until(lambda: js("dayTest.state.state === 'paused'"))
+        before = js("[dayTest.state.phase_tick,dayTest.state.sim_tick,dayTest.state.time_left_ticks]")
+        time.sleep(.35)
+        assert js("[dayTest.state.phase_tick,dayTest.state.sim_tick,dayTest.state.time_left_ticks]") == before
+
+    panel("menu")
+    frozen()
+    photo("day-menu")
+    choose("exit")
+    panel("exit")
+    choose("menu")
+    choose("settings")
+    panel("settings")
+    for channel, value in (("master",37),("music",19),("sfx",81)):
+        js(f"""(() => {{
+            const slider = document.getElementById("volume-{channel}");
+            slider.value = "{value}";
+            slider.dispatchEvent(new Event("input",{{bubbles:true}}));
+        }})()""")
+    assert js("JSON.parse(localStorage.getItem('chonoi.audio.v1'))") == {"master":.37,"music":.19,"sfx":.81}
+    choose("settings-back")
+    choose("play")
+    panel("day-intro")
+    frozen()
+    assert js("document.querySelector('dialog').innerText.includes('Gỏi bông súng')")
+    photo("day-intro")
+    tap("e")
+    until(lambda: js("!document.querySelector('dialog').open && dayTest.state.state === 'playing'"))
+    until(lambda: js("document.getElementById('gather-alert').innerText.includes('Thủy quái! · Hết hơi!')"))
+    assert js("document.querySelector('#meters').innerText.includes('12 m')")
+    assert js("document.querySelector('#journal').innerText.includes('Nguyên liệu cần lấy')")
+    photo("day-gather")
+    frame_count, start = js("[probe.frames,performance.now()]")
+    time.sleep(1.5)
+    rendered, end = js("[probe.frames,performance.now()]")
+    gather_fps = (rendered-frame_count)*1000/(end-start)
+    assert gather_fps >= 30, gather_fps
+
+    js("dayTest.enter('quan')")
+    panel("evening-intro")
+    frozen()
+    assert js("document.querySelector('dialog').innerText.includes('Đã nhập 3 nguyên liệu')")
+    photo("day-evening-intro")
+    choose("continue")
+    until(lambda: js("!document.querySelector('dialog').open && dayTest.state.state === 'playing'"))
+    assert js("getComputedStyle(document.querySelector('#meters .label')).fontSize === '18px'")
+    assert js("snapshot.stoves.length === 2 && snapshot.tables.length === 4")
+    assert js("document.querySelector('.controls').getBoundingClientRect().bottom <= innerHeight")
+    assert js("document.querySelector('#journal').getBoundingClientRect().bottom <= innerHeight")
+    photo("day-quan")
+    frame_count, start = js("[probe.frames,performance.now()]")
+    time.sleep(1.5)
+    rendered, end = js("[probe.frames,performance.now()]")
+    quan_fps = (rendered-frame_count)*1000/(end-start)
+    assert quan_fps >= 30, quan_fps
+    js("dayTest.closeEvening()")
+    panel("day-result")
+    frozen()
+    assert js("document.querySelector('dialog').innerText.includes('12 nghìn')")
+    photo("day-result")
+    choose("continue")
+    panel("shop")
+    until(lambda: js("dayTest.state.state === 'playing'"))
+    choose("buy:hp")
+    until(lambda: js("document.querySelector('.shop-feedback').innerText === 'Không đủ tiền.'"))
+    tap("p")
+    panel("pause")
+    frozen()
+    photo("day-pause")
+    tap("Escape")
+    panel("shop")
+    until(lambda: js("dayTest.state.state === 'playing'"))
+    choose("buy:oxygen")
+    until(lambda: js("dayTest.state.upgrades.oxygen === 1 && dayTest.state.money === 0"))
+    until(lambda: js("document.querySelector('.shop-feedback').innerText.includes('Đã mua Bình oxy')"))
+    photo("day-shop")
+    choose("shop-done")
+    panel("day-intro")
+    assert js("dayTest.posts.some(post => post.shop_done === true)")
+    until(lambda: js("!document.querySelector('dialog').open && dayTest.state.state === 'playing'"))
+    assert js("dayTest.state.day === 2")
+    js("dayTest.state.day=5; dayTest.enter('shop')")
+    panel("shop")
+    choose("shop-done")
+    panel("summary")
+    assert js("document.querySelector('dialog').innerText.includes('Cá lóc nướng trui × 1')")
+    photo("day-summary")
+    assert js("probe.errors.length === 0"), js("probe.errors")
+
+    cdp("Page.reload")
+    until(lambda: js("!globalThis.dayTest && document.body?.dataset.mode === 'gather'"))
+    js(HOOK)
+    js(fixture)
+    panel("menu")
+    choose("settings")
+    panel("settings")
+    assert js("['master','music','sfx'].map(key=>document.getElementById('volume-'+key).value)") == ["37","19","81"]
+    print(f"Fixture 1280×720: gather {gather_fps:.1f} FPS, quan {quan_fps:.1f} FPS; full flow, pause and Settings OK.")
+
+
+def check_day_live(state, js, tap, photo):
+    def panel(name):
+        return until(lambda: js(f"campaign.panel === {json.dumps(name)} && document.querySelector('dialog').open"))
+
+    def choose(name):
+        selector = json.dumps(f'[data-action="{name}"]')
+        until(lambda: js(f"Boolean(document.querySelector({selector}) && !document.querySelector({selector}).disabled)"))
+        js(f"document.querySelector({selector}).click()")
+
+    def playing(phase, expect_dialog=False):
+        until(lambda: state()["phase"] == phase and state()["state"] == "playing")
+        expected = str(expect_dialog).lower()
+        until(lambda: js(f"snapshot.state === 'playing' && document.querySelector('dialog').open === {expected}"))
+
+    panel("menu")
+    choose("play")
+    panel("day-intro")
+    choose("continue")
+    playing("gather")
+    photo("live-day-gather")
+    tap("e")
+    panel("evening-intro")
+    assert state()["stock"] == {"bong_sung": 2, "ca_loc": 1}
+    assert js("document.querySelector('dialog').innerText.includes('Đã nhập 3 nguyên liệu')")
+    photo("live-day-evening")
+    choose("continue")
+    panel("day-result")
+    choose("continue")
+    panel("shop")
+    playing("shop", expect_dialog=True)
+    choose("buy:hp")
+    until(lambda: js("document.querySelector('.shop-feedback').innerText === 'Không đủ tiền.'"))
+    tap("p")
+    panel("pause")
+    until(lambda: state()["state"] == "paused")
+    before = state()
+    time.sleep(.3)
+    after = state()
+    assert all(after[key] == before[key] for key in ("phase_tick","sim_tick","time_left_ticks"))
+    assert after["tick"] > before["tick"]
+    tap("Escape")
+    panel("shop")
+    playing("shop", expect_dialog=True)
+    choose("buy:oxygen")
+    until(lambda: state()["money"] == 0 and state()["upgrades"]["oxygen"] == 1)
+    until(lambda: js("document.querySelector('.shop-feedback').innerText.includes('Đã mua Bình oxy')"))
+    photo("live-day-shop")
+    choose("shop-done")
+    panel("summary")
+    final = state()
+    assert final["reason"] == "days_complete" and final["days_completed"] == 1
+    assert js("document.querySelector('dialog').innerText.includes('Đã xong 1 Ngày')")
+    assert js("probe.errors.length === 0"), js("probe.errors")
+    photo("live-day-summary")
+    print("Live day: dock → stock transfer → shop pause/resume and buy → days_complete OK.")
+
+
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("chrome", nargs="?", default=r"C:\Program Files\Google\Chrome\Application\chrome.exe")
+    parser.add_argument("--out", type=Path, default=PROOF)
+    day_group = parser.add_mutually_exclusive_group()
+    day_group.add_argument("--day-fixture", action="store_true", help="Thử UI Ngày với phản hồi HTTP giả lập.")
+    day_group.add_argument("--day-live", action="store_true", help="Chơi một Ngày thật bằng runner v1.1.")
+    opts = parser.parse_args()
+    opts.out.mkdir(parents=True, exist_ok=True)
     with ExitStack() as stack:
         profile = Path(stack.enter_context(TemporaryDirectory(prefix="chonoi-ui-", ignore_cleanup_errors=True)))
-        start(stack, [CHROME, "--headless", "--disable-extensions", "--no-first-run",
+        start(stack, [opts.chrome, "--headless", "--disable-extensions", "--no-first-run",
                       "--disable-background-networking", "--remote-debugging-port=0",
                       f"--user-data-dir={profile}", "about:blank"])
         port = until(lambda: (profile / "DevToolsActivePort").read_text().splitlines())[0]
@@ -108,7 +286,7 @@ def main():
             cdp("Emulation.setDeviceMetricsOverride", width=width, height=height, deviceScaleFactor=1, mobile=False)
 
         def photo(name):
-            path = PROOF / f"{name}.png"
+            path = opts.out / f"{name}.png"
             path.write_bytes(base64.b64decode(cdp("Page.captureScreenshot", format="png")["data"]))
             print(path, path.stat().st_size)
 
@@ -116,10 +294,12 @@ def main():
             js("probe.modify = s => {" + code + "};")
 
         viewport(1280, 800)
-        for mode in ("gather", "quan"):
+        for mode in (("day",) if opts.day_live else ("gather",) if opts.day_fixture else ("gather", "quan")):
             args = [sys.executable, "-X", "utf8", "-B", "-m", "chonoi.live", "--mode", mode, "--seed", "1", "--port", "0"]
             if mode == "quan":
                 args += ["--scenario", str(PROOF / "quan-scenario.json")]
+            elif mode == "day":
+                args += ["--days", "1", "--scenario", str(PROOF / "phase-2/day-live-scenario.json")]
             game = start(stack, args, capture=True)
             startup = game.stdout.readline().decode("utf-8", errors="replace")
             address = re.search(r"http://127\.0\.0\.1:(\d+)/", startup)
@@ -129,9 +309,24 @@ def main():
                 return read(url + "state")
             assert until(state)["mode"] == mode and game.poll() is None
             cdp("Page.navigate", url=url)
-            until(lambda: js(f"location.port === '{port}' && document.body?.dataset.mode === '{mode}'"))
+            until(lambda: js(f"location.port === '{port}' && document.body?.dataset.run === '{mode}'"))
             js(HOOK)
+            if opts.day_live:
+                viewport(1280,720)
+                check_day_live(state,js,tap,photo)
+                return
+            if opts.day_fixture:
+                viewport(1280,720)
+                check_day_fixture(cdp,js,tap,photo)
+                return
             if mode == "gather":
+                tap("p")
+                until(lambda: state()["state"] == "paused")
+                frozen = state()
+                time.sleep(.25)
+                assert all(state()[field] == frozen[field] for field in ("phase_tick","sim_tick","time_left_ticks"))
+                tap("Escape")
+                until(lambda: state()["state"] == "playing" and state()["sim_tick"] > frozen["sim_tick"])
                 tap("e")
                 until(lambda: state()["reason"] == "docked")
                 tap("r")

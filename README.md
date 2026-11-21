@@ -55,6 +55,10 @@ Gợi ý bên cạnh cảnh đổi theo việc Út Sen đang làm. Người chơ
 
 Buổi tối có sàn quán nổi nhìn nghiêng, hai khu bếp và bàn ăn phân biệt bằng màu chiếu, cùng hàng đèn lồng. Thẻ đơn và đồng hồ ca nằm trên khung chơi. Khi nấu, bếp có đồng hồ riêng và sáng lên lúc món chín. Bàn cần giao được đánh dấu khi Út Sen bưng đúng món. Khi giao hoặc nhận tiền, tín hiệu hiện ngay tại bàn.
 
+Mục **Cài đặt → Âm thanh** có ba thanh cho âm lượng chung, nhạc nền và hiệu ứng. Trình duyệt nhớ ba mức này ở những lần mở sau. Âm thanh và tùy chọn lưu trên trình duyệt, nên headless cho cùng kết quả. Xem [bằng chứng giao diện Phase 2](docs/proof/ui/phase-2/README.md).
+
+Trên màn rộng, sân chơi chiếm gần cả cửa sổ và HUD nổi ở các góc. Phiếu món kẹp trên dây, đổi từ xanh sang vàng rồi đỏ và rung khi khách sắp bỏ đi. Thanh nấu nằm ngay trên bếp. Út Sen giơ món trên đầu khi bưng. Mỗi event có một tiếng riêng, và nhạc ngũ cung tăng nhịp khi sắp hết giờ. Đầu pha có chữ "Bắt đầu!", cuối pha đếm ngược 5 giây. Tất cả chỉ là hiển thị phía trình duyệt và tắt khi người dùng bật giảm chuyển động.
+
 Xem [ảnh chơi và kết quả đối chiếu SHA-256](docs/proof/ui/README.md) của cả hai buổi.
 
 ## Lịch 3 giờ

@@ -1,6 +1,6 @@
 # TEAM
 
-**Tên nhóm:** xem `team` trong `game.contract.json`  **Số người:** 4 (khớp `team_size` trong `game.contract.json`; thành viên thứ 5 phụ trách UI sẽ được thêm khi có GitHub handle)
+**Tên nhóm:** xem `team` trong `game.contract.json`  **Số người:** 5 (khớp `team_size` trong `game.contract.json`)
 
 | Thành viên | GitHub handle | Module chính | Vai quy trình | Người dự phòng cho |
 |---|---|---|---|---|
@@ -8,6 +8,7 @@
 | Đỗ Lý Hoàng Nam | DoLyHoangNam | `sim/gather` (#2) | Dev | Hie24 |
 | Nguyễn Đức Hiếu | Hie24 | `sim/quan` (#3) | Dev | DoLyHoangNam |
 | Đỗ Minh Thanh | thd050810 | `qa` — validation `scenario.py`/`contract.py` (#4) | QA lead | tuancdk |
+| Nguyễn Minh Đức | Minhduc7904 | UI `chonoi/web/` (#5) | Dev (UI) | tuancdk |
 
 **Vai quy trình:** PO (đầu mối hỏi giảng viên, giữ `docs/clarify.md`) · Integrator (giữ `docs/contracts/`, gắn tag) · QA lead · Scrum/Release. Có thể kiêm.
 

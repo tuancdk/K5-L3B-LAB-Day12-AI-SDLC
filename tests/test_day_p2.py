@@ -5,7 +5,7 @@ import os
 import time
 import unittest
 
-from helpers import Workdir, events, frames, items, read_jsonl, run_headless, snapshots, write_json
+from helpers import Workdir, assert_items_close, decayed, events, frames, items, read_jsonl, run_headless, snapshots, write_json
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -69,7 +69,7 @@ class DayLoop(unittest.TestCase):
         self.assertIn((11, "shop", 1, "shop_end"), ev)
         snaps = {s["tick"]: s for s in snapshots(rows)}
         self.assertEqual((snaps[1]["phase"], snaps[1]["phase_tick"]), ("quan", 0))
-        self.assertEqual(snaps[1]["stock"], items("ca_loc", "bong_sung", "bong_sung"))  # v1.2: bàn giao giữ id
+        assert_items_close(self, snaps[1]["stock"], items("ca_loc", "bong_sung", "bong_sung", fresh=decayed(1)))  # v1.2
         self.assertEqual((snaps[6]["phase"], snaps[6]["phase_tick"]), ("shop", 0))
         for s in snapshots(rows):
             for key in ("day", "day_plan", "upgrades", "active_upgrades"):

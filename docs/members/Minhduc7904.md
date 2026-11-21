@@ -1,8 +1,15 @@
 # Minhduc7904 (Nguyễn Minh Đức) — phản tư cá nhân
 
-- **Tôi đã làm:** vào nhóm ở Phase 4, sau khi tag `phase-4`/`v1.0.0` đã gắn. Tôi được thêm vào `TEAM.md` ở [PR #50](https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC-1111/pull/50), vai UI (#5). Phần việc #22 định nhận thì Tuấn đã làm xong, nên tôi chuyển sang hỗ trợ QA cho #33 cùng thd050810:
-  - Clone sạch tag `v1.0.0` trên Windows và chạy lại regression ([`54dfcd2`](https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC-1111/commit/54dfcd2)). Kết quả: 218/218 OK, headless `day` giống từng byte, soak tất định, `chonoi.live` trả trang 200.
-  - Kiểm tra lại UI với server thật ([`31a2ec6`](https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC-1111/commit/31a2ec6)). Lỗi "quán timeout" vẫn được ghi là chưa điều tra, nhưng thực ra đã được sửa ở `a238425`. Tôi chạy lại 3/3 lần đạt và cập nhật ghi chú.
-- **Tôi đã review:** đọc bản nháp `verification/phase-4.md` của Tuấn và đối chiếu với kết quả tự chạy. Mục "browser-check quan timeout" trong đó tôi chỉ ra đúng nguyên nhân: script đã sửa ở `a238425`, không phải nhờ #44 như ghi chú phỏng đoán.
-- **AI sai ở đâu & phát hiện:** khi chạy headless `day`, AI quên cờ bắt buộc `--ticks`. Lệnh trả mã 2 và AI suýt ghi "`--days 6` trả mã 2, đạt", trong khi mã 2 đó là do thiếu cờ. Tôi đọc kỹ thông báo lỗi, chạy lại với đủ cờ và ghi lại sai sót này trong bằng chứng.
-- **Bài học:** vào muộn thì nên kiểm chứng độc lập và sửa ghi chép đã cũ, đừng cố chen vào code đã khóa. Trước khi viết thì kiểm tra nhánh của người khác để tránh trùng việc.
+- **Tôi đã làm** (vào nhóm sau tag `phase-4`, [PR #50](https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC-1111/pull/50), vai UI #5):
+  - Clone sạch `v1.0.0` trên Windows và chạy regression ([`54dfcd2`](https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC-1111/commit/54dfcd2)). Kiểm lại UI quán và tìm ra nguyên nhân thật của lỗi timeout ([`31a2ec6`](https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC-1111/commit/31a2ec6)).
+  - Quay video chơi tay Ngày 1 ([PR #55](https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC-1111/pull/55)).
+  - Sửa UI: đơn `unfulfillable` có nhãn "Hết hàng" và gợi ý đúng ([`f82e2c0`](https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC-1111/commit/f82e2c0)).
+- **Tôi đã review** (sau merge, kèm số liệu chạy lại):
+  - #53: thử ngẫu nhiên 10.000 chuỗi; floor uy tín sai 22 lần với code cũ, 0 lần với code mới.
+  - #38: tiêm lỗi crash để kiểm phần phục hồi của soak.
+  - #43: 19 file kho sai, đưa qua CLI.
+  - #44: đối chiếu với hợp đồng v1.2. Lần review này tìm ra lỗi UI ở trên.
+- **AI sai ở đâu & phát hiện:**
+  - AI quên cờ `--ticks`, suýt ghi một kết quả không chứng minh được gì. Phát hiện khi đọc thông báo lỗi.
+  - Nhãn cảnh báo tràn khỏi phiếu. Phát hiện qua ảnh chụp.
+- **Bài học:** vào muộn thì nên chọn kiểm chứng và review bằng cách chạy thật. Review vẫn tìm được lỗi kể cả khi code đã merge.

@@ -2,12 +2,18 @@
 
 | Phase | Người | Công cụ / model | Việc | Token / chi phí ước tính | Ghi chú (AI sai ở đâu?) |
 |---|---|---|---|---|---|
-| 1 | tuancdk | Claude Code (Claude Opus 5.5) | #1: hợp đồng tích hợp `docs/contracts/`, TEAM, kế hoạch, `AGENTS.md`, skill `run-tests` + `headless-check` (PR #9); review PR #6 | không đo | Review PR #6 bắt lỗi uy tín cộng dồn float `1.9999999999999998` → `floor` 1; chưa được sửa |
+| 1 | tuancdk | Claude Code (Claude Opus 5.5) | #1: hợp đồng tích hợp `docs/contracts/`, TEAM, kế hoạch, `AGENTS.md`, skill `run-tests` + `headless-check` (PR #9); review PR #6 | không đo | Review PR #6 bắt lỗi uy tín cộng dồn float `1.9999999999999998` → `floor` 1; sửa ở PR #51 (sau tag `phase-4`, có trong `v1.0.1`) |
 | 1 | tuancdk | Codex (nhánh `codex/phase-1-ui`) | #5: cửa sổ chơi, HUD sáng/tối, phím + nút chạm, ảnh chụp, so SHA-256 JSONL trước/sau (PR #10) | không đo | `browser-check.py` báo `test_team_check` đỏ trên `main` → ghi vào bằng chứng UI, sửa ở PR #26 |
+| 1 | Hie24 | Codex | #3: luật Quán `sim/quan.py`, 31 test (PR #6) | không đo | Uy tín cộng float, lệch 1 điểm `floor` (review của Integrator); sửa ở PR #51 sau tag `phase-4` |
+| 1 | thd050810 | Codex | #4: kiểm mâu thuẫn scenario/contract → mã 2, 66 fixture lỗi (PR #17) | không đo | <!-- TODO(thd050810) --> |
+| 2 | Hie24 | Codex | #7/#8: Quán 2 bếp/4 bàn/6 món theo kế hoạch Ngày, `sim/shop.py`, 30 test (PR #39) | không đo | <!-- TODO(Hie24) --> |
+| 2 | thd050810 | Codex | #15: kiểm cờ CLI, kế hoạch Ngày, contract v1.1 (PR #28) | không đo | `load_contract` chỉ nhận đúng `"1.1"` → 101 test đỏ khi lên v1.2 (Integrator phát hiện ở #18) |
 | 2 | tuancdk | Codex (nhánh `codex/phase-2-ui`) | #16: luồng Ngày, menu, pause, Shop, HUD v2, âm thanh (PR #40) | không đo | Không ghi lại lỗi AI cụ thể cho lát này |
 | 2 | tuancdk | Claude Code (Claude Opus 5.5) | #12: đọc TICKET-02 trên lab board, contract v1.1, `sim/day.py`, pause ở runner, CLI `--days`, test day/pause, smoke | không đo | Ban đầu test P1 cũ (`test_team_check`) đỏ từ khi điền TEAM.md mà P1 không phát hiện vì chạy test trước khi điền; đã sửa và ghi lý do |
 | 3 | tuancdk | Claude Code (Claude Opus 5.5) | #18: đọc TICKET-03, contract v1.2, đọc/ghi kho cá thể, adapter `items.py`, đổi fixture test P1–P2, test v1.2 | không đo | Lần đầu bật v1.2 làm 101 test đỏ vì `load_contract` (#15) chỉ nhận đúng `"1.1"` — phát hiện qua chạy test, sửa cho nhận `"1.2"` |
 | 3 | tuancdk | Claude Code (Claude Opus 5.5) | #16/#18: lớp cảnh Phaser 3, HUD giỏ đọc cá thể v1.2; sửa `main` đỏ 34 test sau #37+#38+#39 (PR #41, #42) | không đo | Ba PR đúng riêng lẻ nhưng gộp lại đỏ: adapter ép giỏ về kind trong khi gather đã giữ cá thể; phát hiện khi chạy test trên `main` |
+| 3 | thd050810 | Codex | #21: kiểm kho/scenario cá thể v1.2 → mã 2 (PR #43) | không đo | <!-- TODO(thd050810) --> |
+| 3–4 | Hie24 | Codex | #20/#32: kho cá thể hao 0.25/s, giữ chỗ theo id, giá theo độ tươi; `chonoi.bench` (PR #44) | không đo | Bench đo thật 1% low 21.7 FPS, load 41.8 s, chưa đạt mốc; giữ số thật |
 | 4 | tuancdk | Claude Code (Claude Opus 5.5) | #34/#22: ba cảnh báo chữ/biểu tượng, tương phản cao, HUD độ tươi (PR #45, #48) | không đo | `browser-check.py --mode quan` timeout (giao món xong khách không sang `eating`) từ khi gộp sim quán mới; chưa điều tra |
 | 1 | DoLyHoangNam | Antigravity (Gemini) | #2: luật buổi sáng `sim/gather.py` (oxy, ngạt `t+59`, ngất LIFO, hái nút, bắt cá), 17 test `test_gather_rules.py` | không đo | Đối chiếu trực tiếp PRD-0 mục E/F/G; chạy smoke + kiểm tra tất định 2 lần cùng seed xanh |
 | 2 | DoLyHoangNam | Antigravity (Gemini) | #13/#14: cá bơi/phản xạ/sinh theo lịch `gather.py`, Cá Sấu Năm Chèo `sim/monsters.py`, 16 test mới | không đo | AI viết `dist <= step_len` trong `monsters._move_toward` lệch 1 tick ở mốc 240 tick do sai số float `1.0/60.0` — test bắt được và sửa bằng `1e-9` |

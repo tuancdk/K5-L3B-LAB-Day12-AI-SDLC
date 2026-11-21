@@ -1,0 +1,11 @@
+macOS 15.7.4 (arm64) | Python 3.12.0
+$ git clone https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC-1111.git
+$ cd K5-L3B-LAB-Day12-AI-SDLC-1111
+HEAD ad475a8f1a6008d50b3dc4cc2faabc5986b7ddc5 | branch=main | clean
+$ python3 -m chonoi.live --mode day
+exit=1 | không mở được cổng 8000: [Errno 48] Address already in use
+$ python3 -m chonoi.live --mode day --port 0
+Mở trình duyệt tại http://127.0.0.1:59694/  (chế độ day, seed 1). Ctrl+C để dừng.
+HTTP 200 / | HTML có canvas
+HTTP 200 /state | mode=day phase=gather day=1
+PASS: clone, cd và chạy với cổng trống; server dừng với mã 0.

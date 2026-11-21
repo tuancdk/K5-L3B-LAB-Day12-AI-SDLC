@@ -1,0 +1,8 @@
+# ad475a8 · macOS 15.7.4 arm64 · Chrome 157.0.8103.79 headless · 1280×720
+$ python3 -B docs/proof/phase-4/ui/warnings-check.py "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --out <thư mục tạm>
+canh-bao-gather-thuong.png 206814
+canh-bao-gather-tuong-phan.png 188351
+canh-bao-quan-thuong.png 256183
+canh-bao-quan-tuong-phan.png 223043
+{"gather_min_warning_px": 18, "quan_min_warning_px": 18}
+Cảnh báo #34 OK: chữ + biểu tượng, tương phản cao (H / Cài đặt / lưu lại).

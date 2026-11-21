@@ -66,4 +66,7 @@
   4. QA viết `verification/phase-n.md` song song từ đầu phase, không để cuối phase. — thd050810
 - **Ý kiến từng người:**
   - **Minhduc7904:** tôi vào nhóm sau tag `phase-4`, nên việc UI định nhận (#22) đã có người làm xong. Khi có người vào muộn, nên mở ngay một issue kiểm chứng hoặc review có người nhận, thay vì để người đó tự tìm việc. Review sau merge (#38, #43, #44, #53) vẫn tìm ra một lỗi thật: UI không hiển thị đơn `unfulfillable` có từ #44. Lỗi này lẽ ra đã bị bắt nếu có người review trước khi merge, nên tôi ủng hộ hành động 1 (mỗi PR một người khác bấm Approve).
+  - **thd050810:** lần QA bổ sung chạy trên clone sạch macOS sau tag. Cổng 8000 bị chiếm và script so soak đọc nhầm khóa JSON. QA nên lưu cả lệnh, stderr và commit để lần chạy sau phân biệt lỗi môi trường với lỗi game. [Kết quả macOS](verification/phase-4.md#kiểm-chứng-bổ-sung-trên-main--macos)
   <!-- TODO(cả nhóm): mỗi người thêm 1 dòng ý kiến của mình. -->
+
+**Bằng chứng đóng góp** theo thành viên gồm [tuancdk](members/tuancdk.md), [DoLyHoangNam](members/DoLyHoangNam.md), [Hie24](members/Hie24.md), [thd050810](members/ĐỗMinhThanh.md) và [Minhduc7904](members/Minhduc7904.md). Các thành viên còn mục TODO bổ sung phản tư của mình trước khi QA chốt #33.

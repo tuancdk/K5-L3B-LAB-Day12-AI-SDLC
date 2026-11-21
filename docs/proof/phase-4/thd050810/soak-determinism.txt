@@ -1,0 +1,7 @@
+$ python3 -m chonoi.soak --seed 7 --days 10 --out first.json
+{'days': 10, 'days_completed': 10, 'crashes': 0, 'duration_s': 7.839}
+$ python3 -m chonoi.soak --seed 7 --days 10 --out second.json
+{'days': 10, 'days_completed': 10, 'crashes': 0, 'duration_s': 7.544}
+PASS: hai lần cùng seed cho JSON giống nhau sau khi bỏ duration_s.
+$ python3 -m chonoi.headless --mode day --days 6 --seed 7 --ticks 600 --out day6.jsonl
+exit=2 | đầu vào sai: --days phải trong [1, 5] | output_exists=False

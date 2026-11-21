@@ -19,7 +19,7 @@ Hỏi Anh Năm (trợ giảng AI trên lab board) trước; chưa có trả lờ
 | 13 | 2026-11-21 P4 | Ngưỡng của ba cảnh báo có chuẩn không? | Giả định theo HUD Phase 2: thủy quái gần = đang `chase` hoặc trong `detect_radius`; oxy sắp hết = ≤ 25% oxy tối đa khi dưới nước; khách sắp giận = kiên nhẫn < 25%. | Minhduc7904 (tạm) |
 | 14 | 2026-11-21 P4 | Sửa lỗi sau khi đã phát hành: giữ tag `phase-4`/`v1.0.0` và ra `v1.0.1`, hay dời tag `phase-4`? | Giả định: giữ nguyên `phase-4` = `v1.0.0`; bản vá uy tín float phát hành `v1.0.1` trên commit mới. | tuancdk |
 | 15 | 2026-11-21 P4 | Tag `phase-2`, `phase-3` gắn sau hạn của phase thì chấm thế nào; có nên dời tag? | Giả định: giữ tag ở commit bàn giao, ghi trung thực giờ gắn và phần chưa đạt trong `docs/verification/phase-*.md`. | tuancdk |
-| 16 | 2026-11-21 P4 | "Tối đa 3 lệnh" từ clone sạch có tính `git clone` và `cd` không? | Giả định: có — `git clone`, `cd`, `python3 -m chonoi.live --mode day`. | tuancdk |
+| 16 | 2026-11-21 P4 | "Tối đa 3 lệnh" từ clone sạch có tính `git clone` và `cd` không? | Giả định tính cả clone và cd. Kiểm thử trên macOS gặp cổng 8000 đang được dùng. Có thể dùng `python3 -m chonoi.live --mode day --port 0` làm lệnh thứ ba. [Log clone sạch](proof/phase-4/thd050810/clean-clone.txt). | tuancdk |
 | 17 | 2026-11-21 P4 | Zip mã nguồn (`git archive`) kèm hướng dẫn có đủ là "bản đóng gói chạy được", hay cần gói kèm Python/trình chạy? | Giả định: zip mã nguồn đủ; yêu cầu Python 3.10+ ghi trong README và release notes. | tuancdk |
 
 > 2026-11-21 (P2): thử hỏi Anh Năm câu 1–3 trên lab board, trợ giảng trả lời "Anh chưa sẵn sàng cho Phase 2. Giảng viên sẽ mở sớm." → giữ giả định, hỏi lại khi mở.

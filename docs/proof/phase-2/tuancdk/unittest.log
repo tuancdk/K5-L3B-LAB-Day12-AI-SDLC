@@ -1,4 +1,4 @@
-# commit 45da1de · Python 3.12.3 · Windows
+# commit 935446d · Python 3.12.3 · Windows
 # PYTHONPATH=tests:. python3 -m unittest discover -s tests -v
 test_day_plan_ingredients_are_recipe_sums (test_contract_v11.ContractV11.test_day_plan_ingredients_are_recipe_sums) ... ok
 test_gather_starts_with_fish_initial_schools_on_distinct_spawn_points (test_contract_v11.ContractV11.test_gather_starts_with_fish_initial_schools_on_distinct_spawn_points) ... ok
@@ -109,6 +109,6 @@ test_reservations_are_totalled_across_customers (test_validation.Validation.test
 test_stock_validation_uses_inventory_file (test_validation.Validation.test_stock_validation_uses_inventory_file) ... ok
 
 ----------------------------------------------------------------------
-Ran 103 tests in 21.858s
+Ran 103 tests in 19.760s
 
 OK

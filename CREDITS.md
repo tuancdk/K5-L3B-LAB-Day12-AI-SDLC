@@ -5,3 +5,4 @@
 - Cá Sấu Năm Chèo được vẽ bằng Canvas. Nhạc nền và hiệu ứng ngắn được tổng hợp bằng Web Audio trong `chonoi/web/index.html`.
 - Claude Code hỗ trợ lớp giao diện kiểu bếp hỗn loạn: HUD nổi trên sân chơi, phiếu món kẹp dây, thanh nấu và vòng kiên nhẫn trên canvas, hiệu ứng âm thanh theo từng event, nhạc ngũ cung tăng nhịp cuối ca.
 - Lớp cảnh dùng [Phaser 3.80.1](https://phaser.io) (MIT, © Richard Davey, Phaser Studio Inc.), đóng gói tại `chonoi/web/vendor/phaser.min.js` kèm [giấy phép](chonoi/web/vendor/PHASER-LICENSE.md). SHA-256 `62081f6a1b51d040473f919ffedef9009953c20833518e146da5a8d1c9405ea8`, tải từ gói npm `phaser@3.80.1`. Hạt hiệu ứng (tia sáng, giọt nước, giấy màu, khói, đồng xu, đom đóm) được vẽ bằng Canvas lúc chạy, không dùng ảnh ngoài.
+- Mã nguồn của nhóm phát hành theo giấy phép MIT ([`LICENSE`](LICENSE)); Phaser (MIT) và Baloo 2 (OFL 1.1) giữ giấy phép riêng như trên.

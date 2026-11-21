@@ -30,8 +30,12 @@ def load_contract(path=DEFAULT_PATH) -> dict:
     if not isinstance(c, dict):
         raise BadInput("game.contract.json phải là object")
     version = c.get("contract_version")
-    if version not in ("1.1", "1.2"):
-        raise BadInput('contract_version phải là "1.1" hoặc "1.2"')
+    if version not in ("1.1", "1.2", "1.3"):  # 1.3 (P4): thêm bench_cmd/soak_cmd, gameplay như 1.2
+        raise BadInput('contract_version phải là "1.1", "1.2" hoặc "1.3"')
+    if version == "1.3":
+        for key in ("bench_cmd", "soak_cmd"):
+            if not isinstance(c.get(key), str) or not c[key].strip():
+                raise BadInput(f"contract v1.3 cần {key} (chuỗi lệnh) ở gốc game.contract.json")
     extensions = c.get("extensions", [])
     if not isinstance(extensions, list) or any(not isinstance(key, str) for key in extensions):
         raise BadInput("extensions phải là mảng id mở rộng")
@@ -295,10 +299,10 @@ def _validate_freshness(freshness):
 def validate_tuning(t, *, contract_version="1.1"):
     if not isinstance(t, dict):
         raise BadInput("thiếu khối tuning")
-    if contract_version == "1.2":
+    if contract_version in ("1.2", "1.3"):
         _validate_freshness(t.get("freshness"))
     elif "freshness" in t:
-        raise BadInput("tuning.freshness chỉ dùng với contract_version 1.2")
+        raise BadInput("tuning.freshness chỉ dùng với contract_version 1.2 trở lên")
     g, q, menu = t.get("gather"), t.get("quan"), t.get("menu")
     if not isinstance(g, dict) or not isinstance(q, dict) or not isinstance(menu, dict):
         raise BadInput("tuning phải có gather, quan, menu")

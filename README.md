@@ -13,35 +13,39 @@ Cách làm việc kỹ thuật là **tự do** (push thẳng, nhánh + PR, pair,
 4. **Gắn tag** `phase-1` … `phase-4` đúng hạn; chạy được tại từng tag.
 5. **Ghi chép tối thiểu:** `docs/verification/phase-n.md`, `docs/clarify.md`, `docs/ai-usage-log.md`, `docs/retro.md`, `docs/members/<handle>.md`.
 
-## Bắt đầu nhanh
+## Chạy game (từ clone sạch, 3 lệnh — macOS/Linux)
 
 ```bash
-git clone <fork-của-nhóm> && cd <fork-của-nhóm>
-PYTHONPATH=tests:. python3 -m unittest discover -s tests -v        # smoke test
-python3 -m chonoi.live --mode gather                                # chơi thử trên trình duyệt (tùy chọn)
+git clone https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC.git
+cd K5-L3B-LAB-Day12-AI-SDLC
+python3 -m chonoi.live --mode day      # mở địa chỉ in ra (mặc định http://127.0.0.1:8000/)
 ```
 
-Chỉ cần Python 3.10+ (thư viện chuẩn, không `pip install`). Lệnh test (1 lệnh): `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`. Windows không có `python3`: xem [`AGENTS.md`](AGENTS.md#windows-không-có-python3).
-
-**Chơi:** `python3 -m chonoi.live --mode gather` (hoặc `--mode quan`) rồi mở địa chỉ in ra. Nối hai buổi qua file kho:
-
-```bash
-python3 -m chonoi.live --mode gather --inventory-out kho.json   # sáng: lặn, hái, bắt cá rồi cập bến
-python3 -m chonoi.live --mode quan --inventory kho.json         # tối: mở quán bằng hàng vừa mang về
-```
+**Yêu cầu:** Python 3.10+ (chỉ thư viện chuẩn, không `pip install`), trình duyệt hiện đại; cửa sổ chuẩn 1280×720. Windows không có `python3`: xem [`AGENTS.md`](AGENTS.md#windows-không-có-python3). Thêm `--days N` (1–5), `--seed N`, `--port N`; chơi riêng một buổi: `--mode gather` / `--mode quan`.
 
 | Phím | Buổi sáng (`gather`) | Buổi tối (`quan`) |
 |---|---|---|
 | WASD / mũi tên | bơi (S/↓ lặn xuống) | đi lại trong quán |
-| E (`interact`) | hái nút ở mặt nước; trong vùng bến thì cập bến, kết thúc buổi | bếp trống: nấu đơn cũ nhất; bếp xong: bưng món; tại bàn: phục vụ |
+| E (`interact`) | hái nút ở mặt nước; trong vùng bến thì cập bến | bếp trống: nấu đơn cũ nhất; bếp xong: bưng món; tại bàn: phục vụ |
 | Space (`catch`) | bắt đàn cá gần nhất khi ở dưới nước | — |
+| Esc / P | tạm dừng / tiếp tục | tạm dừng / tiếp tục |
+| H | bật/tắt tương phản cao | bật/tắt tương phản cao |
 | R | chơi lại | chơi lại |
 
-**Điểm** = `earned + 100 × floor(uy tín)`: `earned` là tổng tiền thu (giá món + tiền boa), uy tín 0–5 (bắt đầu 3; boa +0.2, khách bỏ về vì hết kiên nhẫn −0.5). Buổi sáng không có tiền; hàng mang về quyết định quán nấu được món gì. Ngất dưới nước (hết Máu do ngạt) thì mất cả giỏ.
+Shop cuối Ngày dùng chuột: mua Bình oxy / Áo phao, bấm xong để sang Ngày kế.
 
-Hợp đồng giữa các module: [`docs/contracts/README.md`](docs/contracts/README.md) · Nhóm: [`TEAM.md`](TEAM.md) · Kế hoạch: [`docs/plan/phase-1.md`](docs/plan/phase-1.md).
+**Điểm** = `earned + 100 × floor(uy tín)`: `earned` là tổng tiền thu (giá món theo độ tươi + tiền boa), uy tín 0–5 (bắt đầu 3; boa +0.2, khách bỏ về vì hết kiên nhẫn −0.5). Tiền, uy tín, cấp nâng cấp giữ qua các Ngày; nguyên liệu hao tươi (giỏ 0.5/s, kho 0.25/s), dưới 30 là ươn.
 
-Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headless --mode gather|quan …`) để được chạy và chấm tự động. **Công nghệ không ràng buộc**: khung Python trong `chonoi/` chỉ là gợi ý, chi tiết ở [`docs/STARTER.md`](docs/STARTER.md).
+### Lệnh cho kiểm thử
+
+| Việc | Lệnh |
+|---|---|
+| Test (1 lệnh) | `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v` |
+| Headless | `python3 -m chonoi.headless --mode gather\|quan\|day [--days N] --seed 1 --ticks 600 --out out.jsonl` |
+| Benchmark (`bench_cmd`) | `python3 -m chonoi.bench --seed 42 --duration 30 --out bench.json` (mở trình duyệt 1280×720) |
+| Soak (`soak_cmd`) | `python3 -m chonoi.soak --seed 7 --days 10 --out soak.json` |
+
+Lệnh khai trong [`game.contract.json`](game.contract.json) (contract **v1.3**). Hợp đồng giữa các module: [`docs/contracts/README.md`](docs/contracts/README.md) · Nhóm: [`TEAM.md`](TEAM.md) · Thay đổi: [`CHANGELOG.md`](CHANGELOG.md) · Bản phát hành: [`docs/release/v1.0.0.md`](docs/release/v1.0.0.md) · Giấy phép: [`LICENSE`](LICENSE), [`CREDITS.md`](CREDITS.md). Khung Python trong `chonoi/` chi tiết ở [`docs/STARTER.md`](docs/STARTER.md).
 
 ## Tự do sáng tạo
 

@@ -1,0 +1,68 @@
+{
+  "days": 10,
+  "days_completed": 10,
+  "crashes": 0,
+  "results": [
+    {
+      "day": 1,
+      "earned": 264,
+      "reputation": 3.8,
+      "score": 564
+    },
+    {
+      "day": 2,
+      "earned": 624,
+      "reputation": 4.4,
+      "score": 1024
+    },
+    {
+      "day": 3,
+      "earned": 948,
+      "reputation": 5,
+      "score": 1448
+    },
+    {
+      "day": 4,
+      "earned": 1020,
+      "reputation": 5,
+      "score": 1520
+    },
+    {
+      "day": 5,
+      "earned": 1236,
+      "reputation": 5,
+      "score": 1736
+    },
+    {
+      "day": 6,
+      "earned": 1500,
+      "reputation": 5,
+      "score": 2000
+    },
+    {
+      "day": 7,
+      "earned": 1788,
+      "reputation": 5,
+      "score": 2288
+    },
+    {
+      "day": 8,
+      "earned": 1788,
+      "reputation": 5,
+      "score": 2288
+    },
+    {
+      "day": 9,
+      "earned": 1932,
+      "reputation": 5,
+      "score": 2432
+    },
+    {
+      "day": 10,
+      "earned": 2292,
+      "reputation": 5,
+      "score": 2792
+    }
+  ],
+  "duration_s": 3.215
+}

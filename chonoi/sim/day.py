@@ -28,11 +28,15 @@ except ImportError:  # pragma: no cover - phụ thuộc tiến độ #8
     ShopSim = None
 
 
-def day_plan_for(tuning, scenario_day, day):
-    """Kế hoạch Ngày `day`: preset, bị `scenario.day.day_plan` ghi đè theo số Ngày. ingredients tính lại."""
-    plan = next((p for p in tuning["day_plan"] if p["day"] == day), None)
+def day_plan_for(tuning, scenario_day, day, *, cycle=False):
+    """Kế hoạch Ngày `day`: preset, bị `scenario.day.day_plan` ghi đè theo số Ngày. ingredients tính lại.
+    Khi `cycle=True` (dùng cho soak > 5 Ngày): lặp lại D1–D5 theo `((day - 1) % len) + 1`.
+    """
+    n_plans = len(tuning["day_plan"])
+    plan_day = ((day - 1) % n_plans) + 1 if cycle and n_plans > 0 else day
+    plan = next((p for p in tuning["day_plan"] if p["day"] == plan_day), None)
     for p in (scenario_day or {}).get("day_plan", []):
-        if p["day"] == day:
+        if p["day"] == day or (cycle and p["day"] == plan_day):
             plan = {"day": day, "dishes": dict(p["dishes"])}
     if plan is None:
         raise BadInput(f"thiếu day_plan cho Ngày {day}")
@@ -116,9 +120,14 @@ class BasicShop:
 class DaySim:
     mode = "day"
 
-    def __init__(self, tuning, scenario, streams, ids, days=1):
-        if not (isinstance(days, int) and 1 <= days <= len(tuning["day_plan"])):
-            raise BadInput("--days phải trong [1, 5]")
+    def __init__(self, tuning, scenario, streams, ids, days=1, allow_extended_days=False):
+        if allow_extended_days:
+            if isinstance(days, bool) or not isinstance(days, int) or days < 1:
+                raise BadInput("--days phải là số nguyên >= 1")
+        else:
+            if isinstance(days, bool) or not isinstance(days, int) or not (1 <= days <= len(tuning["day_plan"])):
+                raise BadInput("--days phải trong [1, 5]")
+        self.allow_extended_days = bool(allow_extended_days)
         self.tuning, self.scenario, self.rng, self.ids = tuning, scenario, streams, ids
         sd = scenario.get("day", {})
         self.days = days
@@ -192,7 +201,7 @@ class DaySim:
     def _start_day(self, out):
         self.day += 1
         self.active_upgrades = dict(self.upgrades)
-        self.plan = day_plan_for(self.tuning, self.scenario.get("day"), self.day)
+        self.plan = day_plan_for(self.tuning, self.scenario.get("day"), self.day, cycle=self.allow_extended_days)
         self.t_day = effective_tuning(self.tuning, self.day, self.plan, self.active_upgrades)
         self.sim = _build(GatherSim, self.t_day, deepcopy(self.scenario.get("gather", {})), self.rng, self.ids,
                           day_ctx=self._ctx())

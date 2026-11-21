@@ -26,5 +26,5 @@ Lần clone sạch trước ([release/clean-clone.txt](../release/clean-clone.tx
 
 - **Lỗi của mình khi chạy:** lần đầu chạy bước 3 và 5 thiếu `--ticks` nên `headless` trả mã 2 vì thiếu cờ bắt buộc. Kết quả đó không chứng minh được gì về `--days 6`. Mình đã chạy lại với đủ cờ, và bảng trên là kết quả lần chạy lại.
 - **Chưa chạy `bench_cmd`:** lệnh này mở trình duyệt và đo 30 s nên không chạy được trong phiên kiểm tra này. Số đo bench vẫn là của Hie24 ([hie24/README.md](../hie24/README.md)).
-- **Chưa chơi tay giao diện** sau khi clone, mới kiểm tra server trả trang. Bằng chứng giao diện xem [ui/README.md](../ui/README.md) và [UI Phase 3](../../ui/phase-3/README.md).
+- **Chưa chơi tay giao diện** sau khi clone, mới kiểm tra server trả trang. Bằng chứng giao diện xem [ui/README.md](../ui/README.md) và [UI Phase 3](../../ui/phase-3/README.md). *Cập nhật 14:50:* đã chơi tay Ngày 1 trên `main` và quay video, nhưng video chưa tới Shop. Xem [demo.md](demo.md).
 - README ghi 3 lệnh cho macOS/Linux. Trên Windows, 3 lệnh đó chỉ chạy được khi có `python3` trong PATH. Nếu không có, xem mục Windows trong `AGENTS.md`.

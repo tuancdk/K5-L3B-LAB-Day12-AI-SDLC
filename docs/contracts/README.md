@@ -139,6 +139,8 @@ ShopSim(tuning, streams, ids, money, upgrades, day_ctx)            # #8; upgrade
 | quan (#7) | `day_plan.dishes`: lọc menu theo id món trong kế hoạch **trước** khi lọc nguyên liệu khả dụng; `None` → dùng cả 6 món |
 | shop (#8) | `money`, `upgrades` vào; ra thuộc tính `money`, `upgrades`, `done`, `reason` (`done`/`time`); `step(inp)` trả event `bought/buy_failed/shop_end` |
 
+**Đã làm sẵn ở `day.py` (#12)**: mỗi Ngày `day.py` truyền cho sim một *tuning hiệu lực* — `gather.oxygen_max_s`/`hp_max` theo `active_upgrades`, `gather.monsters.spawns` đã lọc `from_day ≤ day`, `menu` chỉ còn món trong kế hoạch. Vì vậy sim **không bắt buộc** đọc `day_ctx`; `day_ctx` chỉ được truyền khi `__init__` của sim có tham số đó (dùng cho HUD/điều kiện riêng). Shop: `day.py` dùng `chonoi.sim.shop.ShopSim` nếu có, nếu chưa có thì dùng `BasicShop` tối thiểu trong `day.py` (#8 thay thế).
+
 Mọi sim giữ giao diện runner hiện có: thuộc tính `mode, phase, done, reason, time_left_ticks, money, earned, reputation`, `snapshot()`, `step(inp) -> [(name, data)]`. `day.py` gán `money/earned/reputation` của pha trước vào sim mới **ngay sau khi dựng**; sim không reset lại sau đó. Gather thêm `inventory_items()` (đã có).
 
 ### 6.5 Output v1.1

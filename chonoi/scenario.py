@@ -40,6 +40,8 @@ def load_scenario(path, mode: str, tuning: dict) -> dict:
             data = json.load(f)
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được scenario {path}: {e}")
+    if mode == "day":
+        return _load_day(data, tuning)
     if not isinstance(data, dict) or not set(data) <= {"gather", "quan"}:
         raise BadInput("scenario chỉ được có khối 'gather' hoặc 'quan'")
     if set(data) - {mode}:
@@ -51,16 +53,82 @@ def load_scenario(path, mode: str, tuning: dict) -> dict:
     extra = set(block) - allowed
     if extra:
         raise BadInput(f"trường lạ/chưa hỗ trợ trong {mode}: {sorted(extra)}")
+    _validate_block(block, mode, tuning)
+    return block
+
+
+DAY_KEYS = {"money", "earned", "reputation", "upgrades", "day_plan"}
+
+
+def _load_day(data, tuning):
+    """v1.1 mục 4.3: khối day + gather/quan làm mẫu khởi tạo mỗi Ngày."""
+    if not isinstance(data, dict) or not set(data) <= {"day", "gather", "quan"}:
+        raise BadInput("scenario của day chỉ có khối 'day', 'gather', 'quan'")
+    for mode in ("gather", "quan"):
+        block = data.get(mode, {})
+        if not isinstance(block, dict):
+            raise BadInput(f"khối {mode} phải là object")
+        if mode == "quan" and {"stock", "reputation"} & set(block):
+            raise BadInput("chạy day cấm quan.stock và quan.reputation (dùng gather.hold / day.reputation)")
+        _validate_block(block, mode, tuning)
+    d = data.get("day", {})
+    if not isinstance(d, dict) or set(d) - DAY_KEYS:
+        raise BadInput(f"khối day chỉ có {sorted(DAY_KEYS)}")
+    for key in ("money", "earned"):
+        if key in d:
+            _nonneg_int(f"day.{key}", d[key])
+    if d.get("money", 0) > d.get("earned", 0):
+        raise BadInput("day: cần 0 <= money <= earned")
+    q = tuning["quan"]
+    if "reputation" in d and not (_num(d["reputation"]) and q["reputation_min"] <= d["reputation"] <= q["reputation_max"]):
+        raise BadInput("day.reputation ngoài [reputation_min, reputation_max]")
+    ups = d.get("upgrades", {})
+    if not isinstance(ups, dict):
+        raise BadInput("day.upgrades phải là object")
+    for k, v in ups.items():
+        levels = tuning["shop"]["upgrades"].get(k)
+        if levels is None:
+            raise BadInput(f"day.upgrades: nâng cấp lạ {k}")
+        if isinstance(v, bool) or not isinstance(v, int) or not 0 <= v <= len(levels):
+            raise BadInput(f"day.upgrades.{k} phải trong [0, {len(levels)}]")
+    plans = d.get("day_plan", [])
+    if not isinstance(plans, list):
+        raise BadInput("day.day_plan phải là mảng")
+    seen = set()
+    for p in plans:
+        if not isinstance(p, dict) or not isinstance(p.get("day"), int) or not 1 <= p["day"] <= len(tuning["day_plan"]):
+            raise BadInput("day.day_plan: mỗi mục cần day trong [1, 5]")
+        if p["day"] in seen:
+            raise BadInput(f"day.day_plan: trùng Ngày {p['day']}")
+        seen.add(p["day"])
+        dishes = p.get("dishes")
+        if not isinstance(dishes, dict) or not dishes or any(
+                k not in tuning["menu"] or isinstance(v, bool) or not isinstance(v, int) or v <= 0
+                for k, v in dishes.items()):
+            raise BadInput(f"day.day_plan[{p['day']}].dishes phải là map món -> số nguyên dương")
+        want = {}
+        for dish, n in dishes.items():
+            for kind, amount in tuning["menu"][dish]["recipe"].items():
+                want[kind] = want.get(kind, 0) + amount * n
+        if "ingredients" in p and p["ingredients"] != want:
+            raise BadInput(f"day.day_plan[{p['day']}].ingredients khác tổng công thức")
+    return data
+
+
+def _validate_block(block, mode, tuning):
     dur = int(round(tuning[mode]["duration_s"] * 60))
     if "time_left_ticks" in block:
         t = block["time_left_ticks"]
         if isinstance(t, bool) or not isinstance(t, int) or not (1 <= t <= dur):
             raise BadInput(f"time_left_ticks phải là số nguyên trong [1, {dur}]")
+    allowed = GATHER_KEYS if mode == "gather" else QUAN_KEYS
+    extra = set(block) - allowed
+    if extra:
+        raise BadInput(f"trường lạ/chưa hỗ trợ trong {mode}: {sorted(extra)}")
     if mode == "gather":
         _validate_gather(block, tuning)
     else:
         _validate_quan(block, tuning)
-    return block
 
 
 def _num(v):

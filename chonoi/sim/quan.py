@@ -328,7 +328,9 @@ class QuanSim:
                                   "base_price": c["base_price"], "tip": c["tip"]}))
 
     def _change_reputation(self, delta):
-        self.reputation = max(self.t["reputation_min"], min(self.t["reputation_max"], self.reputation + delta))
+        # Làm tròn 9 số để cộng dồn float không lệch floor (0 + 10×0.2 = 1.9999999999999998 → mất 100 điểm).
+        value = round(self.reputation + delta, 9)
+        self.reputation = max(self.t["reputation_min"], min(self.t["reputation_max"], value))
 
     def _pay(self, customer, reason, events):
         amount = customer["base_price"] + customer["tip"]

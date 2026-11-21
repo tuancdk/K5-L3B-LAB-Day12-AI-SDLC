@@ -1,0 +1,6 @@
+# Soak trên clone sạch tag phase-4, chạy 2 lần cùng seed
+$ python3 -m chonoi.soak --seed 7 --days 10 --out s1.json   -> exit 0
+$ python3 -m chonoi.soak --seed 7 --days 10 --out s2.json   -> exit 0
+So s1 với s2 sau khi bỏ duration_s: giống nhau = True
+days=10 days_completed=10 crashes=0
+results[-1] = {"day": 10, "earned": 1861, "reputation": 5, "score": 2361}

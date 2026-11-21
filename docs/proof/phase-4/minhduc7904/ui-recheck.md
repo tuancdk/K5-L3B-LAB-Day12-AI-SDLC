@@ -8,7 +8,7 @@ Ngày 21/11/2026, 14:28 (giờ VN). Chạy trên `main` `c4392a3`, gồm tag `v1
 
 ## Nguyên nhân
 
-Lỗi nằm ở script kiểm tra, không phải ở game. Từ Phase 2, quán có thêm khách ngẫu nhiên. Khách C1 xếp trước K1 khi sắp theo id, nhưng script cũ lại chờ `customers[0]` sang `eating`. Commit [`a238425`](https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC-1111/commit/a238425) (#22, tuancdk) đã sửa thành chờ đúng khách K1 ([browser-check.py:420-421](../../ui/browser-check.py)). Tuấn cũng đã ghi nguyên nhân này trong comment đóng #22, nhưng hai ghi chú nói trên chưa được cập nhật theo.
+Lỗi nằm ở script kiểm tra, không phải ở game. Từ Phase 2, quán có thêm khách ngẫu nhiên. Khách C1 xếp trước K1 khi sắp theo id, nhưng script cũ lại chờ `customers[0]` sang `eating`. Commit [`a238425`](https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC-1111/commit/a238425) (#22, tuancdk) đã sửa thành chờ đúng khách K1 ([browser-check.py:420-421](../../ui/browser-check.py)). Tuấn cũng đã ghi nguyên nhân này trong comment đóng #22. Sau đó (PR #53) Tuấn chạy lại và ghi "không còn tái hiện, nhiều khả năng do PR #44". Theo `git log -S`, thay đổi quyết định là ở script trong `a238425`.
 
 ## Kết quả
 

@@ -1,6 +1,6 @@
 # Phase 4: kiểm tra clone sạch và regression trên Windows (Minhduc7904)
 
-Thuộc [issue #33](https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC/issues/33), làm cùng QA lead thd050810. Ngày 21/11/2026, 14:15–14:25 (giờ VN).
+Thuộc [issue #33](https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC-1111/issues/33), làm cùng QA lead thd050810. Ngày 21/11/2026, 14:15–14:25 (giờ VN).
 
 Lần clone sạch trước ([release/clean-clone.txt](../release/clean-clone.txt)) chạy trên nhánh tạm `b0e2643`. Lần này kiểm tra lại đúng **tag `v1.0.0` đã phát hành** (`9cd42fc`, trùng `phase-4`), clone từ GitHub vào một thư mục trống, theo các lệnh trong README.
 

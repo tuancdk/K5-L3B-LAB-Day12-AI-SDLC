@@ -1,0 +1,5 @@
+{
+  "quan": {
+    "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "state": "eating", "order_status": "unfulfillable", "eat_ticks_left": 1, "base_price": 60, "tip": 0}]
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "quan": {
+    "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui"}],
+    "stock": {}
+  }
+}

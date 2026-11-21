@@ -6,13 +6,16 @@ Mã thoát: 0 bình thường; 2 tham số/đầu vào sai (kiểm TRƯỚC khi 
 import argparse
 import os
 import sys
+import tempfile
+from contextlib import contextmanager
 
 from .contract import load_contract
 from .errors import BadInput
 from .inputs import load_frames
-from .inventory import read_inventory
+from .inventory import is_item_schema, items_to_counts, read_inventory, read_inventory_for
+from .items import ItemLedger, scenario_items
 from .runner import run
-from .scenario import load_scenario
+from .scenario import load_scenario, read_scenario_json
 
 
 class _Parser(argparse.ArgumentParser):
@@ -31,6 +34,18 @@ def _int(name):
     return conv
 
 
+@contextmanager
+def _output_path(mode, path):
+    if mode != "day":
+        yield path
+        return
+    # Một fixture có thể mâu thuẫn khi quán nhận kho cuối buổi sáng.
+    with tempfile.TemporaryDirectory(dir=os.path.dirname(os.path.abspath(path))) as folder:
+        staged = os.path.join(folder, "day.jsonl")
+        yield staged
+        os.replace(staged, path)
+
+
 def main(argv=None) -> int:
     p = _Parser(prog="chonoi.headless")
     p.add_argument("--mode", required=True, choices=["gather", "quan", "day"])  # `day` có từ v1.1
@@ -42,10 +57,16 @@ def main(argv=None) -> int:
     p.add_argument("--inventory")
     p.add_argument("--inventory-out", dest="inventory_out")
     p.add_argument("--snapshot-every", dest="snapshot_every", type=_int("snapshot-every"), default=10)
+    p.add_argument("--days", type=_int("days"))
     a = p.parse_args(argv)
     try:
-        if a.mode == "day":
-            raise BadInput("--mode day chưa hỗ trợ ở contract v1.0 (có từ v1.1)")
+        if a.days is not None and a.mode != "day":
+            raise BadInput("--days chỉ dùng với day")
+        days = 1 if a.days is None else a.days
+        if not 1 <= days <= 5:
+            raise BadInput("--days phải trong [1, 5]")
+        if a.mode == "day" and (a.inventory or a.inventory_out):
+            raise BadInput("day chuyển kho trong bộ nhớ, không nhận --inventory/--inventory-out")
         if a.ticks < 0:
             raise BadInput("--ticks phải >= 0")
         if a.snapshot_every <= 0:
@@ -61,17 +82,30 @@ def main(argv=None) -> int:
             raise BadInput("các đường dẫn đầu vào/đầu ra phải khác nhau")
         contract = load_contract()
         tuning = contract["tuning"]
-        scenario = load_scenario(a.scenario, a.mode, tuning)
+        ledger = None
+        if is_item_schema(contract.get("contract_version", "1.0")):
+            # v1.2: kho cá thể; luật hiện còn dạng loại -> đổi ở biên, adapter dựng lại cá thể ở đầu ra
+            inv_items = read_inventory_for(a.inventory, contract["contract_version"]) if a.inventory else None
+            inventory = items_to_counts(inv_items) if inv_items is not None else None
+            raw = read_scenario_json(a.scenario) if a.scenario else None
+            raw, g_items, q_items = scenario_items(raw, a.mode)
+            if inv_items is not None:
+                q_items = inv_items
+            ledger = ItemLedger(a.mode, tuning["freshness"]["initial"], g_items, q_items)
+            scenario = load_scenario(a.scenario, a.mode, tuning, inventory=inventory,
+                                     extensions=contract.get("extensions", []), data=raw)
+        else:
+            inventory = read_inventory(a.inventory) if a.inventory else None
+            scenario = load_scenario(a.scenario, a.mode, tuning, inventory=inventory,
+                                     extensions=contract.get("extensions", []))
         frames = load_frames(a.inputs)
-        inventory = read_inventory(a.inventory) if a.inventory else None
-        if inventory is not None and "stock" in scenario:
-            raise BadInput("vừa có quan.stock vừa có --inventory")
     except BadInput as e:
         sys.stderr.write(f"đầu vào sai: {e}\n")
         return 2
     try:
-        run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
-            inventory=inventory, inventory_out=a.inventory_out)
+        with _output_path(a.mode, a.out) as out:
+            run(a.mode, tuning, scenario, a.seed, frames, a.ticks, out, a.snapshot_every,
+                inventory=inventory, inventory_out=a.inventory_out, days=days, ledger=ledger)
     except BadInput as e:  # lỗi mức luật phát hiện lúc dựng sim
         sys.stderr.write(f"đầu vào sai: {e}\n")
         return 2

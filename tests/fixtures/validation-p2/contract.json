@@ -1,0 +1,16 @@
+{
+  "wrong_version": ["contract_version", "1.0"],
+  "wrong_menu_count": ["tuning.menu", {}],
+  "wrong_ingredient": ["tuning.menu.ca_keo_nuong.recipe", {"unknown": 2}],
+  "wrong_day_count": ["tuning.day_plan", []],
+  "wrong_plan_ingredients": ["tuning.day_plan.0.ingredients", {"ca_loc": 3}],
+  "wrong_shop_level": ["tuning.shop.upgrades.oxygen.1.level", 1],
+  "wrong_shop_price": ["tuning.shop.upgrades.hp.0.price", 0],
+  "missing_fish_weight": ["tuning.gather.fish_weights", {"ca_linh": 1, "ca_loc": 1}],
+  "missing_fish_yield": ["tuning.gather.fish_yield", {"ca_linh": 1, "ca_loc": 1}],
+  "zero_fish_weight": ["tuning.gather.fish_weights.ca_keo", 0],
+  "fish_weight_total_overflow": ["tuning.gather.fish_weights", {"ca_keo": 1e308, "ca_linh": 1e308, "ca_loc": 1e308}],
+  "fish_spawn_outside_map": ["tuning.gather.fish_spawn_x", [999]],
+  "missing_monster_species": ["tuning.gather.monsters.species", null],
+  "bad_monster_depth_range": ["tuning.gather.monsters.species.ca_sau.depths", [30, 10]]
+}

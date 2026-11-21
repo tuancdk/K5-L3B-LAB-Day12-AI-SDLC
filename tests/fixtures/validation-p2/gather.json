@@ -1,0 +1,19 @@
+{
+  "negative_invulnerability": {"player": {"invuln_ticks": -1}},
+  "attack_without_extension": {"player": {"attack_cd_ticks": 0}},
+  "ca_ho_without_extension": {"ca_ho": []},
+  "random_ho_without_extension": {"random_ho": false},
+  "fish_negative_age": {"fish": [{"id": "F1", "kind": "ca_keo", "pos": [20, 22], "age_ticks": -1}]},
+  "fish_unknown_kind": {"fish": [{"id": "F1", "kind": "unknown", "pos": [20, 22]}]},
+  "fish_wrong_depth": {"fish": [{"id": "F1", "kind": "ca_keo", "pos": [20, 5]}]},
+  "duplicate_monster_id": {"monsters": [{"id": "M1"}, {"id": "M1"}]},
+  "monster_unknown_species": {"monsters": [{"id": "M1", "kind": "unknown", "pos": [20, 15], "waypoints": [[20, 15], [21, 15]]}]},
+  "monster_position_outside_species_depth": {"monsters": [{"id": "M1", "kind": "ca_sau", "pos": [20, 5], "waypoints": [[20, 15], [21, 15]]}]},
+  "monster_waypoint_outside_species_depth": {"monsters": [{"id": "M1", "kind": "ca_sau", "pos": [20, 15], "waypoints": [[20, 15], [21, 5]]}]},
+  "monster_waypoint_count": {"monsters": [{"id": "M1", "kind": "ca_sau", "pos": [20, 15], "waypoints": [[20, 15]]}]},
+  "monster_target": {"monsters": [{"id": "M1", "kind": "ca_sau", "pos": [20, 15], "waypoints": [[20, 15], [21, 15]], "target_idx": 2}]},
+  "monster_state": {"monsters": [{"id": "M1", "kind": "ca_sau", "pos": [20, 15], "waypoints": [[20, 15], [21, 15]], "state": "unknown"}]},
+  "monster_recoil_timer": {"monsters": [{"id": "M1", "kind": "ca_sau", "pos": [20, 15], "waypoints": [[20, 15], [21, 15]], "state": "recoil", "recoil_dir": [1, 0]}]},
+  "monster_stunned_timer": {"monsters": [{"id": "M1", "kind": "ca_sau", "pos": [20, 15], "waypoints": [[20, 15], [21, 15]], "state": "stunned", "state_ticks_left": 0}]},
+  "monster_recoil_vector": {"monsters": [{"id": "M1", "kind": "ca_sau", "pos": [20, 15], "waypoints": [[20, 15], [21, 15]], "state": "recoil", "state_ticks_left": 1, "recoil_dir": [1, 1]}]}
+}

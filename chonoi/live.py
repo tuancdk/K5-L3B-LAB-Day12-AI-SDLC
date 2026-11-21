@@ -278,13 +278,8 @@ def main(argv=None) -> int:
         if a.mode == "day" and (contract["contract_version"] == "1.0" or "days" not in signature(Session).parameters):
             raise BadInput("Chế độ day đang chờ runner và contract v1.1 (#12)")
         inventory = read_inventory(a.inventory) if a.inventory else None
-        if "inventory" in signature(load_scenario).parameters:
-            # Validation Phase 1 mới kiểm luôn xung đột kho và nguyên liệu giữ chỗ.
-            scenario = load_scenario(a.scenario, a.mode, tuning, inventory=inventory)
-        else:
-            scenario = load_scenario(a.scenario, a.mode, tuning)
-            if inventory is not None and "stock" in scenario:
-                raise BadInput("vừa có quan.stock vừa có --inventory")
+        scenario = load_scenario(a.scenario, a.mode, tuning, inventory=inventory,
+                                 extensions=contract.get("extensions", []))
         game = LiveGame(a.mode, tuning, scenario, a.seed, inventory, a.inventory_out,
                         days=a.days, contract_version=contract["contract_version"])
         server = LiveServer(game, a.host, a.port)

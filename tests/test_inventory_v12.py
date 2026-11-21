@@ -4,7 +4,7 @@ import json
 import os
 import unittest
 
-from helpers import Workdir, events, frames, items, read_jsonl, run_headless, snapshots, write_json
+from helpers import Workdir, assert_items_close, decayed, events, frames, items, read_jsonl, run_headless, snapshots, write_json
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -82,12 +82,13 @@ class SmokeHandover(unittest.TestCase):
             with open(inv, encoding="utf-8") as f:
                 saved = json.load(f)
             end = events(read_jsonl(w.path("g.jsonl")), "gather_end")[0]["data"]
-            self.assertEqual(end["inventory"], saved)
+            assert_items_close(self, end["inventory"]["items"], saved["items"])
+            self.assertAlmostEqual(saved["items"][0]["fresh"], 100 - 0.5 / 60, places=9)  # hao 1 bước, đủ chính xác
             self.assertEqual([(it["id"], it["kind"]) for it in saved["items"]], [("I1", "ca_linh")])
             code, err = run_headless("--mode", "quan", "--seed", "42", "--inventory", inv, "--ticks", "0",
                                      "--out", w.path("q.jsonl"))
             self.assertEqual(code, 0, err)
-            self.assertEqual(snapshots(read_jsonl(w.path("q.jsonl")))[0]["stock"], saved["items"])
+            assert_items_close(self, snapshots(read_jsonl(w.path("q.jsonl")))[0]["stock"], saved["items"])
 
     def test_new_items_continue_ids_after_fixture_in_hold_order(self):
         sc_doc = {"gather": {"hold": [{"id": "I7", "kind": "bong_sung", "fresh": 80}],
@@ -118,7 +119,8 @@ class DayHandover(unittest.TestCase):
             self.assertEqual(code, 0, err)
             rows = read_jsonl(w.path("d.jsonl"))
         s = {r["tick"]: r for r in snapshots(rows)}
-        self.assertEqual((s[1]["phase"], s[1]["stock"]), ("quan", items("ca_loc", "bong_sung", "bong_sung")))
+        self.assertEqual(s[1]["phase"], "quan")
+        assert_items_close(self, s[1]["stock"], items("ca_loc", "bong_sung", "bong_sung", fresh=decayed(1)))
         day2 = [r for r in snapshots(rows) if r["day"] == 2 and r["phase"] == "gather"]
         self.assertTrue(day2)
         self.assertEqual([it["id"] for it in day2[0]["hold"]], ["I4", "I5", "I6"])

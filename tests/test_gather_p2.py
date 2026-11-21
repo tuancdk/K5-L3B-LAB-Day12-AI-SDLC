@@ -16,6 +16,7 @@ from helpers import Workdir, events, read_jsonl, run_headless, snapshots
 
 def make_session(scenario=None, seed=1, tuning=None):
     t = deepcopy(load_contract()["tuning"]) if tuning is None else deepcopy(tuning)
+    t.pop("freshness", None)  # luật P1/P2 với giỏ dạng kind; giỏ cá thể v1.2 kiểm ở test_gather_p3
     return Session("gather", t, deepcopy(scenario or {}), seed)
 
 

@@ -30,7 +30,7 @@ def _to_fraction(value) -> Fraction:
 def _export_fresh(value: Fraction):
     if value.denominator == 1:
         return int(value)
-    return round(float(value), 4)
+    return float(value)  # float ngắn nhất đọc lại đúng; file kho giữ đủ chính xác (#18), JSONL tự làm tròn 3 số
 
 
 def _reflect_axis(pos: float, delta: float, lo: float, hi: float):

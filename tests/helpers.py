@@ -82,3 +82,15 @@ def item_counts(arr):
     for it in arr:
         out[it["kind"]] = out.get(it["kind"], 0) + 1
     return out
+
+
+def assert_items_close(tc, got, want, tol=0.01):
+    """So mảng cá thể: id/kind chính xác, fresh trong dung sai quan sát (TICKET-03: ±0.01)."""
+    tc.assertEqual([(it["id"], it["kind"]) for it in got], [(it["id"], it["kind"]) for it in want])
+    for g, w in zip(got, want):
+        tc.assertAlmostEqual(g["fresh"], w["fresh"], delta=tol, msg=g["id"])
+
+
+def decayed(n_steps, per_s=0.5, start=100):
+    """Độ tươi sau n bước hao (giỏ 0.5/s, kho quán 0.25/s), 60 tick/s."""
+    return start - per_s * n_steps / 60

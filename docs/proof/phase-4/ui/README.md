@@ -55,3 +55,4 @@ Script cần Chrome và gói `websockets`. Nó:
 - `browser-check.py --day-fixture` và `--day-live` (một Ngày thật, từ menu tới tổng kết): đạt.
 - `phaser-check.py`: đạt.
 - `browser-check.py` với server thật: buổi sáng đạt. Chạy riêng `--mode quan` vẫn timeout ở dòng 415 (giao món xong khách không sang `eating`), giống hệt trước thay đổi này. Lỗi đã có từ khi gộp sim quán mới, chưa điều tra.
+  - **Cập nhật 21/11/2026, 14:30 (Minhduc7904):** lỗi nằm ở script, không phải ở game. Từ Phase 2, quán có khách ngẫu nhiên (C1) xếp trước K1 theo id, nhưng script lại chờ `customers[0]` sang `eating`. Commit [`a238425`](https://github.com/tuancdk/K5-L3B-LAB-Day12-AI-SDLC/commit/a238425) (#22) đã sửa để script tìm đúng khách K1. Chạy lại `browser-check.py` (server thật, gather + quan) trên `main` `c4392a3`: **3/3 lần đạt**, quan 484–500 frame. `--day-fixture` cũng đạt. Bằng chứng: [minhduc7904/ui-recheck.md](../minhduc7904/ui-recheck.md).
